@@ -191,6 +191,8 @@ const settingsTabs = () => [
     { key: 'lang', label: t('settings.row.lang.label'), type: 'select', options: LANGUAGES.map((l) => [l.id, l.label]), help: t('settings.row.lang.help') },
   ] },
   { id: 'controls', label: t('settings.tab.controls'), icon: 'gamepad', rows: [
+    // phones / tablets only (src/ui/touch.js): AUTO fires while an enemy is under the crosshair (src/game/player.js)
+    ...(IS_TOUCH ? [{ key: 'touchFire', label: 'Firing mode', type: 'seg', options: [['auto', 'Auto'], ['manual', 'Manual']], help: 'Auto: you shoot by yourself whenever an enemy is in your sights. Manual: hold SHOOT to fire. The SHOOT button works in both.' }] : []),
     { key: 'sensitivity', label: t('settings.row.sensitivity.label'), type: 'slider', min: 0.2, max: 3, step: 0.05, fmt: (v) => v.toFixed(2) + '×', help: t('settings.row.sensitivity.help') },
     { key: 'padSensitivity', label: t('settings.row.padSensitivity.label'), type: 'slider', min: 0.2, max: 3, step: 0.05, fmt: (v) => v.toFixed(2) + '×', help: t('settings.row.padSensitivity.help') },
     { key: 'invertY', label: t('settings.row.invertY.label'), type: 'toggle', help: t('settings.row.invertY.help') },

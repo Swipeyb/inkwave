@@ -52,7 +52,9 @@ export class PlayerController {
     const usingTouch = inp.lastDevice === 'touch';
     const usingPad = (!!inp.pad && inp.lastDevice === 'pad') || usingTouch;   // touch aims like a stick: full aim assist
     // ---- aim assist target (computed from last frame's camera; cheap)
-    const as = this._assistTarget(usingPad ? (s.aimAssist ?? 1) : (s.aimAssistMouse ? 0.5 : 0));
+    // touch AUTO fire (src/ui/touch.js toggle) needs the "enemy in my sights" check even with aim assist turned off
+    const autoFire = usingTouch && s.touchFire !== 'manual';
+    const as = this._assistTarget(usingPad ? ((s.aimAssist ?? 1) || (autoFire ? 0.001 : 0)) : (s.aimAssistMouse ? 0.5 : 0));
     // ---- look
     const inv = s.invertY ? -1 : 1;
     const friction = as ? lerp(1, 0.58, as.closeness * as.strength) : 1;
@@ -125,6 +127,12 @@ export class PlayerController {
     it.jump = inp.down('Space') || inp.padButton(0);
     it.squid = inp.down('ShiftLeft') || inp.down('ShiftRight') || inp.padValue(6) > 0.3;
     it.fire = inp.mouse.left || inp.padValue(7) > 0.3;
+    // AUTO fire: shoot while an enemy sits under the crosshair (in range, in sight), plus a short hold so a target
+    // flickering at the cone's edge doesn't stutter the stream. Never while swimming (it would pop you out of goo).
+    if (autoFire) {
+      if (as && as.closeness > 0.15) this._autoT = 0.22; else this._autoT = Math.max(0, (this._autoT || 0) - dt);
+      if (this._autoT > 0 && !it.squid) it.fire = true;
+    } else this._autoT = 0;
     it.sub = inp.mouse.right || inp.down('KeyE') || inp.padButton(5);
     it.special = inp.down('KeyF') || inp.down('KeyQ') || inp.padButton(3) || inp.padButton(11);
     this.mapHeld = inp.down('Tab') || inp.down('KeyM') || inp.padButton(8);

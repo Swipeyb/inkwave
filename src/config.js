@@ -569,6 +569,7 @@ export const DEFAULT_SETTINGS = {
   invertY: false,
   fov: 82,                  // horizontal FOV at 16:9, 65..100
   quality: 'high',          // 'low' | 'medium' | 'high' | 'ultra'
+  touchFire: 'auto',        // phones: 'auto' (fire while an enemy is in your sights) | 'manual' (hold SHOOT)
   shadows: true,
   bloom: true,
   cameraShake: 1.0,         // 0..1
