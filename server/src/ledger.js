@@ -70,8 +70,19 @@ export class PrizeLedger {
   async holds(wallet) {
     const cfg = this.cfg, need = await this.minHolding();
     if (!cfg.mint || !(need > 0)) return { ok: true, checked: false };
-    let amount = 0;
-    try { amount = await getTokenHolding(cfg.rpcUrl, wallet, cfg.mint, this.fetchFn); } catch (e) { return { ok: false, error: 'could not check the holding: ' + (e.message || e) }; }
+    // a rush of holder joins must not hammer the RPC (free plans allow ~10 requests/s): remember each wallet's balance
+    // for 2 minutes (a failed check isn't cached), and retry a rate-limited / failed call twice with a short back-off
+    const cache = this._holdCache || (this._holdCache = new Map()), now = Date.now();
+    const hit = cache.get(wallet);
+    if (hit && now - hit.t < 120000) return { ok: hit.amount >= need, amount: hit.amount, need, checked: true, cached: true };
+    let amount = 0, err = null;
+    for (let i = 0; i < 3; i++) {
+      try { amount = await getTokenHolding(cfg.rpcUrl, wallet, cfg.mint, this.fetchFn); err = null; break; }
+      catch (e) { err = e; if (i < 2) await new Promise((r) => setTimeout(r, 350 * (i + 1) + Math.random() * 250)); }
+    }
+    if (err) return { ok: false, error: 'could not check the holding: ' + (err.message || err) };
+    if (cache.size > 20000) cache.clear();
+    cache.set(wallet, { amount, t: now });
     return { ok: amount >= need, amount, need, checked: true };
   }
 

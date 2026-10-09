@@ -46,13 +46,17 @@ test('lobby estimate matches what a match would pay', () => {
 });
 
 // ---- matchmaker against fake rooms ----
-function fakeEnv(rooms) {
-  return { ROOMS: { idFromName: (c) => c, get: (c) => ({ status: async () => rooms.get(c) || { humans: 0, locked: false } }) } };
+// rooms push their state to the matchmaker (Room._report → Matchmaker.report); `rooms.set` stands in for that
+function fakeEnv(rooms) { return { rooms }; }
+function mmWith(rooms) {
+  const mm = new Matchmaker({}, {});
+  rooms.set = (c, st) => { Map.prototype.set.call(rooms, c, st); mm.report(c, st.humans, st.locked); return rooms; };
+  return mm;
 }
 
 test('matchmaker: new code, then fills the same room, skips full / running rooms', async () => {
   const rooms = new Map();
-  const mm = new Matchmaker({}, fakeEnv(rooms));
+  const mm = mmWith(rooms);
   const a = (await mm.quick()).code;
   assert.match(a, QUICK_CODE);
   assert.equal(a.length, 6);                                   // never collides with 5-character private codes
@@ -70,7 +74,7 @@ test('matchmaker: new code, then fills the same room, skips full / running rooms
 
 test('matchmaker counts players on their way in, so a burst does not overfill', async () => {
   const rooms = new Map();
-  const mm = new Matchmaker({}, fakeEnv(rooms));
+  const mm = mmWith(rooms);
   const codes = [];
   for (let i = 0; i < 12; i++) codes.push((await mm.quick()).code);   // nobody has connected yet
   const counts = codes.reduce((m, c) => m.set(c, (m.get(c) || 0) + 1), new Map());
@@ -89,7 +93,7 @@ test('a prize needs a verified wallet on each team', async () => {
 test('holder rooms get their own QH codes, separate from open Quick Play', async () => {
   const { HOLDER_CODE } = await import('../src/index.js');
   const rooms = new Map();
-  const mm = new Matchmaker({}, fakeEnv(rooms));
+  const mm = mmWith(rooms);
   const open = (await mm.quick('QP')).code, held = (await mm.quick('QH')).code;
   assert.match(open, /^QP/); assert.match(held, HOLDER_CODE); assert.match(held, QUICK_CODE);
   assert.equal((await mm.quick('QH')).code, held);   // holders fill the holder room
@@ -146,4 +150,32 @@ test('players online: counts distinct tabs seen in the last 75 s', async () => {
   assert.equal(p.ping('').online, 2);                     // a bare look doesn't count
   p.seen.set('cccccccccc', Date.now() - 80000); p._swept = 0;
   assert.equal(p.ping('').online, 2);                     // stale tab dropped
+});
+
+test('matchmaker under a rush: 1,000 Quick Play clicks fill 125 rooms of 8, fast', () => {
+  const mm = new Matchmaker({}, {});
+  const humans = new Map();
+  const t0 = performance.now();
+  for (let i = 0; i < 1000; i++) {
+    const { code } = mm.quick('QP');
+    // most players connect right away (their room reports the new count); a few are still connecting
+    if (i % 10 !== 0) { humans.set(code, (humans.get(code) || 0) + 1); mm.report(code, humans.get(code), false); }
+  }
+  const ms = performance.now() - t0;
+  const counts = [...mm.rooms.values()].map((r) => Math.max(r.humans || 0, r.coming.length));
+  assert.ok(counts.every((n) => n <= 8), 'no room over 8');
+  assert.ok(mm.rooms.size <= 126, `rooms: ${mm.rooms.size}`);
+  assert.ok(ms < 1000, `took ${ms.toFixed(0)} ms`);
+});
+
+test('matchmaker skips rooms whose match started, and forgets rooms that emptied', () => {
+  const mm = new Matchmaker({}, {});
+  const a = mm.quick('QP').code;
+  mm.report(a, 3, true);                       // match running
+  const b = mm.quick('QP').code;
+  assert.notEqual(b, a);
+  mm.report(a, 0, false);                      // everyone left
+  const r = mm.rooms.get(a); r.at = r.rep = Date.now() - 60000; r.coming = [];
+  mm.quick('QP');
+  assert.ok(!mm.rooms.has(a), 'empty room forgotten');
 });

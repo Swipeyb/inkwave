@@ -55,14 +55,21 @@ export const holderMessage = (code, wallet, time) => `SPLATR holder match\nroom:
 const QUICK_CHARS = 'BCEFGHJKLMNPRTUVXYZ23456789';
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
     if (url.pathname === '/health') return new Response('ok', { headers: { 'access-control-allow-origin': '*' } });
     if (url.pathname === '/prize' || url.pathname === '/prize/log') {
       const json = (o) => new Response(JSON.stringify(o), { headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'cache-control': 'no-store' } });
       if (!env.PRIZES || !prizeConfig(env).enabled) return json(url.pathname === '/prize' ? { enabled: false } : []);
       const ledger = env.PRIZES.get(env.PRIZES.idFromName('ledger'));
-      return json(url.pathname === '/prize' ? await ledger.status() : await ledger.recent(+(url.searchParams.get('n') || 50)));
+      if (url.pathname !== '/prize') return json(await ledger.recent(+(url.searchParams.get('n') || 50)));
+      // every open game polls /prize: answer from Cloudflare's edge cache for 10 s so a crowd never queues on the ledger
+      const cache = typeof caches !== 'undefined' ? caches.default : null, key = new Request(url.origin + '/prize');
+      const hit = cache && await cache.match(key).catch(() => null);
+      if (hit) return hit;
+      const res = new Response(JSON.stringify(await ledger.status()), { headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=10' } });
+      if (cache) ctx?.waitUntil?.(cache.put(key, res.clone()).catch(() => {}));
+      return res;
     }
     if (url.pathname === '/online') {   // players-online counter: each open game pings every 30 s with a random id
       const origin = req.headers.get('Origin') || '';
@@ -105,7 +112,15 @@ export class Room extends DurableObject {
   }
   host() { const ms = this.members(); return ms.length ? ms[0].a.id : null; }
 
-  // Matchmaker → room: how many players, and is a match running? (Durable Object RPC: never reachable from outside)
+  // room → matchmaker (public Quick Play rooms only): current player count + whether a match is running. Fire-and-forget.
+  _report(code = null) {
+    const ms = this.members();
+    this.code = this.code || code || ms[0]?.a.code;   // (after hibernation the code lives only in the sockets' attachments)
+    if (!this.code || !QUICK_CODE.test(this.code) || !this.env.MATCHMAKER) return;
+    try { this.env.MATCHMAKER.get(this.env.MATCHMAKER.idFromName('main')).report(this.code, ms.length, this.locked && ms.length > 0).catch(() => {}); } catch { /* ignore */ }
+  }
+
+  // how many players, and is a match running? (Durable Object RPC: never reachable from outside)
   status() {
     const ms = this.members();
     return { humans: ms.length, locked: this.locked && ms.length > 0 };
@@ -155,6 +170,7 @@ export class Room extends DurableObject {
     server.send(JSON.stringify({ t: 'welcome', id, host: all[0].id, members: all.map(({ id, name }) => ({ id, name })), quick: quick || undefined, holders: HOLDER_CODE.test(this.code) || undefined, wallet: wallet || undefined }));
     const j = JSON.stringify({ t: 'join', m: { id, name } });
     for (const m of ms) try { m.ws.send(j); } catch { /* closing */ }
+    this._report();
     if (!(await this.ctx.storage.getAlarm())) await this.ctx.storage.setAlarm(Date.now() + SWEEP);
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -199,6 +215,7 @@ export class Room extends DurableObject {
       else if (o.t === 'lock' && this.host() === me.id) {
         const was = this.locked;
         this.locked = !!o.v;
+        if (this.locked !== was) this._report();
         if (this.locked && !was) await this._prizeStart();
         else if (!this.locked && was) await this._prizeSettle();
       } else if (o.t === 'wallet') await this._wallet(ws, me, o);
@@ -290,6 +307,7 @@ export class Room extends DurableObject {
     const out = JSON.stringify({ t: 'leave', id: a.id, host });
     for (const m of this.members()) try { m.ws.send(out); } catch { /* closing */ }
     if (!this.members().length) this.locked = false;
+    this._report(a.code);
     // a player leaving mid-round no longer needs to report: settle if everyone left has
     const r = this.round;
     if (r && !r.settled && r.reports.size && r.humans.filter((h) => this.members().some((m) => m.a.id === h.id)).every((h) => r.reports.has(h.id))) this._prizeSettle().catch((e) => console.error('[prize] settle', e));
@@ -307,36 +325,41 @@ export class Presence extends DurableObject {
   }
 }
 
-// Quick Play matchmaking: one Durable Object for the whole relay. Keeps a short list of public rooms and sends each new
-// player to the fullest one that has space and isn't mid-match (counting players already on their way in, so a burst
-// of clicks doesn't overfill a room), or to a fresh code.
+// Quick Play matchmaking: one Durable Object for the whole relay. Rooms PUSH their player count / match state here
+// (report(), on every join, leave and lock change), so a Quick Play click is answered from memory without calling any
+// room: fast and race-free under a rush of clicks. Each new player goes to the fullest public room that has space and
+// isn't mid-match (counting players already on their way in, so a burst doesn't overfill a room), or to a fresh code.
 export class Matchmaker extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
-    this.rooms = [];   // [{ code, at, coming: [ms] }]
+    this.rooms = new Map();   // code → { code, at, coming: [ms], humans, locked, rep }
   }
-  async quick(prefix = 'QP') {
+  report(code, humans, locked) {
+    code = String(code || '');
+    if (!QUICK_CODE.test(code)) return;
+    let r = this.rooms.get(code);
+    if (!r) { if (!humans) return; r = { code, at: Date.now(), coming: [] }; this.rooms.set(code, r); }
+    r.humans = Math.max(0, humans | 0); r.locked = !!locked && r.humans > 0; r.rep = Date.now();
+  }
+  quick(prefix = 'QP') {
     prefix = prefix === 'QH' ? 'QH' : 'QP';
     const now = Date.now();
     let best = null, bestN = -1;
-    const keep = [];
-    for (const r of this.rooms.slice(-48)) {
-      if (!r.code.startsWith(prefix)) { keep.push(r); continue; }
+    for (const r of this.rooms.values()) {
       r.coming = r.coming.filter((t) => now - t < 20000);
-      let st;
-      try { st = await this.env.ROOMS.get(this.env.ROOMS.idFromName(r.code)).status(); } catch { continue; }
-      if (!st.humans && !r.coming.length && now - r.at > 30000) continue;   // empty and nobody on the way: forget it
-      keep.push(r);
-      const n = Math.max(st.humans, r.coming.length);   // (sent here in the last 20 s ≈ joined or still connecting)
-      if (st.locked || n >= MAX) continue;
+      const last = Math.max(r.at, r.rep || 0);
+      // empty with nobody on the way for 30 s, or silent for 15 min (a room that died without a last report): forget it
+      if ((!r.humans && !r.coming.length && now - last > 30000) || now - last > 15 * 60000) { this.rooms.delete(r.code); continue; }
+      if (!r.code.startsWith(prefix)) continue;
+      const n = Math.max(r.humans || 0, r.coming.length);   // (sent here in the last 20 s ≈ joined or still connecting)
+      if (r.locked || n >= MAX) continue;
       if (n > bestN) { best = r; bestN = n; }
     }
-    this.rooms = keep;
     if (!best) {
       let code;
-      do { code = prefix + Array.from({ length: 4 }, () => QUICK_CHARS[(Math.random() * QUICK_CHARS.length) | 0]).join(''); } while (this.rooms.some((r) => r.code === code));
-      best = { code, at: now, coming: [] };
-      this.rooms.push(best);
+      do { code = prefix + Array.from({ length: 4 }, () => QUICK_CHARS[(Math.random() * QUICK_CHARS.length) | 0]).join(''); } while (this.rooms.has(code));
+      best = { code, at: now, coming: [], humans: 0, locked: false };
+      this.rooms.set(code, best);
     }
     best.coming.push(now);
     return { code: best.code };
