@@ -198,6 +198,7 @@ class Game {
       this.api.startMatch({ mapId: map.id, difficulty: params.get('difficulty') || this.settings.difficulty, duration: +params.get('autostart') || undefined, mode: pm === 'boss' || pm === 'zones' ? pm : 'turf' });
     }
     this.bootMs = Math.round(performance.now() - t0);
+    this._gpuCheck();
     window.__inkwave = this; // debug/audit hook
     window.__G = G;
     this.debug = {
@@ -471,6 +472,22 @@ class Game {
     if (this.menus && this.menus.current) return this.menus.handleKey(e) || false;
     return false;
   }
+  // Lag on a strong PC is almost always the browser drawing WITHOUT the graphics card (hardware acceleration off, or a
+  // blocklisted driver → software WebGL). Tell the player once per session how to fix it.
+  _gpuCheck() {
+    let name = '';
+    try {
+      const gl = this.R.renderer.getContext();
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      name = String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+    } catch { return; }
+    this.gpuName = name;
+    if (!/swiftshader|llvmpipe|softpipe|software|basic render|microsoft basic/i.test(name)) return;
+    try { if (sessionStorage.getItem('splatr.gpuwarn')) return; sessionStorage.setItem('splatr.gpuwarn', '1'); } catch { /* ignore */ }
+    console.warn('[splatr] software WebGL renderer:', name);
+    setTimeout(() => this.menus?.toast?.('Your browser isn’t using your graphics card, so the game will lag. Turn on “Use graphics acceleration” (hardware acceleration) in your browser settings, then restart the browser.', { kind: 'error', ms: 14000 }), 2500);
+  }
+
   // "CLICK TO AIM" over a live match whenever the mouse isn't captured (keyboard + mouse players only)
   _clickToAim() {
     const el = document.createElement('div');

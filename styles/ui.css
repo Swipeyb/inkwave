@@ -1824,6 +1824,11 @@ circle.iw-ico-cut { fill: var(--cut, #fff); }
    ONLINE HUB — create / join (left), your splashtag + weapon + look (right)
    ===================================================================================== */
 .iw-hub__body { position: absolute; left: calc(var(--u) * 3.9 + var(--sal)); top: calc(var(--u) * 11.6); width: min(calc(var(--u) * 50), 54vw); display: flex; flex-direction: column; gap: calc(var(--u) * 1.9); }
+/* short screens (phones, small laptop windows): the card column scrolls instead of running off the bottom */
+.iw-hub__body { bottom: calc(var(--u) * 1.2 + var(--sab)); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: calc(var(--u) * 1.2) calc(var(--u) * 1.6) calc(var(--u) * 6); margin: calc(var(--u) * -1.2) 0 0 calc(var(--u) * -1.6); scrollbar-width: none; pointer-events: auto; touch-action: pan-y; }
+.iw-hub__body::-webkit-scrollbar { display: none; }
+.iw-hub__body > * { flex-shrink: 0; }
 .iw-hubcard { position: relative; display: block; width: 100%; padding: calc(var(--u) * 1.4) calc(var(--u) * 1.7); border: 0; color: #fff; font: inherit; text-align: left;
   border-radius: calc(var(--u) * 1.7) calc(var(--u) * 1) calc(var(--u) * 1.9) calc(var(--u) * 1.2) / calc(var(--u) * 1.4) calc(var(--u) * 1.8) calc(var(--u) * 1.1) calc(var(--u) * 1.7);
   background: none; isolation: isolate; cursor: pointer; pointer-events: auto; outline: none; -webkit-tap-highlight-color: transparent;

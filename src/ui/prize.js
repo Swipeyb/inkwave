@@ -15,7 +15,7 @@ import { IS_TOUCH } from './touch.js';
 const POLL = 30000;
 const CSS = `
 .iw-prize, .iw-prize-banner { --u: min(1vw, 1.7778vh); }
-.iw-prize { position: fixed; right: calc(var(--u) * 1.6); top: calc(var(--u) * 23); z-index: 40; pointer-events: auto;
+.iw-prize { --u: min(1vw, 1.7778vh); position: fixed; right: calc(var(--u) * 1.6); top: calc(var(--u) * 23); z-index: 40; pointer-events: auto;
   width: auto; max-width: 250px; padding: 8px 12px; border-radius: 12px; background: rgba(20, 16, 32, .88);
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .12), 0 8px 24px rgba(0, 0, 0, .35); color: #fff;
   font: 600 var(--fs-s, 13px)/1.35 Rubik, system-ui, sans-serif; transition: opacity .25s, transform .25s var(--out, ease); }

@@ -41,11 +41,11 @@
     var meta = document.querySelector('meta[name=viewport]');
     function set(c) { if (meta.getAttribute('content') !== c) meta.setAttribute('content', c); }
     function fit() {
-      var w = screen.width, h = screen.height;
-      var vw = Math.max(w, h), vh = Math.min(w, h);   // landscape dims (portrait shows "rotate your phone")
-      var landscape = innerWidth > innerHeight || (screen.orientation && /landscape/.test(screen.orientation.type));
-      if (!landscape || (vw >= 1024 && vh >= 640)) { set('width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'); return; }
-      var cssW = Math.round(Math.max(1024, 640 * vw / vh));
+      // the VISIBLE area's shape (browser bars excluded): innerWidth / innerHeight keeps that ratio at any zoom
+      var landscape = innerWidth > innerHeight;
+      var aspect = innerWidth / Math.max(1, innerHeight);
+      if (!landscape) { set('width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'); return; }
+      var cssW = Math.round(Math.max(1024, 640 * aspect));
       set('width=' + cssW + ', user-scalable=no, viewport-fit=cover');
     }
     fit();
