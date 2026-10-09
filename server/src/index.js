@@ -64,6 +64,13 @@ export default {
       const ledger = env.PRIZES.get(env.PRIZES.idFromName('ledger'));
       return json(url.pathname === '/prize' ? await ledger.status() : await ledger.recent(+(url.searchParams.get('n') || 50)));
     }
+    if (url.pathname === '/online') {   // players-online counter: each open game pings every 30 s with a random id
+      const origin = req.headers.get('Origin') || '';
+      if (!ORIGIN_OK(origin)) return new Response('forbidden', { status: 403 });
+      const id = String(url.searchParams.get('id') || '').replace(/[^a-z0-9]/gi, '').slice(0, 24);
+      const r = await env.PRESENCE.get(env.PRESENCE.idFromName('main')).ping(id);
+      return new Response(JSON.stringify(r), { headers: { 'content-type': 'application/json', 'access-control-allow-origin': origin, vary: 'Origin', 'cache-control': 'no-store' } });
+    }
     if (url.pathname === '/quick') {
       const origin = req.headers.get('Origin') || '';
       if (!ORIGIN_OK(origin)) return new Response('forbidden', { status: 403 });
@@ -285,6 +292,17 @@ export class Room extends DurableObject {
     // a player leaving mid-round no longer needs to report: settle if everyone left has
     const r = this.round;
     if (r && !r.settled && r.reports.size && r.humans.filter((h) => this.members().some((m) => m.a.id === h.id)).every((h) => r.reports.has(h.id))) this._prizeSettle().catch((e) => console.error('[prize] settle', e));
+  }
+}
+
+// Players online: a single Durable Object that remembers which game tabs pinged in the last 75 s (in memory only).
+export class Presence extends DurableObject {
+  constructor(ctx, env) { super(ctx, env); this.seen = new Map(); }
+  ping(id) {
+    const now = Date.now();
+    if (id && id.length >= 8 && (this.seen.has(id) || this.seen.size < 50000)) this.seen.set(id, now);
+    if (!this._swept || now - this._swept > 10000) { for (const [k, t] of this.seen) if (now - t > 75000) this.seen.delete(k); this._swept = now; }
+    return { online: this.seen.size };
   }
 }
 

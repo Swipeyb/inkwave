@@ -136,3 +136,14 @@ test('ledger reads the Jupiter price and applies it to the holder check', async 
   const h = await L.holds('w');
   assert.equal(h.ok, true); assert.equal(h.need, 10000);   // 20k tokens ≈ $20 ≥ $10
 });
+
+test('players online: counts distinct tabs seen in the last 75 s', async () => {
+  const { Presence } = await import('../src/index.js');
+  const p = new Presence({}, {});
+  assert.equal(p.ping('aaaaaaaaaa').online, 1);
+  assert.equal(p.ping('aaaaaaaaaa').online, 1);          // same tab twice
+  assert.equal(p.ping('bbbbbbbbbb').online, 2);
+  assert.equal(p.ping('').online, 2);                     // a bare look doesn't count
+  p.seen.set('cccccccccc', Date.now() - 80000); p._swept = 0;
+  assert.equal(p.ping('').online, 2);                     // stale tab dropped
+});
