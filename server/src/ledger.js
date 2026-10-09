@@ -1,7 +1,7 @@
 // The prize ledger: one instance for the whole relay (the `Prizes` Durable Object in index.js), so commits, cooldowns,
 // pool reads and payouts are serialised across every room and the treasury is never double-spent. Storage / fetch /
 // clock are injected, so server/test/ledger.test.mjs runs it in plain Node with a fake RPC.
-import { prizeConfig, publicConfig, newSeedHex, commitOf, roundBlock, eligibleCandidates, drawRound, prizeEstimate, bothSidesBlock } from './prize-core.js';
+import { prizeConfig, publicConfig, newSeedHex, commitOf, roundBlock, eligibleCandidates, drawRound, prizeEstimate, bothSidesBlock, effectiveMinHolding } from './prize-core.js';
 import { getBalanceLamports, getTokenHolding, parseSecretKey, importSigner, sendTransfer, sendTransfers, parsePubkey, LAMPORTS_PER_SOL, b58encode } from './solana.js';
 import { MIN_PRIZE_LAMPORTS } from './prize-core.js';
 
@@ -39,17 +39,39 @@ export class PrizeLedger {
       out.poolSol = lamports / LAMPORTS_PER_SOL;
       const est = prizeEstimate(lamports, this.cfg);
       out.prizeMinSol = est.minSol; out.prizeMaxSol = est.maxSol;   // what the next match would pay (lobby card)
+      if (this.cfg.mint) { out.minHolding = await this.minHolding(); out.priceUsd = await this.price(); }
     } catch (e) { out.poolError = String(e.message || e); }
     return out;
   }
 
-  /** Holders-only rooms: does this wallet hold at least MIN_TOKEN_HOLDING of TOKEN_MINT? (No mint set: everyone passes.) */
-  async holds(wallet) {
+  /** $SPLURT price in USD (Jupiter price API by default), cached a minute; null when unknown. */
+  async price() {
     const cfg = this.cfg;
-    if (!cfg.mint || !(cfg.minHolding > 0)) return { ok: true, checked: false };
+    if (!cfg.mint || !(cfg.minHoldingUsd > 0)) return null;
+    if (this._price && this.now() - this._price.at < 60000) return this._price.usd;
+    let usd = null;
+    try {
+      const r = await this.fetchFn(cfg.priceUrl + cfg.mint, { headers: { accept: 'application/json' } });
+      if (r.ok) {
+        const j = await r.json();
+        const v = Number(j?.[cfg.mint]?.usdPrice ?? j?.data?.[cfg.mint]?.price ?? NaN);
+        if (Number.isFinite(v) && v > 0) usd = v;
+      }
+    } catch { /* keep the last known price */ }
+    if (usd == null && this._price) usd = this._price.usd;
+    this._price = { usd, at: this.now() };
+    return usd;
+  }
+  /** Tokens a wallet must hold right now (dollar-based when MIN_HOLDING_USD is set). */
+  async minHolding() { return effectiveMinHolding(this.cfg, await this.price()); }
+
+  /** Holders-only rooms: does this wallet hold the current minimum of TOKEN_MINT? (No mint / no minimum: everyone passes.) */
+  async holds(wallet) {
+    const cfg = this.cfg, need = await this.minHolding();
+    if (!cfg.mint || !(need > 0)) return { ok: true, checked: false };
     let amount = 0;
     try { amount = await getTokenHolding(cfg.rpcUrl, wallet, cfg.mint, this.fetchFn); } catch (e) { return { ok: false, error: 'could not check the holding: ' + (e.message || e) }; }
-    return { ok: amount >= cfg.minHolding, amount, need: cfg.minHolding, checked: true };
+    return { ok: amount >= need, amount, need, checked: true };
   }
 
   async recent(limit = 50) {
@@ -86,16 +108,17 @@ export class PrizeLedger {
     if (!voidReason && winners) voidReason = bothSidesBlock(players, winners);
     rec.reason = voidReason || null;
     if (!voidReason && winners) {
+      const minHold = await this.minHolding();
       const cooldowns = new Map(), holdings = new Map();
       for (const p of players) {
         if (!p.wallet || !winners.includes(p.id)) continue;
         const t = await this.storage.get('cd:' + p.wallet);
         if (t) cooldowns.set(p.wallet, t);
-        if (cfg.mint && cfg.minHolding > 0) {
+        if (cfg.mint && minHold > 0) {
           try { holdings.set(p.wallet, await getTokenHolding(cfg.rpcUrl, p.wallet, cfg.mint, this.fetchFn)); } catch { holdings.set(p.wallet, 0); }
         }
       }
-      const { candidates, rejected } = eligibleCandidates({ players, winners, cooldowns, holdings, now, cfg });
+      const { candidates, rejected } = eligibleCandidates({ players, winners, cooldowns, holdings, now, cfg: { ...cfg, minHolding: minHold } });
       rec.candidates = candidates.map((x) => x.wallet);
       rec.rejected = rejected;
       let pool = 0;

@@ -105,6 +105,8 @@ See `.env.example`. Off unless both `SOLANA_RPC_URL` and `TREASURY_PUBLIC_KEY` a
 | `MIN_HUMAN_PLAYERS` | 2 | humans **with a verified wallet** at match start for a prize round; at the end there must be a wallet holder on **each** team (no farming with two wallets on one side) |
 | `MIN_TOKEN_HOLDING` | 0 | $SPLURT a winner must hold (e.g. `100000` = 100k $SPLURT) |
 | `PRIZE_SPLIT` | all | `all` = split between every holder on the winning team, `one` = one random holder |
+| `MIN_HOLDING_USD` | — | minimum as a dollar value: tokens needed = USD / live price (Jupiter), capped by `MIN_TOKEN_HOLDING`, which is also the fallback without a price |
+| `PRICE_API_URL` | Jupiter lite price v3 | price endpoint; the mint is appended |
 | `PRIZE_COOLDOWN_SEC` | 3600 | a wallet can win once per this many seconds |
 
 ## Running it

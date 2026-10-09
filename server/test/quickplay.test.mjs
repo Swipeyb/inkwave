@@ -111,3 +111,28 @@ test('ledger.holds: no mint → everyone passes; with a mint the on-chain amount
   assert.equal((await new PrizeLedger({ env, storage, fetchFn: rpcWith(150000) }).holds('w')).ok, true);
   assert.equal((await new PrizeLedger({ env, storage, fetchFn: rpcWith(99999) }).holds('w')).ok, false);
 });
+
+test('dollar-based minimum: fewer tokens as the price rises, capped by MIN_TOKEN_HOLDING, fallback without a price', async () => {
+  const { effectiveMinHolding } = await import('../src/prize-core.js');
+  const cfg = prizeConfig({ ...base, TOKEN_MINT: 'So11111111111111111111111111111111111111112', MIN_HOLDING_USD: '10', MIN_TOKEN_HOLDING: '1000000' });
+  assert.equal(effectiveMinHolding(cfg, 0.00001), 1000000);   // $10k mcap → 1M tokens
+  assert.equal(effectiveMinHolding(cfg, 0.001), 10000);       // $1M mcap → 10k tokens
+  assert.equal(effectiveMinHolding(cfg, 0.000001), 1000000);  // below $10k mcap: capped at 1M
+  assert.equal(effectiveMinHolding(cfg, null), 1000000);      // no price: the token minimum
+});
+
+test('ledger reads the Jupiter price and applies it to the holder check', async () => {
+  const { PrizeLedger } = await import('../src/ledger.js');
+  const mint = 'So11111111111111111111111111111111111111112';
+  const storage = { get: async () => null, put: async () => {}, list: async () => new Map(), delete: async () => {} };
+  const fetchFn = async (url, init) => {
+    if (String(url).startsWith('https://lite-api.jup.ag/')) return new Response(JSON.stringify({ [mint]: { usdPrice: 0.001 } }));
+    const { params } = JSON.parse(init.body);
+    if (params[1].programId !== 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { value: [] } }));
+    return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { value: [{ account: { data: { parsed: { info: { mint, tokenAmount: { uiAmountString: '20000' } } } } } }] } }));
+  };
+  const L = new PrizeLedger({ env: { ...base, TOKEN_MINT: mint, MIN_HOLDING_USD: '10', MIN_TOKEN_HOLDING: '1000000' }, storage, fetchFn });
+  assert.equal(await L.minHolding(), 10000);
+  const h = await L.holds('w');
+  assert.equal(h.ok, true); assert.equal(h.need, 10000);   // 20k tokens ≈ $20 ≥ $10
+});

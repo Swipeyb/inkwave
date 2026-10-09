@@ -17,7 +17,8 @@
     "PRIZE_RESERVE_SOL": "0.05",                                // ...and never touches the last 0.05 SOL
     "MIN_HUMAN_PLAYERS": "2",                                   // 2+ players with a verified wallet for a prize match
     "TOKEN_MINT": "4EotrSB43nELf1R2gxTw5hLnmqfjY9SRMGY1USBHpump",   // $SPLURT (pump.fun)
-    "MIN_TOKEN_HOLDING": "1000000",                             // $SPLURT needed to win a prize / join holder matches
+    "MIN_HOLDING_USD": "10",                                    // hold ≈ $10 of $SPLURT (token count follows the live price)
+    "MIN_TOKEN_HOLDING": "1000000",                             // ...but never more than 1M tokens (also the fallback if no price)
     "PRIZE_COOLDOWN_SEC": "600"                                 // a wallet can win once every 10 minutes
   },
   // Deploys keep any other vars you set in the Cloudflare dashboard (RPC URL, treasury public key, prize settings).

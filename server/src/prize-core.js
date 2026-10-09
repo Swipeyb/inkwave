@@ -40,6 +40,10 @@ export function prizeConfig(env = {}) {
     reserveLamports: Math.floor(Math.max(0, num(env.PRIZE_RESERVE_SOL, 0.05)) * LAMPORTS_PER_SOL),
     minHumans: Math.max(1, Math.floor(num(env.MIN_HUMAN_PLAYERS, 2))),
     minHolding: Math.max(0, num(env.MIN_TOKEN_HOLDING, 0)),
+    // MIN_HOLDING_USD: the minimum is a dollar value (token count = USD / live price), so it gets *easier* in tokens as
+    // the price rises. MIN_TOKEN_HOLDING then is the most it can ever ask for, and the fallback when no price is known.
+    minHoldingUsd: Math.max(0, num(env.MIN_HOLDING_USD, 0)),
+    priceUrl: String(env.PRICE_API_URL || 'https://lite-api.jup.ag/price/v3?ids=').trim(),
     cooldownMs: Math.max(0, num(env.PRIZE_COOLDOWN_SEC, 3600)) * 1000,
     // PRIZE_SPLIT: "all" (default) = every eligible holder on the winning team gets an equal share; "one" = one random holder
     split: String(env.PRIZE_SPLIT || 'all').trim() === 'one' ? 'one' : 'all',
@@ -57,7 +61,7 @@ export function publicConfig(cfg) {
   return {
     enabled: cfg.enabled, mode: cfg.mode, treasury: cfg.treasury, mint: cfg.mint,
     minPct: cfg.minPct, maxPct: cfg.maxPct, maxSol: cfg.maxLamports / LAMPORTS_PER_SOL, reserveSol: cfg.reserveLamports / LAMPORTS_PER_SOL,
-    minHumans: cfg.minHumans, minHolding: cfg.minHolding, cooldownSec: cfg.cooldownMs / 1000, split: cfg.split,
+    minHumans: cfg.minHumans, minHolding: cfg.minHolding, minHoldingUsd: cfg.minHoldingUsd, cooldownSec: cfg.cooldownMs / 1000, split: cfg.split,
   };
 }
 
@@ -104,6 +108,16 @@ export function bothSidesBlock(players, winners) {
   const win = new Set(winners);
   const w = players.filter((p) => p.wallet && win.has(p.id)).length, l = players.filter((p) => p.wallet && !win.has(p.id)).length;
   return w && l ? null : 'needs a wallet holder on each team';
+}
+
+/**
+ * Tokens a wallet must hold right now. With MIN_HOLDING_USD and a live price: ceil(USD / price), never more than
+ * MIN_TOKEN_HOLDING (when that is set). Without a price: MIN_TOKEN_HOLDING.
+ */
+export function effectiveMinHolding(cfg, priceUsd) {
+  if (!(cfg.minHoldingUsd > 0) || !(priceUsd > 0)) return cfg.minHolding;
+  const t = Math.ceil(cfg.minHoldingUsd / priceUsd);
+  return cfg.minHolding > 0 ? Math.min(t, cfg.minHolding) : t;
 }
 
 /** What the next match would pay at this pool balance: the low and high end of the draw (equal with PRIZE_PCT). */

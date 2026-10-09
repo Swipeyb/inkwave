@@ -153,7 +153,8 @@ class PrizeUI {
     this.el.hidden = !show;
     if (!show) return;
     const tag = i.mode !== 'live' ? '<span class="iw-prize__tag">DRY RUN</span>' : '';
-    const hold = i.minHolding > 0 && i.mint ? `<div class="iw-prize__note">Hold ≥ ${esc(Number(i.minHolding).toLocaleString())} $SPLURT (${esc(shortAddr(i.mint))}) to win.</div>` : '';
+    const usd = i.minHoldingUsd > 0 ? ` (≈ $${esc(Number(i.minHoldingUsd).toLocaleString())})` : '';
+    const hold = i.minHolding > 0 && i.mint ? `<div class="iw-prize__note">Hold ≥ ${esc(Math.ceil(Number(i.minHolding)).toLocaleString())} $SPLURT${usd} to win.</div>` : '';
     const wallet = this.wallet
       ? `<div class="iw-prize__wallet">◎ ${esc(shortAddr(this.wallet))} ✓ verified</div>`
       : `<button class="iw-prize__btn" data-act="connect" ${this.busy ? 'disabled' : ''}>${this.busy ? 'Check your wallet…' : solanaProvider() ? 'Connect wallet to win' : 'Get a Solana wallet'}</button>`;
