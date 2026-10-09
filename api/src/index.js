@@ -78,8 +78,11 @@ export class League extends DurableObject {
     if (this._busy) return { busy: true };
     this._busy = true;
     try {
-      const { mints, errors } = await discover(this.fetchFn);
-      const q = await quotes([...mints, ...this.rows(`SELECT mint FROM pool`).map((r) => r.mint)], this.fetchFn);
+      const key = this.env?.JUP_API_KEY || '';
+      const { mints, coins: found, errors } = await discover(this.fetchFn, key);
+      // Jupiter's lists already carry prices; only coins still missing (older pool entries, other feeds) need a quote
+      const missing = [...new Set([...mints, ...this.rows(`SELECT mint FROM pool`).map((r) => r.mint)])].filter((m) => !found.has(m));
+      const q = new Map([...found, ...(await quotes(missing, this.fetchFn, key))]);
       for (const c of q.values()) {
         this.sql.exec(`INSERT OR REPLACE INTO coins (mint, name, symbol, image, url, price, liq, mcap, vol1h, chg1h, chg24h, created, updated) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
           c.mint, c.name, c.symbol, c.image, c.url, c.price, c.liq, c.mcap, c.vol1h, c.chg1h, c.chg24h, c.created, now);
@@ -97,7 +100,10 @@ export class League extends DurableObject {
 
   status() { return Object.fromEntries(this.rows(`SELECT k, v FROM meta`).map((r) => [r.k, r.v])); }
 
-  pool() {
+  async pool() {
+    // nothing to draft yet (first run, or the feeds were down): refresh now rather than waiting for the cron
+    const last = +(this.rows(`SELECT v FROM meta WHERE k = 'refreshed'`)[0]?.v || 0);
+    if (!this.rows(`SELECT 1 FROM pool LIMIT 1`).length && Date.now() - last > 90000) await this.refresh().catch(() => {});
     const coins = this.rows(`SELECT c.mint, c.name, c.symbol, c.image, c.url, c.price, c.liq, c.mcap, c.vol1h, c.chg1h, c.created FROM pool p JOIN coins c ON c.mint = p.mint ORDER BY p.rank`);
     const meta = Object.fromEntries(this.rows(`SELECT k, v FROM meta`).map((r) => [r.k, r.v]));
     return { coins, refreshed: +(meta.refreshed || 0), seats: SEATS, teamSize: TEAM_SIZE };
@@ -132,7 +138,7 @@ export class League extends DurableObject {
       const v = await this.env.ROOM.get(this.env.ROOM.idFromName(mine.room)).view(p.id);
       if (v.phase === 'lobby' || v.phase === 'draft') return { room: mine.room };
     }
-    const pool = this.pool().coins;
+    const pool = (await this.pool()).coins;
     if (pool.length < TEAM_SIZE * SEATS) throw userErr('Not enough fresh coins to draft right now. Try again in a few minutes.');
     for (let tries = 0; tries < 3; tries++) {
       let o = this.open.get(mode);
@@ -293,7 +299,7 @@ export class Room extends DurableObject {
     s.priced = now;
     this._pricing = (async () => {
       try {
-        const q = await quotes(Object.keys(s.taken), this.fetchFn);
+        const q = await quotes(Object.keys(s.taken), this.fetchFn, this.env?.JUP_API_KEY || '');
         for (const [m, c] of q) { s.cur[m] = c.price; if (c.liq < RULES.deadLiq) s.dead[m] = 1; else delete s.dead[m]; }
       } catch { /* keep the last prices */ }
     })();
