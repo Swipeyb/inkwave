@@ -2829,3 +2829,7 @@ circle.iw-ico-cut { fill: var(--cut, #fff); }
 .iw-ca--title { left: 50%; bottom: calc(var(--u, 10px) * 4.6); transform: translateX(-50%); }
 .iw-ca--online { right: calc(var(--u, 10px) * 3.4); bottom: calc(var(--u, 10px) * 14.5); }
 @media (max-width: 900px) { .iw-ca--online { top: auto; bottom: 12px; left: 16px; transform: none; } }
+
+/* ---- Quick Play lobby: the matchmaker owns the settings and the countdown starts the match ---- */
+.iw-lobby.is-quick .iw-lset__panel, .iw-lobby.is-quick .iw-lob__modearrows,
+.iw-lobby.is-quick .iw-btn--lobstart, .iw-lobby.is-quick .iw-btn--ready, .iw-lobby.is-quick .iw-rc__share { display: none !important; }

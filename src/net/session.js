@@ -283,7 +283,7 @@ export class NetSession {
   }
 
   setSettings(s = {}) {
-    if (!this.isHost) return;
+    if (!this.isHost || this.quick) return;   // Quick Play rooms keep the matchmaker's settings
     const l = this.lobby, wasMap = l.map;
     if (s.map && MAPS.some((m) => m.id === s.map)) l.map = s.map;
     if (s.time === 'day' || s.time === 'dusk') l.time = s.time;
@@ -316,6 +316,7 @@ export class NetSession {
   // ------------------------------------------------------------------ match orchestration
   start() {
     if (!this.isHost || this.state !== 'lobby' || !this.tr || this.startBlock()) return false;
+    if (this.quick && !this._quickGo) return false;   // Quick Play: only the countdown starts the match
     const l = this.lobby;
     const bots = l.bots && !mapNoBots(l.map);   // (a humans-only stage never gets bots, whatever the setting says)
     const roster = [];
@@ -460,7 +461,7 @@ export class NetSession {
     else if (n >= TEAM * 2) d = Math.min(d ?? Infinity, now + QUICK_FULL * 1000);
     else if (d == null) d = now + QUICK_WAIT * 1000;
     if (d !== this._quickDeadline) { this._quickDeadline = d; this._broadcastLobby(); }
-    if (d != null && now >= d) { this._quickDeadline = null; if (!this.start()) this._broadcastLobby(); }
+    if (d != null && now >= d) { this._quickDeadline = null; this._quickGo = true; const ok = this.start(); this._quickGo = false; if (!ok) this._broadcastLobby(); }
   }
 
   // ------------------------------------------------------------------ per frame

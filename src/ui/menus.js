@@ -2781,6 +2781,7 @@ export class Menus {
     };
 
     const toggleReady = () => {
+      if (net && net.quick) return;   // Quick Play: no ready-ups, the countdown starts the match
       if (isHost()) { tryStart(); return; }
       const me = meP();
       if (!me || S.launching) return;
@@ -2793,6 +2794,7 @@ export class Menus {
       renderBar();
     };
     const tryStart = () => {
+      if (net && net.quick) { this.toast('Quick Play starts on its own when the countdown ends', { kind: 'info', icon: GLYPHS.clock }); return; }
       if (!isHost() || S.launching) return;
       if (!net.canStart()) {
         this._sfx('ui_error'); restartAnim(startBtn, 'is-shake');
@@ -3085,6 +3087,7 @@ export class Menus {
       if (wChip._wid !== wid) { wChip._wid = wid; wIcon.innerHTML = weaponIcon((W && W.kind) || wid); wName.textContent = W ? t(W.name) : wid; if (wChip._init) restartAnim(wChip, 'is-pick'); wChip._init = true; }
       const host = isHost();
       el.classList.toggle('is-host', host);
+      el.classList.toggle('is-quick', !!(net && net.quick));   // public room: no host settings, no START / READY
       const ready = !!(me && me.ready);
       readyBtn.classList.toggle('is-on', ready);
       readyBtn.querySelector('.iw-btn__label').textContent = t(ready ? 'READY!' : 'READY?');
