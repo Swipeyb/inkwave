@@ -44,6 +44,11 @@ const CSS = `
 .iw-rotate i { display: block; width: 64px; height: 110px; margin: 0 auto; border: 5px solid #fff; border-radius: 14px; animation: iwRot 1.8s ease-in-out infinite; }
 @keyframes iwRot { 0%, 25% { transform: rotate(0) } 60%, 100% { transform: rotate(-90deg) } }
 @media (orientation: portrait) { html.is-touch .iw-rotate { display: grid; } }
+.iw-rotate__app { margin-top: 22px; max-width: 320px; color: #c9d2e3; font-size: 15px; }
+.iw-rotate__btn { display: block; box-sizing: border-box; text-align: center; width: 100%; margin-top: 12px; padding: 14px 18px; border: 0; border-radius: 14px; background: #8cf5cf; color: #10261d;
+  font: 400 18px/1 'Titan One', Rubik, sans-serif; text-decoration: none; }
+.iw-rotate__btn--ghost { background: rgba(255,255,255,.1); color: #fff; }
+.iw-rotate__app small { display: block; margin-top: 10px; color: #8f9ab0; font-size: 13px; }
 
 /* no double-tap zoom / long-press menus anywhere in the game */
 html.is-touch, html.is-touch body { touch-action: manipulation; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
@@ -70,6 +75,25 @@ export function installTouch(game) {
   const rot = document.createElement('div');
   rot.className = 'iw-rotate';
   rot.innerHTML = '<div><i></i><b>Turn your phone sideways</b>SPLATR plays in landscape.</div>';
+  // In-app browsers (X, Telegram, Discord, Instagram…) usually can't rotate at all: offer to open the real browser
+  const ua = navigator.userAgent || '';
+  const inApp = /Twitter|TwitterAndroid|FBAN|FBAV|Instagram|Telegram|Discord|TikTok|musical_ly|Snapchat|Line\/|; wv\)/i.test(ua);
+  if (inApp) {
+    const android = /Android/i.test(ua), ios = /iPhone|iPad|iPod/i.test(ua);
+    const url = location.href.replace(/^https?:\/\//, '');
+    const open = android ? `intent://${url}#Intent;scheme=https;package=com.android.chrome;end` : ios ? `x-safari-https://${url}` : location.href;
+    const box = document.createElement('div');
+    box.className = 'iw-rotate__app';
+    box.innerHTML = `This app’s built-in browser can’t turn sideways. Open SPLATR in ${android ? 'Chrome' : ios ? 'Safari' : 'your browser'} to play:
+      <a class="iw-rotate__btn" href="${open}">Open in ${android ? 'Chrome' : ios ? 'Safari' : 'browser'}</a>
+      <button class="iw-rotate__btn iw-rotate__btn--ghost" type="button">Copy link</button>
+      <small>Or tap the ${ios ? '⋯' : '⋮'} menu up top and choose “Open in browser”.</small>`;
+    box.querySelector('button').onclick = async (e) => {
+      try { await navigator.clipboard.writeText(location.href.split('#')[0]); e.target.textContent = 'Link copied'; }
+      catch { e.target.textContent = location.host; }
+    };
+    rot.firstChild.appendChild(box);
+  }
   document.body.appendChild(rot);
 
   const root = document.createElement('div');
