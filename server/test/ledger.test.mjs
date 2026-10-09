@@ -38,7 +38,8 @@ async function treasury() {
   return { pub: b58encode(pub), pubBytes: Uint8Array.from(pub), secret: JSON.stringify([...seed, ...pub]) };
 }
 
-const players = [{ id: 'A', name: 'Ann', wallet: W[0] }, { id: 'B', name: 'Bo', wallet: W[1] }, { id: 'C', name: 'Cy', wallet: null }];
+// D is on the losing side with a verified wallet: a prize needs a wallet holder on each team
+const players = [{ id: 'A', name: 'Ann', wallet: W[0] }, { id: 'B', name: 'Bo', wallet: W[1] }, { id: 'C', name: 'Cy', wallet: null }, { id: 'D', name: 'Di', wallet: 'So11111111111111111111111111111111111111112' }];
 
 test('dry-run: commit hides the seed, settle reveals it, nothing is sent, cooldown + log recorded', async () => {
   const t = await treasury();

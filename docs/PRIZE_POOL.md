@@ -91,7 +91,7 @@ See `.env.example`. Off unless both `SOLANA_RPC_URL` and `TREASURY_PUBLIC_KEY` a
 | `PRIZE_MIN_PCT` / `PRIZE_MAX_PCT` | 1 / 5 | prize range, % of the pool (when `PRIZE_PCT` is empty) |
 | `PRIZE_MAX_SOL` | 1 | cap per round |
 | `PRIZE_RESERVE_SOL` | 0.05 | never paid out |
-| `MIN_HUMAN_PLAYERS` | 2 | humans **with a verified wallet** at match start for a prize round |
+| `MIN_HUMAN_PLAYERS` | 2 | humans **with a verified wallet** at match start for a prize round; at the end there must be a wallet holder on **each** team (no farming with two wallets on one side) |
 | `MIN_TOKEN_HOLDING` | 0 | $SPLURT a winner must hold (e.g. `100000` = 100k $SPLURT) |
 | `PRIZE_COOLDOWN_SEC` | 3600 | a wallet can win once per this many seconds |
 

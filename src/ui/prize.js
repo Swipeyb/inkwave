@@ -158,7 +158,7 @@ class PrizeUI {
       : i.prizeMinSol === i.prizeMaxSol ? `◎ ${sol(i.prizeMaxSol)} SOL` : `◎ ${sol(i.prizeMinSol)}–${sol(i.prizeMaxSol)} SOL`;
     this.el.innerHTML = `<div class="iw-prize__k">Prize this match${tag}</div>
       <div class="iw-prize__pool">${est || `◎ ${sol(i.poolSol)} SOL pool`}</div>
-      <div class="iw-prize__note">${pct} of the ◎ ${sol(i.poolSol)} SOL pool (max ${esc(i.maxSol)} SOL) to a random player on the winning team. Needs ${esc(i.minHumans)}+ players with a connected wallet.</div>
+      <div class="iw-prize__note">${pct} of the ◎ ${sol(i.poolSol)} SOL pool (max ${esc(i.maxSol)} SOL) to a random wallet holder on the winning team. Needs a player with a connected wallet on each team.</div>
       ${hold}${wallet}${this.err ? `<div class="iw-prize__err">${esc(this.err)}</div>` : ''}`;
   }
 }

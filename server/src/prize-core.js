@@ -94,6 +94,16 @@ export function roundBlock(cfg, humansAtStart, walletsAtStart = humansAtStart) {
   return null;
 }
 
+/**
+ * A prize needs a verified wallet on BOTH teams (so nobody farms the pool with two wallets on one side).
+ * `players` = humans still connected [{ id, wallet }], `winners` = the winning team's human ids.
+ */
+export function bothSidesBlock(players, winners) {
+  const win = new Set(winners);
+  const w = players.filter((p) => p.wallet && win.has(p.id)).length, l = players.filter((p) => p.wallet && !win.has(p.id)).length;
+  return w && l ? null : 'needs a wallet holder on each team';
+}
+
 /** What the next match would pay at this pool balance: the low and high end of the draw (equal with PRIZE_PCT). */
 export function prizeEstimate(poolLamports, cfg) {
   const lo = prizeLamports(poolLamports, cfg, 0).lamports, hi = prizeLamports(poolLamports, cfg, 1).lamports;

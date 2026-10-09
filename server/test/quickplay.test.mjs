@@ -77,3 +77,11 @@ test('matchmaker counts players on their way in, so a burst does not overfill', 
   assert.ok([...counts.values()].every((n) => n <= 8), JSON.stringify([...counts]));
   assert.equal(counts.size, 2);
 });
+
+test('a prize needs a verified wallet on each team', async () => {
+  const { bothSidesBlock } = await import('../src/prize-core.js');
+  const players = [{ id: 'A', wallet: 'w1' }, { id: 'B', wallet: 'w2' }, { id: 'C', wallet: null }, { id: 'D', wallet: null }];
+  assert.equal(bothSidesBlock(players, ['A', 'B']), 'needs a wallet holder on each team');   // both wallets won
+  assert.equal(bothSidesBlock(players, ['C', 'D']), 'needs a wallet holder on each team');   // both wallets lost
+  assert.equal(bothSidesBlock(players, ['A', 'C']), null);                                     // one each side
+});

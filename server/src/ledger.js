@@ -1,7 +1,7 @@
 // The prize ledger: one instance for the whole relay (the `Prizes` Durable Object in index.js), so commits, cooldowns,
 // pool reads and payouts are serialised across every room and the treasury is never double-spent. Storage / fetch /
 // clock are injected, so server/test/ledger.test.mjs runs it in plain Node with a fake RPC.
-import { prizeConfig, publicConfig, newSeedHex, commitOf, roundBlock, eligibleCandidates, drawRound, prizeEstimate } from './prize-core.js';
+import { prizeConfig, publicConfig, newSeedHex, commitOf, roundBlock, eligibleCandidates, drawRound, prizeEstimate, bothSidesBlock } from './prize-core.js';
 import { getBalanceLamports, getTokenHolding, parseSecretKey, importSigner, sendTransfer, parsePubkey, LAMPORTS_PER_SOL, b58encode } from './solana.js';
 
 const POOL_TTL = 30000, LOG_KEEP = 500;
@@ -73,6 +73,8 @@ export class PrizeLedger {
     if (!c) return { round, status: 'unknown round' };
     const cfg = this.cfg, now = this.now();
     const rec = { round, room: c.room, at: new Date(now).toISOString(), commit: c.hash, seed: c.seed, mode: cfg.mode, humansAtStart: c.humansAtStart, status: 'void', reason: voidReason || null, prizeSol: 0, winner: null, candidates: [], rejected: [], tx: null };
+    if (!voidReason && winners) voidReason = bothSidesBlock(players, winners);
+    rec.reason = voidReason || null;
     if (!voidReason && winners) {
       const cooldowns = new Map(), holdings = new Map();
       for (const p of players) {
