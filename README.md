@@ -2,14 +2,14 @@
   <img src="assets/stages/halyard-day.webp" alt="Halyard Marina at golden hour" width="100%">
 </p>
 
-<h1 align="center">SPLURT</h1>
+<h1 align="center">SPLATR</h1>
 
 <p align="center">
   <b>English</b> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
 <p align="center">
-  An online 4v4 goo-slinging turf brawler that runs in your browser — and the game behind the <b>$SPLURT</b> coin.<br>
+  An online 4v4 goo-slinging turf brawler that runs in your browser — and the game behind the <b>$SPLATR</b> coin.<br>
   Paint the ground, swim through your goo, out-turf the other team.<br>
   <b><a href="https://playsplurt.online">playsplurt.online</a></b><br>
   <sub>Based on <a href="https://github.com/jaydendavisnc/inkwave">INKWAVE</a> by jaydendavisnc (MIT).</sub>
@@ -23,7 +23,7 @@
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
-> **SPLURT is online-only.** The title screen goes straight to creating / joining an online room; the solo
+> **SPLATR is online-only.** The title screen goes straight to creating / joining an online room; the solo
 > PLAY (vs bots) modes, the loadout PRACTICE button and the bot-skill pickers are gone from the menus. Rooms can still
 > fill empty slots with bots, and a player who drops mid-match is still taken over by a bot (the netcode relies on it).
 > The offline match engine itself stays: online matches run on it, and so do the title-screen attract mode and the
@@ -148,4 +148,4 @@ Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) fo
 
 ## License
 
-[MIT](LICENSE) © 2026 Jayden Davis. SPLURT is based on INKWAVE by jaydendavisnc (MIT); the original copyright and license notice are kept in [LICENSE](LICENSE). SPLURT is an independent project and is not affiliated with Nintendo or any other game publisher.
+[MIT](LICENSE) © 2026 Jayden Davis. SPLATR is based on INKWAVE by jaydendavisnc (MIT); the original copyright and license notice are kept in [LICENSE](LICENSE). SPLATR is an independent project and is not affiliated with Nintendo or any other game publisher.

@@ -1,4 +1,4 @@
-# Deploys SPLURT on every push to solana-prize-pool (or by hand: Actions → Deploy SPLURT → Run workflow).
+# Deploys SPLATR on every push to solana-prize-pool (or by hand: Actions → Deploy SPLATR → Run workflow).
 #   game   → Cloudflare Pages project "splurt"  (playsplurt.online, www, splurt.pages.dev)
 #   server → Worker "inkwave-net"               (api.playsplurt.online)
 # Needs two repository secrets (Settings → Secrets and variables → Actions):
@@ -6,7 +6,7 @@
 #   CLOUDFLARE_ACCOUNT_ID  shown on the Cloudflare dashboard home
 # The treasury key is never used here: it only ever goes in via `wrangler secret put`, and server/wrangler.jsonc pins
 # PAYOUT_MODE=dry-run.
-name: Deploy SPLURT
+name: Deploy SPLATR
 on:
   push:
     branches: [solana-prize-pool]

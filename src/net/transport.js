@@ -7,7 +7,7 @@ import { ERR, netError, codeFromRelay } from './errors.js';
 export const PROTO = 1;
 
 // Where the relay lives: ?relay=… wins; a page served from this machine or the LAN talks to a local `wrangler dev`
-// relay on :8787; playsplurt.online talks to SPLURT's own relay (deploy server/ and route api.playsplurt.online to it —
+// relay on :8787; playsplurt.online talks to SPLATR's own relay (deploy server/ and route api.playsplurt.online to it —
 // docs/PRIZE_POOL.md "Deploying"); any other public host keeps the original INKWAVE Worker.
 export const SPLURT_RELAY = 'wss://api.playsplurt.online';
 export const PROD_RELAY = 'wss://inkwave-net.inkwave.workers.dev';

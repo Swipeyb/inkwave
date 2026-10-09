@@ -165,7 +165,7 @@ function drawGraffiti(g, W, H, rnd) {
   g.fillStyle = mixP(0, 0.5, 0.6);
   for (let i = 0; i < 26; i++) { g.beginPath(); g.arc(W * (0.05 + rnd() * 0.9), H * (0.25 + rnd() * 0.5), 8 + rnd() * 26, 0, 7); g.fill(); }
   // letters
-  const word = 'SPLURT', size = H * 0.5;
+  const word = 'SPLATR', size = H * 0.5;
   g.font = titan(size); g.lineJoin = 'round'; g.textBaseline = 'alphabetic';
   const adv = [...word].map((ch) => g.measureText(ch).width * 0.86);
   const total = adv.reduce((a, b) => a + b, 0);

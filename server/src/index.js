@@ -1,11 +1,11 @@
-// SPLURT online relay (based on the INKWAVE relay) (Cloudflare Worker + Durable Object).
+// SPLATR online relay (based on the INKWAVE relay) (Cloudflare Worker + Durable Object).
 //
 //   GET /room/<CODE>?name=<name>&create=1&v=<proto>   (WebSocket upgrade) → the Room object for that code
 //   GET /health                                          → "ok"
 //   GET /quick[?mode=holders]                            → {"code"} the public Quick Play room to join next
 //
 // Holders-only rooms ("QH" codes) take a signed wallet proof on the join URL (&wallet=&msg=&sig=, message
-//   "SPLURT holder match\nroom: <code>\nwallet: <address>\ntime: <ms>") and, when TOKEN_MINT + MIN_TOKEN_HOLDING are
+//   "SPLATR holder match\nroom: <code>\nwallet: <address>\ntime: <ms>") and, when TOKEN_MINT + MIN_TOKEN_HOLDING are
 //   set, an on-chain holding check: every player in them is a verified holder.
 //
 // Quick Play rooms use 6-character codes starting with "QP" (private codes are 5 characters, so the two never clash).
@@ -39,8 +39,8 @@ import { parsePubkey, verifyEd25519, b64decode } from './solana.js';
 const PROTO = 1, MAX = 8;
 // Public relay hygiene: only the game's own site may open rooms (plus local dev), each socket gets a message budget
 // (the game sends ~25/s; a runaway or hostile client is cut off before it can eat the account's quota) and a size cap.
-const ORIGIN_OK = (o) => /^https:\/\/(www\.)?playsplurt\.online$/.test(o)   // SPLURT's site
-  || /^https:\/\/([a-z0-9-]+\.)?splurt\.pages\.dev$/.test(o)   // SPLURT's Cloudflare Pages URL + preview deploys
+const ORIGIN_OK = (o) => /^https:\/\/(www\.)?playsplurt\.online$/.test(o)   // SPLATR's site
+  || /^https:\/\/([a-z0-9-]+\.)?splurt\.pages\.dev$/.test(o)   // SPLATR's Cloudflare Pages URL + preview deploys
   || /^https:\/\/([a-z0-9-]+\.)?inkwave-aah\.pages\.dev$/.test(o)   // the original INKWAVE site (upstream)
   || /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|[a-z0-9-]+\.local)(:\d+)?$/.test(o);   // dev + LAN play
 const MSG_MAX = 65536, RATE = 90, BURST_STRIKES = 4;
@@ -51,7 +51,7 @@ const SILENT_MATCH = 20000, SILENT_LOBBY = 150000, SWEEP = 4000;   // a heavy tr
 const CODE = /^[A-Z0-9]{4,8}$/;
 export const QUICK_CODE = /^Q[PH][A-Z0-9]{4}$/;     // QP = open Quick Play, QH = holders only
 export const HOLDER_CODE = /^QH[A-Z0-9]{4}$/;
-export const holderMessage = (code, wallet, time) => `SPLURT holder match\nroom: ${code}\nwallet: ${wallet}\ntime: ${time}`;
+export const holderMessage = (code, wallet, time) => `SPLATR holder match\nroom: ${code}\nwallet: ${wallet}\ntime: ${time}`;
 const QUICK_CHARS = 'BCEFGHJKLMNPRTUVXYZ23456789';
 
 export default {
@@ -78,7 +78,7 @@ export default {
       return new Response(JSON.stringify(r), { headers: { 'content-type': 'application/json', 'access-control-allow-origin': origin, vary: 'Origin', 'cache-control': 'no-store' } });
     }
     const m = url.pathname.match(/^\/room\/([A-Za-z0-9]+)$/);
-    if (!m) return new Response('SPLURT relay', { status: 404 });
+    if (!m) return new Response('SPLATR relay', { status: 404 });
     const code = m[1].toUpperCase();
     if (!CODE.test(code)) return new Response('bad code', { status: 400 });
     if (req.headers.get('Upgrade') !== 'websocket') return new Response('expected websocket', { status: 426 });
@@ -133,7 +133,7 @@ export class Room extends DurableObject {
     let wallet = null;
     if (HOLDER_CODE.test(this.code)) {
       const pk = String(url.searchParams.get('wallet') || ''), key = parsePubkey(pk), msg = String(url.searchParams.get('msg') || '');
-      const m = msg.match(/^SPLURT holder match\nroom: ([A-Z0-9]+)\nwallet: (\S+)\ntime: (\d+)$/);
+      const m = msg.match(/^SPLATR holder match\nroom: ([A-Z0-9]+)\nwallet: (\S+)\ntime: (\d+)$/);
       if (!key || !m || m[1] !== this.code || m[2] !== pk || Math.abs(Date.now() - +m[3]) > 5 * 60000) return fail('ERR_HOLDER_SIG', 'Wallet check failed — try again');
       let sig; try { sig = b64decode(String(url.searchParams.get('sig') || '')); } catch { sig = new Uint8Array(0); }
       if (!(await verifyEd25519(key, msg, sig))) return fail('ERR_HOLDER_SIG', 'Wallet check failed — try again');
@@ -142,7 +142,7 @@ export class Room extends DurableObject {
       if (ledger) {
         let h;
         try { h = await ledger.holds(pk); } catch (e) { h = { ok: false, error: String(e.message || e) }; }
-        if (!h.ok) return fail('ERR_NOT_HOLDER', h.error ? 'Could not check your $SPLURT — try again' : `Hold at least ${Number(h.need).toLocaleString('en-US')} $SPLURT to join holder matches`);
+        if (!h.ok) return fail('ERR_NOT_HOLDER', h.error ? 'Could not check your $SPLATR — try again' : `Hold at least ${Number(h.need).toLocaleString('en-US')} $SPLATR to join holder matches`);
       }
       wallet = pk;
     }
@@ -220,7 +220,7 @@ export class Room extends DurableObject {
     if (!this._ledger()) return this._send(ws, { t: 'wallet', a: 'err', e: 'Prizes are off on this server' });
     if (o.a === 'nonce') {
       const n = crypto.randomUUID();
-      me.walletMsg = `SPLURT prize wallet check\nroom: ${this.code || me.code}\nplayer: ${me.id}\nnonce: ${n}\n(signing this costs nothing and sends no transaction)`;
+      me.walletMsg = `SPLATR prize wallet check\nroom: ${this.code || me.code}\nplayer: ${me.id}\nnonce: ${n}\n(signing this costs nothing and sends no transaction)`;
       ws.serializeAttachment(me);
       return this._send(ws, { t: 'wallet', a: 'nonce', msg: me.walletMsg });
     }

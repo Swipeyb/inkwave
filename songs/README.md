@@ -1,6 +1,6 @@
 # songs/ — your own music (optional)
 
-SPLURT generates its whole soundtrack in code. If you'd rather play your own recordings, drop audio files into these
+SPLATR generates its whole soundtrack in code. If you'd rather play your own recordings, drop audio files into these
 folders and run `npm run music` (it also runs before `npm start` / `npm run package`):
 
 | folder | plays |

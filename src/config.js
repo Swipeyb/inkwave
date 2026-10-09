@@ -1,15 +1,15 @@
 // Shared tuning + content definitions. Every module reads from here; nothing here imports anything.
 
-// $SPLURT on Solana (pump.fun). Shown on the title + online screens with copy / buy buttons.
+// $SPLATR on Solana (pump.fun). Shown on the title + online screens with copy / buy buttons.
 // ca: '' shows "SOON" (no copy / buy) until launch; paste the mint here and in server/wrangler.jsonc TOKEN_MINT
-export const COIN = { ticker: '$SPLURT', ca: '', buyUrl: '' };
-export const GAME_TITLE = 'SPLURT';
+export const COIN = { ticker: '$SPLATR', ca: '', buyUrl: '' };
+export const GAME_TITLE = 'SPLATR';
 export const GAME_SUBTITLE = 'Turf Riot';
 export const VERSION = '1.0.0';
 
 // Team ink palettes. Team 0 ("Alpha") is always the local player's team; a palette is picked per match.
 export const TEAM_PALETTES = [
-  // SPLURT's own inks (no orange/blue, yellow/purple or pink/green signature pairs); each pair differs strongly in
+  // SPLATR's own inks (no orange/blue, yellow/purple or pink/green signature pairs); each pair differs strongly in
   // lightness as well as hue, so the two teams still read apart for red-green colour vision and at dusk
   { id: 'goo-lava', a: '#22e0a1', b: '#ff4d3d', names: ['Goo', 'Lava'] },
   { id: 'lagoon-bullion', a: '#12b3c4', b: '#ffc233', names: ['Lagoon', 'Bullion'] },

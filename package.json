@@ -1,15 +1,15 @@
 {
   "name": "splurt",
-  "productName": "SPLURT",
+  "productName": "SPLATR",
   "version": "1.1.0",
-  "description": "SPLURT: an online 4v4 goo-slinging turf brawler for the browser, built on three.js. Based on INKWAVE by jaydendavisnc (MIT).",
+  "description": "SPLATR: an online 4v4 goo-slinging turf brawler for the browser, built on three.js. Based on INKWAVE by jaydendavisnc (MIT).",
   "main": "electron/main.cjs",
   "scripts": {
     "start": "electron .",
     "serve": "python3 tools/serve.py 8490",
     "check": "for f in $(find src electron build tools server/src -name '*.js' -o -name '*.mjs' -o -name '*.cjs'); do node --check \"$f\" || exit 1; done && echo 'syntax ok'",
     "test": "node --test server/test/*.test.mjs",
-    "package": "electron-packager . SPLURT --platform=darwin --arch=arm64,x64 --icon=build/icon.icns --app-bundle-id=local.splurt.game --app-category-type=public.app-category.action-games --extend-info=build/extend-info.plist --darwin-dark-mode-support --asar.unpackDir=songs --out=dist --overwrite --ignore='^/(dist|build|node_modules|docs|tools|server|\\.botlab)(/|$)' --ignore='\\.DS_Store$'",
+    "package": "electron-packager . SPLATR --platform=darwin --arch=arm64,x64 --icon=build/icon.icns --app-bundle-id=local.splurt.game --app-category-type=public.app-category.action-games --extend-info=build/extend-info.plist --darwin-dark-mode-support --asar.unpackDir=songs --out=dist --overwrite --ignore='^/(dist|build|node_modules|docs|tools|server|\\.botlab)(/|$)' --ignore='\\.DS_Store$'",
     "music": "node build/music-manifest.mjs",
     "prestart": "npm run -s music",
     "prepackage": "npm run -s check && npm run -s music",
@@ -33,7 +33,7 @@
     "browser-game",
     "solana"
   ],
-  "author": "Jayden Davis (original INKWAVE); SPLURT fork contributors",
+  "author": "Jayden Davis (original INKWAVE); SPLATR fork contributors",
   "license": "MIT",
   "type": "module",
   "homepage": "https://playsplurt.online",

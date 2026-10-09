@@ -1,6 +1,6 @@
-# Contributing to SPLURT
+# Contributing to SPLATR
 
-Thanks for your interest! SPLURT is a plain ES-module three.js project with no build step, so getting started takes a minute.
+Thanks for your interest! SPLATR is a plain ES-module three.js project with no build step, so getting started takes a minute.
 
 ## Running locally
 

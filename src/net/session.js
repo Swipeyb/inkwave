@@ -87,7 +87,7 @@ export class NetSession {
 
   // Quick Play: ask the relay's matchmaker for the next open public room and join it (anyone can; first one in hosts)
   // holders: { sign(message) → { pk, sig(base64) } } joins a holders-only room — the wallet signs a message naming the
-  // room, the relay checks the signature and the on-chain $SPLURT holding before letting us in
+  // room, the relay checks the signature and the on-chain $SPLATR holding before letting us in
   async quickPlay(name, { holders = null } = {}) {
     let lastErr = null;
     for (let tries = 0; tries < 3; tries++) {   // a room can start or fill between the matchmaker's answer and our join
@@ -101,7 +101,7 @@ export class NetSession {
       if (holders) {
         try {
           const pk = await holders.connect();
-          const msg = `SPLURT holder match\nroom: ${code}\nwallet: ${pk}\ntime: ${Date.now()}`;
+          const msg = `SPLATR holder match\nroom: ${code}\nwallet: ${pk}\ntime: ${Date.now()}`;
           extra = { wallet: pk, msg, sig: await holders.sign(msg) };
         } catch (e) { lastErr = netError(e?.code || ERR.HOLDER_SIG, e?.message || 'Wallet check cancelled'); break; }
       }

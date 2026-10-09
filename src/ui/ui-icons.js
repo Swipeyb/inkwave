@@ -585,7 +585,7 @@ export function richText(str) {
 
 // ------------------------------------------------------------------ logo
 /** Big display logo: letters + ink splat + animated drips. size: 'xl' | 'md' | 'sm' */
-export function logoMarkup(title = 'SPLURT', subtitle = 'Turf Riot', size = 'xl') {
+export function logoMarkup(title = 'SPLATR', subtitle = 'Turf Riot', size = 'xl') {
   const sub = subtitle ? t(subtitle) : '';
   const letters = [...title].map((ch, i) => `<span class="iw-logo__l" style="--i:${i}" data-l="${esc(ch)}">${esc(ch)}</span>`).join('');
   const s = splatShape(300, 110, 88, { seed: 23, arms: 11, drops: 9, armLen: 0.55 });

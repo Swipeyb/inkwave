@@ -60,7 +60,7 @@ class Game {
     for (const m of MAPS) { try { m.thumb = layoutThumbSVG(MAP_LAYOUTS[m.layout || m.id], m.theme); } catch (e) { console.warn('thumb', m.id, e); } }
     this.settings = G.settings = loadJSON('inkwave.settings', DEFAULT_SETTINGS);
     setLang(this.settings.lang || 'en');   // before any menu renders (src/i18n/strings.js)
-    document.title = t('SPLURT — Turf Riot');
+    document.title = t('SPLATR — Turf Riot');
     // desktop app: the window's fullscreen state is owned by the native shell; mirror it into settings for the menu
     if (window.inkwaveNative) {
       this.settings.fullscreen = window.inkwaveNative.isFullScreen();
@@ -413,7 +413,7 @@ class Game {
   _setSettings(partial) {
     Object.assign(this.settings, partial);
     saveJSON('inkwave.settings', this.settings);
-    if ('lang' in partial) { setLang(partial.lang); document.title = t('SPLURT — Turf Riot'); this._rebuildHud(); }
+    if ('lang' in partial) { setLang(partial.lang); document.title = t('SPLATR — Turf Riot'); this._rebuildHud(); }
     if ('quality' in partial || 'shadows' in partial || 'bloom' in partial) this.R?.applySettings(this.settings);
     if ('fullscreen' in partial && window.inkwaveNative) window.inkwaveNative.setFullScreen(!!partial.fullscreen);
     if ('master' in partial || 'music' in partial || 'sfx' in partial) this._applyAudioVolumes();

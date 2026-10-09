@@ -45,7 +45,7 @@ export class PrizeLedger {
     return out;
   }
 
-  /** $SPLURT price in USD (Jupiter price API by default), cached a minute; null when unknown. */
+  /** $SPLATR price in USD (Jupiter price API by default), cached a minute; null when unknown. */
   async price() {
     const cfg = this.cfg;
     if (!cfg.mint || !(cfg.minHoldingUsd > 0)) return null;

@@ -753,7 +753,7 @@ function drawStreetPrint(x) {
     txt(x, 'FM', 220, 222, 22, FD, I.navy, null, 0, 60);
     txt(x, 'GOO RADIO', w / 2, 44, 32, FD, I.navy, null, 0, w - 24);
     txt(x, 'NONSTOP INK HITS', w / 2, 316, 14, FT, I.navy, null, 0, w - 24);
-    txt(x, 'ALL DAY · ALL SPLURT', w / 2, 340, 11, FT, I.cream, null, 0, w - 24);
+    txt(x, 'ALL DAY · ALL SPLATR', w / 2, 340, 11, FT, I.cream, null, 0, w - 24);
     vignette(x, w, h);
   });
   region(x, 'pst8', (x, w, h) => { // KRAKEN LINES cruises
@@ -863,7 +863,7 @@ function drawStreetPrint(x) {
   header('cart1', I.mustard, I.navy, 'GOO DOGS', 'GRILLED · SAUCED · LEGENDARY', (x, cx, cy) => { x.fillStyle = '#e8cf95'; x.beginPath(); x.roundRect(cx - 42, cy - 14, 84, 30, 14); x.fill(); x.fillStyle = I.coral; x.beginPath(); x.roundRect(cx - 46, cy - 8, 92, 16, 8); x.fill(); x.strokeStyle = I.mustard; x.lineWidth = 3; x.beginPath(); for (let i = 0; i < 8; i++) x.lineTo(cx - 36 + i * 10, cy + (i % 2 ? -4 : 3)); x.stroke(); });
   header('stall0', I.teal, I.cream, 'FRESH CATCH', 'CAUGHT THIS MORNING', (x, cx, cy) => { x.fillStyle = I.cream; x.beginPath(); x.ellipse(cx - 6, cy, 34, 16, 0, 0, TAU); x.fill(); x.beginPath(); x.moveTo(cx + 24, cy); x.lineTo(cx + 44, cy - 16); x.lineTo(cx + 44, cy + 16); x.fill(); x.fillStyle = I.teal; x.beginPath(); x.arc(cx - 24, cy - 3, 4, 0, TAU); x.fill(); });
   header('stall1', '#8cc49a', I.navy, 'HARBOR GREENS', 'FRUIT · VEG · HERBS', (x, cx, cy) => { x.fillStyle = I.mustard; x.beginPath(); x.ellipse(cx - 12, cy + 4, 20, 16, 0.4, 0, TAU); x.fill(); x.fillStyle = I.coral; x.beginPath(); x.arc(cx + 16, cy + 8, 16, 0, TAU); x.fill(); x.fillStyle = '#4f9a57'; x.beginPath(); x.ellipse(cx + 18, cy - 12, 8, 4, -0.6, 0, TAU); x.fill(); });
-  header('stall2', I.lav, I.cream, 'SPLURT MERCH', 'TEES · CAPS · STICKERS', (x, cx, cy) => { x.fillStyle = I.cream; x.beginPath(); x.moveTo(cx - 30, cy - 26); x.lineTo(cx - 12, cy - 30); x.quadraticCurveTo(cx, cy - 22, cx + 12, cy - 30); x.lineTo(cx + 30, cy - 26); x.lineTo(cx + 38, cy - 10); x.lineTo(cx + 24, cy - 6); x.lineTo(cx + 24, cy + 30); x.lineTo(cx - 24, cy + 30); x.lineTo(cx - 24, cy - 6); x.lineTo(cx - 38, cy - 10); x.closePath(); x.fill(); x.fillStyle = I.coral; splatShape(x, cx, cy + 6, 10, 4, 0); });
+  header('stall2', I.lav, I.cream, 'SPLATR MERCH', 'TEES · CAPS · STICKERS', (x, cx, cy) => { x.fillStyle = I.cream; x.beginPath(); x.moveTo(cx - 30, cy - 26); x.lineTo(cx - 12, cy - 30); x.quadraticCurveTo(cx, cy - 22, cx + 12, cy - 30); x.lineTo(cx + 30, cy - 26); x.lineTo(cx + 38, cy - 10); x.lineTo(cx + 24, cy - 6); x.lineTo(cx + 24, cy + 30); x.lineTo(cx - 24, cy + 30); x.lineTo(cx - 24, cy - 6); x.lineTo(cx - 38, cy - 10); x.closePath(); x.fill(); x.fillStyle = I.coral; splatShape(x, cx, cy + 6, 10, 4, 0); });
   region(x, 'chalk', (x, w, h) => { // chalk menu board
     x.fillStyle = '#34403d'; x.fillRect(0, 0, w, h);
     const rnd = mulberry32(151); for (let i = 0; i < 90; i++) { x.fillStyle = `rgba(255,255,255,${0.02 + rnd() * 0.05})`; x.beginPath(); x.ellipse(rnd() * w, rnd() * h, 6 + rnd() * 30, 2 + rnd() * 6, rnd() * PI, 0, TAU); x.fill(); }
@@ -941,7 +941,7 @@ function drawStreetPrint(x) {
     x.fillStyle = '#b4b4b4'; x.beginPath(); x.arc(c, c, 40, 0, TAU); x.fill();
     miniSquid(x, c, c + 2, 30, '#e2e2e2', '#8a8a8a', '#e2e2e2');
     x.font = FT(15); x.fillStyle = '#e8e8e8'; x.textAlign = 'center'; x.textBaseline = 'middle';
-    const s = 'SPLURT HARBOR · SEWER · SPLURT HARBOR · SEWER · ';
+    const s = 'SPLATR HARBOR · SEWER · SPLATR HARBOR · SEWER · ';
     for (let i = 0; i < s.length; i++) { const a = (i / s.length) * TAU - HP; x.save(); x.translate(c + Math.cos(a) * 95, c + Math.sin(a) * 95); x.rotate(a + HP); x.fillText(s[i], 0, 0); x.restore(); }
   });
   region(x, 'gully', (x, w, h) => { x.clearRect(0, 0, w, h); x.fillStyle = '#fff'; x.fillRect(0, 0, w, 10); x.fillRect(0, h - 10, w, 10); x.fillRect(0, 0, 10, h); x.fillRect(w - 10, 0, 10, h); for (let i = 1; i < 8; i++) x.fillRect(i * 16 - 3, 0, 6, h); x.fillRect(0, h / 2 - 4, w, 8); });

@@ -188,7 +188,7 @@ export const RANK_TIERS = [
   { lv: 1, name: 'Fresh Recruit', cls: 'is-t0' },
   { lv: 5, name: 'Turf Scrapper', cls: 'is-t1' },
   { lv: 10, name: 'Ink Slinger', cls: 'is-t2' },
-  { lv: 20, name: 'Splurt Veteran', cls: 'is-t3' },
+  { lv: 20, name: 'Splatr Veteran', cls: 'is-t3' },
   { lv: 30, name: 'Tide Legend', cls: 'is-t4' },
 ];
 export const rankTier = (level) => RANK_TIERS.reduce((acc, r, i) => (level >= r.lv ? i : acc), 0);

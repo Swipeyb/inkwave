@@ -69,7 +69,7 @@ export function installTouch(game) {
   // "rotate your phone" (portrait); shown by CSS only
   const rot = document.createElement('div');
   rot.className = 'iw-rotate';
-  rot.innerHTML = '<div><i></i><b>Turn your phone sideways</b>SPLURT plays in landscape.</div>';
+  rot.innerHTML = '<div><i></i><b>Turn your phone sideways</b>SPLATR plays in landscape.</div>';
   document.body.appendChild(rot);
 
   const root = document.createElement('div');

@@ -1,4 +1,4 @@
-// Optional $SPLURT (Solana) prize pool UI (docs/PRIZE_POOL.md). Completely inert unless the relay says the pool is enabled
+// Optional $SPLATR (Solana) prize pool UI (docs/PRIZE_POOL.md). Completely inert unless the relay says the pool is enabled
 // (GET <relay>/prize): no requests at all while offline, nothing on screen in solo play.
 //
 //   online lobby  → a small card: pool balance, prize range, "Connect wallet" (Phantom / Solflare / any injected
@@ -171,8 +171,8 @@ class PrizeUI {
     const tag = i.mode !== 'live' ? '<span class="iw-prize__tag">DRY RUN</span>' : '';
     // kept deliberately short: pool size, the holding rule, the wallet button (full rules in the tooltip)
     const usdMin = i.minHoldingUsd > 0 ? i.minHoldingUsd : null;
-    const holdTxt = usdMin ? `Hold min $${esc(Number(usdMin).toLocaleString('en-US'))} of $SPLURT to win`
-      : i.minHolding > 0 ? `Hold min ${esc(Math.ceil(Number(i.minHolding)).toLocaleString('en-US'))} $SPLURT to win` : 'Connect a wallet to win';
+    const holdTxt = usdMin ? `Hold min $${esc(Number(usdMin).toLocaleString('en-US'))} of $SPLATR to win`
+      : i.minHolding > 0 ? `Hold min ${esc(Math.ceil(Number(i.minHolding)).toLocaleString('en-US'))} $SPLATR to win` : 'Connect a wallet to win';
     const wallet = this.wallet
       ? `<div class="iw-prize__wallet">◎ ${esc(shortAddr(this.wallet))} ✓</div>`
       : `<button class="iw-prize__btn" data-act="connect" ${this.busy ? 'disabled' : ''}>${this.busy ? 'Check your wallet…' : solanaProvider() ? 'Connect wallet' : IS_TOUCH ? 'Open in Phantom' : 'Get a Solana wallet'}</button>`;
@@ -189,7 +189,7 @@ export const holderWallet = {
   async connect() {
     const p = solanaProvider();
     if (!p) {
-      if (IS_TOUCH) openInPhantom();   // phone browser: reopen SPLURT inside Phantom, then tap Holders Only again there
+      if (IS_TOUCH) openInPhantom();   // phone browser: reopen SPLATR inside Phantom, then tap Holders Only again there
       const e = new Error('No Solana wallet in this browser'); e.code = 'ERR_NO_WALLET'; throw e;
     }
     const res = await p.connect();

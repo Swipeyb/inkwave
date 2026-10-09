@@ -1,7 +1,7 @@
-# $SPLURT prize pool (optional)
+# $SPLATR prize pool (optional)
 
 > **Legal warning — read before going live.** Paying random cash (SOL) prizes to players, funded by trading fees of a
-> token people can buy (here $SPLURT), may be regulated as **gambling, a lottery or a sweepstakes**, and the token itself may be
+> token people can buy (here $SPLATR), may be regulated as **gambling, a lottery or a sweepstakes**, and the token itself may be
 > treated as a **security** (prizes funded by its trading volume can look like a return on holding it). Rules differ by
 > country and by US state; some ban this outright, others require licences, age checks, KYC/AML, tax reporting or a
 > free way to enter. **Get legal advice before setting `PAYOUT_MODE=live`.** Nothing here is legal advice. The default
@@ -12,7 +12,7 @@ has prizes.
 
 ## How it works
 
-1. **Fees → treasury.** Launch the $SPLURT coin (e.g. on pump.fun) with a creator wallet you control, or point creator fees at
+1. **Fees → treasury.** Launch the $SPLATR coin (e.g. on pump.fun) with a creator wallet you control, or point creator fees at
    a dedicated *treasury* wallet. Creator trading fees accumulate there (on pump.fun you claim them to the creator
    wallet; move them to the treasury if they differ). The treasury's SOL balance **is** the prize pool.
 2. **Players link a wallet.** In an online room the lobby shows a *Prize pool* card. "Connect wallet" uses the
@@ -25,7 +25,7 @@ has prizes.
 4. **Match end — reveal + draw.** Every human's browser reports the winners it was shown. If all remaining humans agree,
    the ledger:
    - keeps the winning team's humans who: have a verified wallet, are still connected, aren't the treasury, aren't on
-     cooldown, (optionally) hold ≥ `MIN_TOKEN_HOLDING` $SPLURT (`TOKEN_MINT`), and drops repeated wallets;
+     cooldown, (optionally) hold ≥ `MIN_TOKEN_HOLDING` $SPLATR (`TOKEN_MINT`), and drops repeated wallets;
    - reads the pool balance and draws `pct` uniformly in [`PRIZE_MIN_PCT`, `PRIZE_MAX_PCT`];
      `prize = min(pool·pct, PRIZE_MAX_SOL, pool − PRIZE_RESERVE_SOL − fee)` (skipped below 0.001 SOL);
    - picks one candidate (sorted by address) with the seed;
@@ -63,9 +63,9 @@ any Solana explorer.
 
 ### Example
 
-Pool = 12 SOL of $SPLURT creator fees, defaults (1–5 %, max 1 SOL, 0.05 SOL reserve). A round draws u = 0.55 →
+Pool = 12 SOL of $SPLATR creator fees, defaults (1–5 %, max 1 SOL, 0.05 SOL reserve). A round draws u = 0.55 →
 pct = 1 + 0.55·4 = 3.2 % → prize 0.384 SOL to one verified winner on the winning team who holds ≥ `MIN_TOKEN_HOLDING`
-$SPLURT and hasn't won in the last hour.
+$SPLATR and hasn't won in the last hour.
 
 ## Quick Play
 
@@ -81,7 +81,7 @@ card shows what this match pays (`prizeMinSol`/`prizeMaxSol` from `GET /prize`).
 ### Holder matches and split prizes
 
 Quick Play asks **Everyone** or **Holders only**. Holders-only rooms (`QH` codes, `GET /quick?mode=holders`) only let
-a player in after their wallet signs `SPLURT holder match / room / wallet / time` and, when `TOKEN_MINT` +
+a player in after their wallet signs `SPLATR holder match / room / wallet / time` and, when `TOKEN_MINT` +
 `MIN_TOKEN_HOLDING` are set, the relay checks the on-chain holding — so every player there is a verified holder and
 every match with players on both sides is a prize match. In open rooms a prize needs a wallet holder on each team.
 
@@ -99,13 +99,13 @@ See `.env.example`. Off unless both `SOLANA_RPC_URL` and `TREASURY_PUBLIC_KEY` a
 | `TREASURY_PUBLIC_KEY` | — | wallet that receives creator fees and pays prizes |
 | `TREASURY_SECRET_KEY` | — | **secret**: keypair JSON array or base58. Only needed for live. `wrangler secret put` only. |
 | `PAYOUT_MODE` | `dry-run` | anything other than exactly `live` is dry-run |
-| `TOKEN_MINT` | — | the $SPLURT mint address (for the holding check / shown in the UI) |
+| `TOKEN_MINT` | — | the $SPLATR mint address (for the holding check / shown in the UI) |
 | `PRIZE_PCT` | — | fixed prize per match, % of the pool (overrides the range below) |
 | `PRIZE_MIN_PCT` / `PRIZE_MAX_PCT` | 1 / 5 | prize range, % of the pool (when `PRIZE_PCT` is empty) |
 | `PRIZE_MAX_SOL` | 1 | cap per round |
 | `PRIZE_RESERVE_SOL` | 0.05 | never paid out |
 | `MIN_HUMAN_PLAYERS` | 2 | humans **with a verified wallet** at match start for a prize round; at the end there must be a wallet holder on **each** team (no farming with two wallets on one side) |
-| `MIN_TOKEN_HOLDING` | 0 | $SPLURT a winner must hold (e.g. `100000` = 100k $SPLURT) |
+| `MIN_TOKEN_HOLDING` | 0 | $SPLATR a winner must hold (e.g. `100000` = 100k $SPLATR) |
 | `PRIZE_SPLIT` | all | `all` = split between every holder on the winning team, `one` = one random holder |
 | `MIN_HOLDING_USD` | — | minimum as a dollar value: tokens needed = USD / live price (Jupiter), capped by `MIN_TOKEN_HOLDING`, which is also the fallback without a price |
 | `PRICE_API_URL` | Jupiter lite price v3 | price endpoint; the mint is appended |

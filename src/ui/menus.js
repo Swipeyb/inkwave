@@ -57,13 +57,13 @@ const JOIN_ERR = {
   [ERR.FULL]: { title: 'ROOM IS FULL', text: 'All 8 spots are taken. Ask the host to make space, or open a room of your own.', short: 'That room is full.', icon: 'users' },
   [ERR.IN_PROGRESS]: { title: 'MATCH IN PROGRESS', text: 'They are mid-match right now. Try again in a few minutes — the room reopens after the results.', short: 'They are mid-match right now.', icon: 'clock' },
   [ERR.TEAM_FULL]: { title: 'TEAM IS FULL', text: 'That team already has four players. Pick the other one, or wait for a spot.', short: 'That team is full.', icon: 'users' },
-  [ERR.CONNECT]: { title: 'CAN\u2019T CONNECT', text: 'The SPLURT servers didn\u2019t answer. Check your connection, then try again.', short: 'The SPLURT servers didn\u2019t answer.', icon: 'signal' },
+  [ERR.CONNECT]: { title: 'CAN\u2019T CONNECT', text: 'The SPLATR servers didn\u2019t answer. Check your connection, then try again.', short: 'The SPLATR servers didn\u2019t answer.', icon: 'signal' },
   [ERR.CODE_TAKEN]: { title: 'TRY AGAIN', text: 'That room code was just taken. Give it another go.', short: 'That room code was just taken.', icon: 'reset' },
-  [ERR.NOT_HOLDER]: { title: 'HOLDERS ONLY', text: 'Holder matches are for $SPLURT holders. Grab some, or hop into open Quick Play.', short: 'Holder matches need $SPLURT in your wallet.', icon: 'lock' },
+  [ERR.NOT_HOLDER]: { title: 'HOLDERS ONLY', text: 'Holder matches are for $SPLATR holders. Grab some, or hop into open Quick Play.', short: 'Holder matches need $SPLATR in your wallet.', icon: 'lock' },
   [ERR.HOLDER_SIG]: { title: 'WALLET CHECK', text: 'The wallet signature didn’t go through. Approve it in your wallet to join a holder match.', short: 'Approve the wallet signature to join.', icon: 'key' },
   [ERR.WALLET_DUP]: { title: 'ALREADY IN', text: 'That wallet is already in this match.', short: 'That wallet is already in this match.', icon: 'users' },
   [ERR.NO_WALLET]: IS_TOUCH
-    ? { title: 'OPEN IN PHANTOM', text: 'Holder matches need your wallet. Opening SPLURT in the Phantom app — tap Holders Only again there.', short: 'Opening Phantom… tap Holders Only there.', icon: 'key' }
+    ? { title: 'OPEN IN PHANTOM', text: 'Holder matches need your wallet. Opening SPLATR in the Phantom app — tap Holders Only again there.', short: 'Opening Phantom… tap Holders Only there.', icon: 'key' }
     : { title: 'GET A WALLET', text: 'Holder matches need a Solana wallet like Phantom in this browser.', short: 'Install Phantom to join holder matches.', icon: 'key' },
   [ERR.LOST]: { title: 'CONNECTION LOST', text: 'The link to the room dropped. Check your connection and join again.', short: 'The link to the room dropped.', icon: 'signal' },
   [ERR.STALE]: { title: 'PLEASE REFRESH', text: 'The game was updated since this page loaded. Refresh to play online again.', short: 'Refresh the page to play online.', icon: 'reset' },
@@ -181,7 +181,7 @@ const MENU_DESC = {
   locker: 'Choose your gooblin — tentacles, headgear, eyes, skin and outfit',
   settings: 'Controls, video, audio and gameplay options',
   howto: 'The rules in 30 seconds, plus every control',
-  credits: 'The gooblins and code behind SPLURT',
+  credits: 'The gooblins and code behind SPLATR',
 };
 
 const pctFmt = (v) => Math.round(v * 100) + '%';
@@ -902,7 +902,7 @@ export class Menus {
     };
   }
 
-  // $SPLURT contract address chip: full CA (selectable), COPY and BUY. Clicks never reach the screen underneath.
+  // $SPLATR contract address chip: full CA (selectable), COPY and BUY. Clicks never reach the screen underneath.
   _caChip(cls = '') {
     if (!COIN.ca) {   // before launch: just "SOON"
       const el = h('div', { class: `iw-ca iw-ca--soon iw-in ${cls}` }, h('span', { class: 'iw-ca__k' }, `${COIN.ticker} CA`), h('b', { class: 'iw-ca__soon' }, 'SOON'));
@@ -2427,13 +2427,13 @@ export class Menus {
         this._sfx('ui_error');
       }
     };
-    // Quick Play: open to everyone, or holders-only (every player proved they hold $SPLURT)
+    // Quick Play: open to everyone, or holders-only (every player proved they hold $SPLATR)
     const pickQuick = () => {
       if (st.busy) return;
       if (st.mode !== 'idle') setMode('idle');
       this._openModal({
         title: 'QUICK PLAY',
-        text: t('Everyone: open lobbies — a prize is on when there’s a wallet holder on each team. Holders only: every player holds $SPLURT (sign with your wallet to get in), so every match is a prize match.'),
+        text: t('Everyone: open lobbies — a prize is on when there’s a wallet holder on each team. Holders only: every player holds $SPLATR (sign with your wallet to get in), so every match is a prize match.'),
         buttons: [
           { label: 'EVERYONE', cls: 'iw-btn--primary', sound: 'ui_confirm', accept: () => { this._closeModal(true); doQuick(false); } },
           { label: 'HOLDERS ONLY', sound: 'ui_confirm', accept: () => { this._closeModal(true); doQuick(true); } },
