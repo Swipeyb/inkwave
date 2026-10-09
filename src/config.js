@@ -1,5 +1,7 @@
 // Shared tuning + content definitions. Every module reads from here; nothing here imports anything.
 
+// $SPLURT on Solana (pump.fun). Shown on the title + online screens with copy / buy buttons.
+export const COIN = { ticker: '$SPLURT', ca: '5Y6Zn3hNDy1ZefhAWCXT5GLuPbojsfjGcEPgfbEqpump', buyUrl: 'https://pump.fun/coin/5Y6Zn3hNDy1ZefhAWCXT5GLuPbojsfjGcEPgfbEqpump' };
 export const GAME_TITLE = 'SPLURT';
 export const GAME_SUBTITLE = 'Turf Riot';
 export const VERSION = '1.0.0';

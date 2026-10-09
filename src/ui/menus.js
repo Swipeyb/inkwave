@@ -13,7 +13,7 @@ import {
   richText, logoMarkup, mapThumb, RULE_ART, weaponIcon, specialIcon,
 } from './ui-icons.js';
 import {
-  GAME_TITLE, GAME_SUBTITLE, VERSION, WEAPONS, WEAPON_ORDER, SPECIALS, SUB, MAPS, DIFFICULTY, MATCH, QUALITY,
+  GAME_TITLE, COIN, GAME_SUBTITLE, VERSION, WEAPONS, WEAPON_ORDER, SPECIALS, SUB, MAPS, DIFFICULTY, MATCH, QUALITY,
   DEFAULT_SETTINGS, TEAM_PALETTES, COLORBLIND_PALETTE, PROGRESSION, BOT_NAMES, TEAM_NAMES, ZONES,
   mapNoBots, mapBossOk, bossFallbackMap, noBotsStartBlock,
 } from '../config.js';
@@ -887,7 +887,8 @@ export class Menus {
       h('div', { class: 'iw-title__logo iw-in iw-in--logo' }, h('i', { class: 'iw-title__shock' }), h('div', { class: 'iw-title__logoin', html: logoMarkup(GAME_TITLE, GAME_SUBTITLE, 'xl') })),
       press,
       h('div', { class: 'iw-corner iw-corner--bl iw-in' }, h('b', null, GAME_TITLE), ' · an original turf-war shooter'),
-      h('div', { class: 'iw-corner iw-corner--br iw-in' }, `v${this._version()}`));
+      h('div', { class: 'iw-corner iw-corner--br iw-in' }, `v${this._version()}`),
+      this._caChip('iw-ca--title'));
     return {
       el, noCursor: true,
       onInputMode: (m) => {
@@ -895,6 +896,26 @@ export class Menus {
         press.lastChild.textContent = m === 'pad' ? '' : t('or click to start');
       },
     };
+  }
+
+  // $SPLURT contract address chip: full CA (selectable), COPY and BUY. Clicks never reach the screen underneath.
+  _caChip(cls = '') {
+    const copyBtn = h('button', { class: 'iw-ca__btn', type: 'button' }, 'COPY');
+    const buy = h('a', { class: 'iw-ca__btn iw-ca__btn--buy', href: COIN.buyUrl, target: '_blank', rel: 'noopener' }, 'BUY');
+    const el = h('div', { class: `iw-ca iw-in ${cls}` },
+      h('span', { class: 'iw-ca__k' }, `${COIN.ticker} CA`),
+      h('code', { class: 'iw-ca__addr', title: COIN.ca }, COIN.ca),
+      copyBtn, buy);
+    for (const ev of ['click', 'mousedown', 'pointerdown', 'keydown']) el.addEventListener(ev, (e) => e.stopPropagation());
+    copyBtn.addEventListener('click', async () => {
+      let ok = false;
+      try { await navigator.clipboard.writeText(COIN.ca); ok = true; } catch { /* fall back to selecting it */ }
+      if (!ok) { const r = document.createRange(); r.selectNodeContents(el.querySelector('.iw-ca__addr')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+      copyBtn.textContent = ok ? 'COPIED ✓' : 'SELECTED';
+      this._sfx('ui_click');
+      setTimeout(() => { copyBtn.textContent = 'COPY'; }, 1600);
+    });
+    return el;
   }
 
   // ================================================================ SCREEN: main
@@ -2171,7 +2192,7 @@ export class Menus {
     const el = h('div', { class: 'iw-screen iw-online' },
       h('div', { class: 'iw-scrim-left' }),
       this._header('ONLINE', { sub: 'Quick Play or private rooms · 4 v 4 · up to 8 gooblins' }),
-      body, me, promptsIdle, promptsEntry, promptsBusy);
+      body, me, promptsIdle, promptsEntry, promptsBusy, this._caChip('iw-ca--online'));
 
     // ---- code entry
     const firstEmpty = () => { const i = st.code.findIndex((c) => !c); return i < 0 ? 4 : i; };

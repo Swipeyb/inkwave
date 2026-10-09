@@ -9,7 +9,6 @@
   // Optional Solana prize pool (docs/PRIZE_POOL.md). Off unless SOLANA_RPC_URL and TREASURY_PUBLIC_KEY are set.
   // Non-secret settings can go in "vars"; TREASURY_SECRET_KEY only ever via `wrangler secret put` (or .dev.vars locally).
   "vars": {
-    // TOKEN_MINT ($SPLURT mint) gets added here after the pump.fun launch (left out until then so it's never blanked)
     "PAYOUT_MODE": "dry-run",
     "TREASURY_PUBLIC_KEY": "HMJMFqTjED8dwa7sqQYeaQbk2WXSGmLpd4Ksrwq1DCZW",   // prize wallet (public address)                                   // HARD RULE: stays dry-run until legal review (deploy refuses otherwise)
     "SOLANA_RPC_URL": "https://api.mainnet-beta.solana.com",    // public mainnet RPC (fine for dry-run reads; use Helius/QuickNode before live)
@@ -17,7 +16,8 @@
     "PRIZE_MAX_SOL": "1",                                       // ...never more than 1 SOL a match...
     "PRIZE_RESERVE_SOL": "0.05",                                // ...and never touches the last 0.05 SOL
     "MIN_HUMAN_PLAYERS": "2",                                   // 2+ players with a verified wallet for a prize match
-    "MIN_TOKEN_HOLDING": "0",                                   // $SPLURT a winner must hold (needs TOKEN_MINT)
+    "TOKEN_MINT": "5Y6Zn3hNDy1ZefhAWCXT5GLuPbojsfjGcEPgfbEqpump",   // $SPLURT (pump.fun)
+    "MIN_TOKEN_HOLDING": "100000",                              // $SPLURT needed to win a prize / join holder matches
     "PRIZE_COOLDOWN_SEC": "600"                                 // a wallet can win once every 10 minutes
   },
   // Deploys keep any other vars you set in the Cloudflare dashboard (RPC URL, treasury public key, prize settings).
