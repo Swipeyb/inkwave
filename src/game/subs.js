@@ -1,4 +1,4 @@
-// Sub weapons (every kind except the Splat Bomb, which lives in weapons.js): thrown and placed devices, clouds,
+// Sub weapons (every kind except the Goo Bomb, which lives in weapons.js): thrown and placed devices, clouds,
 // curtains, mines and jump beacons, plus the status effects they put on players (tracking, poison).
 //
 //   G.subs.use(actor, subDef)             throw or place (called by the weapon runner after the ink is paid)

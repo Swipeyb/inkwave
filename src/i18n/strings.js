@@ -140,7 +140,7 @@ const EN = {
   'settings.row.difficulty.label': 'Default bot skill',
   'settings.row.difficulty.help': 'Starting difficulty for new matches.',
   'settings.row.matchLength.label': 'Default match length',
-  'settings.row.matchLength.help': 'How long each Turf War lasts.',
+  'settings.row.matchLength.help': 'How long each Turf Riot lasts.',
 
   'settings.dur.sec': '{n} SEC',
   'settings.dur.min': '{n} MIN',

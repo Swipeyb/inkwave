@@ -369,7 +369,7 @@ export class Minimap {
     c.drawImage(this.base, 0, 0);
     c.drawImage(this.inkC, 0, 0);
     if (this.flashT < 0.45) { c.globalAlpha = (1 - this.flashT / 0.45) * 0.85; c.drawImage(this.flashC, 0, 0); c.globalAlpha = 1; }
-    const hex = G.teamHex || ['#ff8a14', '#2f5bff'];
+    const hex = G.teamHex || ['#22e0a1', '#ff4d3d'];
     const t = this.time;
     // Zone Control: every zone's outline — the operational objective in its holder's ink (white while neutral), the
     // others as faint dashed ghosts

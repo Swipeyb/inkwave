@@ -1,7 +1,7 @@
-# Solana prize pool (optional)
+# $SPLURT prize pool (optional)
 
 > **Legal warning — read before going live.** Paying random cash (SOL) prizes to players, funded by trading fees of a
-> token people can buy, may be regulated as **gambling, a lottery or a sweepstakes**, and the token itself may be
+> token people can buy (here $SPLURT), may be regulated as **gambling, a lottery or a sweepstakes**, and the token itself may be
 > treated as a **security** (prizes funded by its trading volume can look like a return on holding it). Rules differ by
 > country and by US state; some ban this outright, others require licences, age checks, KYC/AML, tax reporting or a
 > free way to enter. **Get legal advice before setting `PAYOUT_MODE=live`.** Nothing here is legal advice. The default
@@ -12,7 +12,7 @@ has prizes.
 
 ## How it works
 
-1. **Fees → treasury.** Launch the coin (e.g. on pump.fun) with a creator wallet you control, or point creator fees at
+1. **Fees → treasury.** Launch the $SPLURT coin (e.g. on pump.fun) with a creator wallet you control, or point creator fees at
    a dedicated *treasury* wallet. Creator trading fees accumulate there (on pump.fun you claim them to the creator
    wallet; move them to the treasury if they differ). The treasury's SOL balance **is** the prize pool.
 2. **Players link a wallet.** In an online room the lobby shows a *Prize pool* card. "Connect wallet" uses the
@@ -25,7 +25,7 @@ has prizes.
 4. **Match end — reveal + draw.** Every human's browser reports the winners it was shown. If all remaining humans agree,
    the ledger:
    - keeps the winning team's humans who: have a verified wallet, are still connected, aren't the treasury, aren't on
-     cooldown, (optionally) hold ≥ `MIN_TOKEN_HOLDING` of `TOKEN_MINT`, and drops repeated wallets;
+     cooldown, (optionally) hold ≥ `MIN_TOKEN_HOLDING` $SPLURT (`TOKEN_MINT`), and drops repeated wallets;
    - reads the pool balance and draws `pct` uniformly in [`PRIZE_MIN_PCT`, `PRIZE_MAX_PCT`];
      `prize = min(pool·pct, PRIZE_MAX_SOL, pool − PRIZE_RESERVE_SOL − fee)` (skipped below 0.001 SOL);
    - picks one candidate (sorted by address) with the seed;
@@ -61,6 +61,12 @@ any Solana explorer.
   `MIN_HUMAN_PLAYERS` / `MIN_TOKEN_HOLDING` to make farming costlier.
 - A room that dies mid-match never reveals its seed (no prize was drawn for it).
 
+### Example
+
+Pool = 12 SOL of $SPLURT creator fees, defaults (1–5 %, max 1 SOL, 0.05 SOL reserve). A round draws u = 0.55 →
+pct = 1 + 0.55·4 = 3.2 % → prize 0.384 SOL to one verified winner on the winning team who holds ≥ `MIN_TOKEN_HOLDING`
+$SPLURT and hasn't won in the last hour.
+
 ## Configuration (relay env)
 
 See `.env.example`. Off unless both `SOLANA_RPC_URL` and `TREASURY_PUBLIC_KEY` are set.
@@ -71,12 +77,12 @@ See `.env.example`. Off unless both `SOLANA_RPC_URL` and `TREASURY_PUBLIC_KEY` a
 | `TREASURY_PUBLIC_KEY` | — | wallet that receives creator fees and pays prizes |
 | `TREASURY_SECRET_KEY` | — | **secret**: keypair JSON array or base58. Only needed for live. `wrangler secret put` only. |
 | `PAYOUT_MODE` | `dry-run` | anything other than exactly `live` is dry-run |
-| `TOKEN_MINT` | — | the coin's mint (for the holding check / shown in the UI) |
+| `TOKEN_MINT` | — | the $SPLURT mint address (for the holding check / shown in the UI) |
 | `PRIZE_MIN_PCT` / `PRIZE_MAX_PCT` | 1 / 5 | prize range, % of the pool |
 | `PRIZE_MAX_SOL` | 1 | cap per round |
 | `PRIZE_RESERVE_SOL` | 0.05 | never paid out |
 | `MIN_HUMAN_PLAYERS` | 2 | humans at match start for a prize round |
-| `MIN_TOKEN_HOLDING` | 0 | tokens of `TOKEN_MINT` a winner must hold |
+| `MIN_TOKEN_HOLDING` | 0 | $SPLURT a winner must hold (e.g. `100000` = 100k $SPLURT) |
 | `PRIZE_COOLDOWN_SEC` | 3600 | a wallet can win once per this many seconds |
 
 ## Running it
@@ -93,6 +99,16 @@ npm run serve                        # game on :8490 → http://localhost:8490, 
 Open a second browser profile (or another machine on the LAN) to join with a second human. Tests:
 `npm test` (unit tests, no network) and `node tools/prize-test.mjs` (end-to-end against the local relay with a fake
 RPC — start it first with `node tools/prize-test.mjs --rpc` and the `.dev.vars` it prints).
+
+### Deploying (playsplurt.online)
+
+The relay only accepts browsers from `https://playsplurt.online`, `https://www.playsplurt.online`, the original INKWAVE
+site and localhost / LAN (`ORIGIN_OK` in `server/src/index.js`). The client picks its relay in `relayURL()`
+(`src/net/transport.js`): on `playsplurt.online` (and its subdomains) it connects to **`wss://api.playsplurt.online`**
+(`SPLURT_RELAY`); localhost uses `ws://localhost:8787`; `?relay=wss://…` overrides everything. So once the Worker is
+deployed, add a Cloudflare custom domain / route `api.playsplurt.online` → the `inkwave-net` Worker (or rename the
+Worker in `wrangler.jsonc`), or change `SPLURT_RELAY` if the relay lives elsewhere. Until then the site on
+playsplurt.online can't open rooms. The upstream relay rejects that origin, by design.
 
 Production (Cloudflare): `cd server && npx wrangler deploy` with the vars set in `wrangler.jsonc` / the dashboard,
 then `npx wrangler secret put TREASURY_SECRET_KEY` and set `PAYOUT_MODE=live` only after legal review and a devnet

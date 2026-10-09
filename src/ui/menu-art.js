@@ -282,7 +282,7 @@ export class InkWipe {
     return this._pat;
   }
 
-  run({ a = '#ff8a14', b = '#2f5bff', mode = 'full', dir = 1, onMid = null, onDone = null } = {}) {
+  run({ a = '#22e0a1', b = '#ff4d3d', mode = 'full', dir = 1, onMid = null, onDone = null } = {}) {
     if (this.r) this._finish();                      // never lose a pending screen swap
     const W = Math.max(1, innerWidth), H = Math.max(1, innerHeight);
     const dpr = Math.min(1.5, devicePixelRatio || 1);
@@ -822,7 +822,7 @@ function previewRumble(ctx) {
 
 function previewColorblind(ctx) {
   const pals = ctx.palettes || [];
-  const cb = ctx.cbPalette || { a: '#ffd21a', b: '#2a52ff' };
+  const cb = ctx.cbPalette || { a: '#ffb627', b: '#2f6bdc' };
   const pair = (a, b) => `<span class="iw-pv-pair"><i style="background:${a}"></i><i style="background:${b}"></i></span>`;
   const el = h('div', { class: 'iw-pv iw-pv--cb', html: `
     <div class="iw-pv-pal iw-pv-pal--std"><small>${esc(t('STANDARD INKS · rotate each match'))}</small><div class="iw-pv-pal__row">${pals.map((p) => pair(p.a, p.b)).join('')}</div><i class="iw-pv-pal__check">${GLYPHS.check}</i></div>

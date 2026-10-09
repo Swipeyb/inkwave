@@ -377,7 +377,7 @@ export const SPECIAL_ICONS = {
     <ellipse cx="22.5" cy="38.5" rx="3.3" ry="4.2" fill="${K}"/><ellipse cx="41.5" cy="38.5" rx="3.3" ry="4.2" fill="${K}"/>
     <circle cx="23.8" cy="36.6" r="1.3" fill="#fff"/><circle cx="42.8" cy="36.6" r="1.3" fill="#fff"/>
     <path d="M25 11.5 Q29 7 32 6.8" stroke="#fff" stroke-opacity=".6" stroke-width="3" fill="none" stroke-linecap="round"/>`),
-  // Bubble Blower: bubble wand (soapy ring on a handle) with bubbles floating off
+  // Bubble Wand: bubble wand (soapy ring on a handle) with bubbles floating off
   blower: svg(`<g stroke-linecap="round"><path d="M13 47 L4.5 59.5" stroke="${K}" stroke-width="10"/><path d="M13 47 L4.5 59.5" stroke="${DK}" stroke-width="4.5"/></g>
     <circle cx="20" cy="36" r="12" fill="currentColor" fill-opacity=".3" stroke="${K}" stroke-width="9"/>
     <circle cx="20" cy="36" r="12" fill="none" stroke="${LT}" stroke-width="4"/>
@@ -556,8 +556,8 @@ export function keycap(k) {
 }
 /** Mouse glyph: which = 'L' | 'R' | 'M' (move) | 'W' (wheel) */
 export function mouseGlyph(which = 'L') {
-  const l = which === 'L' ? 'var(--a, #ff8a14)' : '#fff';
-  const r = which === 'R' ? 'var(--a, #ff8a14)' : '#fff';
+  const l = which === 'L' ? 'var(--a, #22e0a1)' : '#fff';
+  const r = which === 'R' ? 'var(--a, #22e0a1)' : '#fff';
   const arrows = which === 'M' ? `<g stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 32 L-3 32 M0 29 L-3 32 L0 35"/><path d="M45 32 L51 32 M48 29 L51 32 L48 35"/></g>` : '';
   return `<span class="iw-mouse"><svg viewBox="-6 0 60 64" aria-hidden="true">${arrows}
     <path d="M24 6 Q40 6 40 24 L40 42 Q40 58 24 58 Q8 58 8 42 L8 24 Q8 6 24 6 Z" fill="#fff" stroke="${K}" stroke-width="3"/>
@@ -585,7 +585,7 @@ export function richText(str) {
 
 // ------------------------------------------------------------------ logo
 /** Big display logo: letters + ink splat + animated drips. size: 'xl' | 'md' | 'sm' */
-export function logoMarkup(title = 'INKWAVE', subtitle = 'Turf Riot', size = 'xl') {
+export function logoMarkup(title = 'SPLURT', subtitle = 'Turf Riot', size = 'xl') {
   const sub = subtitle ? t(subtitle) : '';
   const letters = [...title].map((ch, i) => `<span class="iw-logo__l" style="--i:${i}" data-l="${esc(ch)}">${esc(ch)}</span>`).join('');
   const s = splatShape(300, 110, 88, { seed: 23, arms: 11, drops: 9, armLen: 0.55 });

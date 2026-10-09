@@ -20,8 +20,8 @@
   --fs-s: max(12px, calc(var(--u) * .95));
   --fs-m: max(13.5px, calc(var(--u) * 1.1));
   --fs-l: max(16px, calc(var(--u) * 1.4));
-  --a: #ff8a14; --a-rgb: 255,138,20; --a-dark: #b8620f; --a-deep: #6a3a12; --a-light: #ffc48a; --a-ink: #15121c;
-  --b: #2f5bff; --b-rgb: 47,91,255; --b-dark: #2442b4; --b-deep: #1d2766; --b-light: #98b0ff; --b-ink: #ffffff;
+  --a: #22e0a1; --a-rgb: 34,224,161; --a-dark: #1d9d76; --a-deep: #185e4f; --a-light: #85eecb; --a-ink: #15121c;
+  --b: #ff4d3d; --b-rgb: 255,77,61; --b-dark: #b33932; --b-deep: #6c2629; --b-light: #ff9d94; --b-ink: #ffffff;
   position: absolute; inset: 0;
   font-family: 'Rubik', system-ui, sans-serif; font-weight: 500;
   color: #fff; line-height: 1.2;

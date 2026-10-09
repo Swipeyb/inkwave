@@ -98,7 +98,7 @@ export class Spring {
 
 // ---------------------------------------------------------------- colour
 /** Accepts '#rrggbb', '#rgb', 0xRRGGBB, THREE.Color-like ({r,g,b} 0..1 or getHexString()). */
-export function toHex(c, fallback = '#ff8a14') {
+export function toHex(c, fallback = '#22e0a1') {
   if (c == null) return fallback;
   if (typeof c === 'string') {
     if (c[0] === '#') return c.length === 4 ? '#' + c.slice(1).split('').map((x) => x + x).join('') : c.slice(0, 7);

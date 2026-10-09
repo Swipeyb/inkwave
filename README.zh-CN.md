@@ -2,19 +2,19 @@
   <img src="assets/stages/halyard-day.webp" alt="黄金时刻的 Halyard Marina" width="100%">
 </p>
 
-<h1 align="center">INKWAVE</h1>
+<h1 align="center">SPLURT</h1>
 
 <p align="center">
   <a href="README.md">English</a> · <b>简体中文</b>
 </p>
 
 <p align="center">
-  一款原创的 Splatoon 风格 4v4 占地对战射击游戏，直接在浏览器里运行。<br>
+  一款在浏览器中运行的 4v4 在线黏液占地乱斗游戏，也是 <b>$SPLURT</b> 代币背后的游戏。<br>
+  <sub>基于 jaydendavisnc 的 <a href="https://github.com/jaydendavisnc/inkwave">INKWAVE</a>（MIT 许可）。</sub><br>
   涂满地面，在自己的墨水里潜行，把对手的涂地面积比下去。
 </p>
 
 <p align="center">
-  <a href="https://inkwave-aah.pages.dev"><b>▶ 立即游玩</b></a> ·
   <a href="#操作">操作</a> ·
   <a href="#联机对战">联机</a> ·
   <a href="#本地运行">本地运行</a> ·
@@ -23,7 +23,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/jaydendavisnc/inkwave/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/jaydendavisnc/inkwave/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="three.js r186" src="https://img.shields.io/badge/three.js-r186-000000?logo=three.js&logoColor=white">
   <img alt="无需构建" src="https://img.shields.io/badge/build-none%20needed-2ea44f">
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
@@ -88,7 +87,7 @@ npm run relay    # ws://<本机>:8787
 本项目没有构建步骤。任何静态文件服务器都可以；自带的服务脚本还能同时向局域网提供服务，并发送 no-cache 头，确保模块更新不会出现缓存陈旧的问题。
 
 ```bash
-git clone https://github.com/jaydendavisnc/inkwave.git
+git clone https://github.com/Swipeyb/inkwave.git
 cd inkwave
 npm install      # Electron + 无头测试工具
 npm start        # 桌面应用（Electron）
@@ -136,4 +135,4 @@ npm run check-maps   # 检查每张地图布局（及其区域控制变体）
 
 ## 许可证
 
-[MIT](LICENSE) © 2026 Jayden Davis。INKWAVE 是一个独立项目，与任天堂无关；Splatoon 是任天堂的商标。
+[MIT](LICENSE) © 2026 Jayden Davis。SPLURT 基于 jaydendavisnc 的 INKWAVE（MIT 许可），原始版权与许可声明保留在 [LICENSE](LICENSE) 中。SPLURT 是一个独立项目，与任天堂或其他游戏发行商无关。

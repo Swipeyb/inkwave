@@ -698,7 +698,7 @@ const EXTRA = [
   R([INC.foot[0] + incN[0] * 1.0, H0, INC.foot[2] + incN[1] * 1.0], [INC.top[0] + incN[0] * 1.0, H4, INC.top[2] + incN[1] * 1.0], 1.8, stair({ tag: 'incline-stair' })),
   R([INC.foot[0] - incN[0] * 2.03, H0 + 1.0, INC.foot[2] - incN[1] * 2.03], [INC.top[0] - incN[0] * 2.03, H4 + 1.0, INC.top[2] - incN[1] * 2.03], 0.26, { tag: 'incline-parapet', color: TH.wall, pattern: SURF.calce ?? PATTERN.render }),
 ];
-// (the ground is shared by every mode: it is laid round the Turf War pieces)
+// (the ground is shared by every mode: it is laid round the Turf Riot pieces)
 export const GROUND_FRESH = globalThis.__TERRACES_REGEN || !GROUND_DATA ? generateGround([...SINGLE.filter((d) => !d.onlyIn), ...FEATURES, ...EXTRA, ...[...FEATURES, ...EXTRA].map(mirrorDef)]) : null;
 const GROUND = GROUND_FRESH || unbake(GROUND_DATA);
 

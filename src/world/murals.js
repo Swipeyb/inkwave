@@ -117,9 +117,9 @@ function drawBanner(g, y0, font) {
     g.font = font(150);
     g.textBaseline = 'alphabetic';
     g.lineJoin = 'round';
-    g.lineWidth = 22; g.strokeStyle = CREAM; g.strokeText('INKWAVE', ox + 300, 186);
-    g.fillStyle = NAVY; g.fillText('INKWAVE', ox + 300, 186);
-    g.fillStyle = CORAL; g.fillText('INKWAVE', ox + 294, 180);
+    g.lineWidth = 22; g.strokeStyle = CREAM; g.strokeText('SPLURT', ox + 300, 186);
+    g.fillStyle = NAVY; g.fillText('SPLURT', ox + 300, 186);
+    g.fillStyle = CORAL; g.fillText('SPLURT', ox + 294, 180);
     g.font = font(34); g.fillStyle = CREAM; g.fillText('TURF RIOT  •  TIDEWATER PLAZA', ox + 320, 205 + 2);
     // splat accents
     blob(g, ox + 960, 70, 26, 5 + k, MUSTARD);

@@ -77,7 +77,7 @@ function inject(shader, o) {
 /** Per-character uniform bundle (shared by that character's body materials). */
 export function makeCharUniforms() {
   return {
-    uTeam: { value: new THREE.Color('#ff8a14') },
+    uTeam: { value: new THREE.Color('#22e0a1') },
     uShirt: { value: new THREE.Color('#f3f1ec') },
     uShorts: { value: new THREE.Color('#2a3350') },
     uShoe: { value: new THREE.Color('#2a2d36') },

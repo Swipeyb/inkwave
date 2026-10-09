@@ -39,14 +39,14 @@ const NETMOCK = typeof location !== 'undefined' && new URLSearchParams(location.
 const CODE_ABC = 'BCEFGHJKLMNPQRTUVXYZ23456789';   // as session.js: no O/0, I/1, and no W/A/S/D (menu keys)
 const TEAM_LABEL = ['ALPHA', 'BRAVO'];
 const EMOTES = [
-  { id: 'booyah', label: 'BOOYAH!', icon: 'booyah', key: '1', dir: 'up' },
+  { id: 'booyah', label: 'LFG!', icon: 'booyah', key: '1', dir: 'up' },
   { id: 'wave', label: 'HEY!', icon: 'hand', key: '2', dir: 'right' },
   { id: 'dance', label: 'DANCE', icon: 'note', key: '3', dir: 'down' },
   { id: 'flex', label: 'FLEX', icon: 'flex', key: '4', dir: 'left' },
 ];
 // splashtag title line ("Fresh Squidkid"): adjective + subject, picked from the player's name so everyone sees the same
 const TITLE_ADJ = ['Fresh', 'Inky', 'Turf', 'Splashy', 'Rad', 'Sneaky', 'Deep-Sea', 'Glossy', 'Tidal', 'Zesty', 'Mighty', 'Soggy', 'Speedy', 'Salty', 'Bubbly', 'Snazzy', 'Drippy', 'Sunny'];
-const TITLE_NOUN = ['Squidkid', 'Inkling', 'Turf Boss', 'Wave Rider', 'Splatter', 'Tentacle', 'Drip Lord', 'Sprayer', 'Rookie', 'Legend', 'Deck Hand', 'Sea Pickle', 'Kelp Fan', 'Ink Slinger', 'Plaza Star', 'Harbor Kid'];
+const TITLE_NOUN = ['Squidkid', 'Goo Goblin', 'Turf Boss', 'Wave Rider', 'Splatter', 'Tentacle', 'Drip Lord', 'Sprayer', 'Rookie', 'Legend', 'Deck Hand', 'Sea Pickle', 'Kelp Fan', 'Ink Slinger', 'Plaza Star', 'Harbor Kid'];
 // Room failures, keyed by the *error code* (src/net/errors.js) rather than by the English message: the wording is
 // free to be translated without any comparison or lookup depending on it. Every field is an i18n message id:
 // `title` + `text` fill the join panel, `short` is the one-line toast.
@@ -55,7 +55,7 @@ const JOIN_ERR = {
   [ERR.FULL]: { title: 'ROOM IS FULL', text: 'All 8 spots are taken. Ask the host to make space, or open a room of your own.', short: 'That room is full.', icon: 'users' },
   [ERR.IN_PROGRESS]: { title: 'MATCH IN PROGRESS', text: 'They are mid-match right now. Try again in a few minutes — the room reopens after the results.', short: 'They are mid-match right now.', icon: 'clock' },
   [ERR.TEAM_FULL]: { title: 'TEAM IS FULL', text: 'That team already has four players. Pick the other one, or wait for a spot.', short: 'That team is full.', icon: 'users' },
-  [ERR.CONNECT]: { title: 'CAN\u2019T CONNECT', text: 'The INKWAVE servers didn\u2019t answer. Check your connection, then try again.', short: 'The INKWAVE servers didn\u2019t answer.', icon: 'signal' },
+  [ERR.CONNECT]: { title: 'CAN\u2019T CONNECT', text: 'The SPLURT servers didn\u2019t answer. Check your connection, then try again.', short: 'The SPLURT servers didn\u2019t answer.', icon: 'signal' },
   [ERR.CODE_TAKEN]: { title: 'TRY AGAIN', text: 'That room code was just taken. Give it another go.', short: 'That room code was just taken.', icon: 'reset' },
   [ERR.LOST]: { title: 'CONNECTION LOST', text: 'The link to the room dropped. Check your connection and join again.', short: 'The link to the room dropped.', icon: 'signal' },
   [ERR.STALE]: { title: 'PLEASE REFRESH', text: 'The game was updated since this page loaded. Refresh to play online again.', short: 'Refresh the page to play online.', icon: 'reset' },
@@ -77,9 +77,9 @@ const TIPS = [
   'Hold [SHIFT] to dive into your ink — you are nearly invisible while swimming.',
   'Enemy ink slows you down and chips away at your health. Paint over it!',
   'Swim up any wall you have inked to reach high ground.',
-  'In Turf War only turf counts when time runs out. Splats just buy you space.',
+  'In Turf Riot only turf counts when time runs out. Splats just buy you space.',
   'Your special gauge fills as you ink. Press [F] when it glows!',
-  'A Splat Bomb costs most of your tank — throw it where it claims the most turf.',
+  'A Goo Bomb costs most of your tank — throw it where it claims the most turf.',
   'Chargers splat in one fully-charged shot. Keep moving and use cover.',
   'Rollers paint huge stripes. Flick the roller to splash foes at range.',
   'Low on ink? Dive in, refill, then push again.',
@@ -92,12 +92,12 @@ const TIPS = [
 // Battle modes offered on the stage select (Zone Control: see src/game/zones.js)
 const ZONE_GLYPH = '<svg class="iw-ico" viewBox="0 0 64 64" aria-hidden="true"><path d="M8 21 V12 Q8 8 12 8 H21 M43 8 H52 Q56 8 56 12 V21 M56 43 V52 Q56 56 52 56 H43 M21 56 H12 Q8 56 8 52 V43" fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="19" y="19" width="26" height="26" rx="5" fill="currentColor"/></svg>';
 const MODE_INFO = {
-  turf: { id: 'turf', label: 'TURF WAR', name: 'Turf War', icon: GLYPHS.drop, text: 'Ink the most ground before the clock runs out.' },
+  turf: { id: 'turf', label: 'TURF RIOT', name: 'Turf Riot', icon: GLYPHS.drop, text: 'Ink the most ground before the clock runs out.' },
   zones: { id: 'zones', label: 'ZONE CONTROL', name: 'Zone Control', icon: ZONE_GLYPH, text: 'Hold the live zone to count down from 100 — first to 0 wins.' },
   boss: { id: 'boss', label: 'BOSS BATTLE', name: 'Boss Battle', icon: BOSS_GLYPH, text: `Your squad of 8 against ${BOSS_NAME}.` },
 };
 const modeOf = (m) => (m === 'zones' || m === 'boss' ? m : 'turf');
-// the battle modes (Turf War / Zone Control) — the rules cards, the in-match strip and the results use these two
+// the battle modes (Turf Riot / Zone Control) — the rules cards, the in-match strip and the results use these two
 const BATTLE_MODES = [MODE_INFO.turf, MODE_INFO.zones];
 const ZK = '#15121c';
 const zNum = (x, y, n, size = 16) => `<text x="${x}" y="${y}" text-anchor="middle" font-family="'Titan One', sans-serif" font-size="${size}" fill="#fff" stroke="${ZK}" stroke-width="3.2" paint-order="stroke" stroke-linejoin="round">${n}</text>`;
@@ -173,7 +173,7 @@ const MENU_DESC = {
   locker: 'Choose your squidkid — tentacles, headgear, eyes, skin and outfit',
   settings: 'Controls, video, audio and gameplay options',
   howto: 'The rules in 30 seconds, plus every control',
-  credits: 'The squidkids and code behind INKWAVE',
+  credits: 'The squidkids and code behind SPLURT',
 };
 
 const pctFmt = (v) => Math.round(v * 100) + '%';
@@ -1940,13 +1940,13 @@ export class Menus {
     const roll = h('div', { class: 'iw-cred__roll' },
       h('div', { class: 'iw-cred__logo', html: logoMarkup(GAME_TITLE, GAME_SUBTITLE, 'md') }),
       h('p', { class: 'iw-cred__lead' }, 'An original 4 v 4 turf-war shooter.'),
-      sec('Original game', 'INKWAVE by Jayden Davis', h('p', { class: 'dim' }, 'MIT License · github.com/jaydendavisnc/inkwave')),
+      sec('Original game', 'Based on INKWAVE by jaydendavisnc (MIT)', h('p', { class: 'dim' }, 'MIT License · github.com/jaydendavisnc/inkwave')),
       sec('Made with', 'Procedural everything — squidkids, weapons, stage, ink, music and sound are all generated in code.'),
       sec('Rendering', 'three.js', h('p', { class: 'dim' }, 'by the three.js authors & contributors')),
       sec('Typography', 'Titan One — Font Diner', 'Rubik — Hubert & Fischer', h('p', { class: 'dim' }, 'SIL Open Font License')),
       sec('Starring the squidkids', cast),
       sec('Special thanks', 'Everyone who ever painted a wall', 'Every bot that got splatted in testing', 'And you, for playing'),
-      h('div', { class: 'iw-cred__end' }, h('div', { class: 'iw-cred__endsplat', html: splatSVG({ seed: 77, cls: 'iw-fa' }) }), h('span', { class: 'iw-display' }, 'STAY FRESH!')));
+      h('div', { class: 'iw-cred__end' }, h('div', { class: 'iw-cred__endsplat', html: splatSVG({ seed: 77, cls: 'iw-fa' }) }), h('span', { class: 'iw-display' }, 'STAY GOOEY!')));
     const viewport = h('div', { class: 'iw-cred__view' }, roll);
     const el = h('div', { class: 'iw-screen iw-credits' },
       h('div', { class: 'iw-scrim-full' }),
@@ -2519,8 +2519,8 @@ export class Menus {
     const diffLbl = rDiff.querySelector('.iw-lset__label');
     diffLbl.lastChild.textContent = '';   // label text lives in its own span so boss mode can rename it
     diffLbl.appendChild(h('span', { class: 'iw-lset__lbltxt' }, 'BOT SKILL'));
-    // MODE (Turf War | Zone Control | Boss Battle): the panel's headline is the switch — ◀ ▶ for the host, read-only for guests
-    const modeName = h('span', { class: 'iw-display iw-lob__modename' }, 'TURF WAR');
+    // MODE (Turf Riot | Zone Control | Boss Battle): the panel's headline is the switch — ◀ ▶ for the host, read-only for guests
+    const modeName = h('span', { class: 'iw-display iw-lob__modename' }, 'TURF RIOT');
     const modeIco = h('b', { html: GLYPHS.flag });
     const modeArrows = h('span', { class: 'iw-lob__modearrows' }, h('i', { class: 'is-l', html: GLYPHS.back }), h('i', { class: 'is-r', html: GLYPHS.next }));
     const rMode = h('div', { class: 'iw-lset iw-lset--mode' },
@@ -3341,7 +3341,7 @@ export class Menus {
       { id: 'quit', label: online ? 'LEAVE ROOM' : 'QUIT MATCH', icon: online ? GLYPHS.exit : GLYPHS.close, cls: 'iw-btn--menu iw-btn--danger', accept: () => this._openModal({
         title: online ? 'LEAVE ROOM?' : 'QUIT MATCH?', danger: true,
         text: online ? 'You’ll leave the match and the room — a bot takes over your squidkid for the team.'
-          : zoneMode ? 'You will leave this Zone Control match and head back to the lobby. It will not count.' : 'You will leave this Turf War and head back to the lobby. Your turf will not count.',
+          : zoneMode ? 'You will leave this Zone Control match and head back to the lobby. It will not count.' : 'You will leave this Turf Riot and head back to the lobby. Your turf will not count.',
         buttons: [
           { label: 'KEEP PLAYING', accept: () => this._closeModal(), sound: null },
           { label: 'QUIT', cls: 'iw-btn--danger', sound: 'ui_confirm', accept: () => {
@@ -3421,8 +3421,8 @@ export class Menus {
     const matchPanel = this._panel('iw-pmatch iw-panel--flat iw-in iw-in--right',
       h('div', { class: 'iw-pmatch__top' },
         h('div', { class: 'iw-pmatch__info' },
-          h('div', { class: 'iw-pmatch__mode' }, h('span', { class: 'iw-pmatch__tag' }, zoneMode ? 'ZONE CONTROL' : 'TURF WAR'), diff ? h('span', { class: 'iw-pmatch__diff' }, h('i', { html: GLYPHS.bot }), t('{n} bots', { n: t(diff.name) })) : null),
-          h('div', { class: 'iw-pmatch__map' }, h('i', { html: GLYPHS.map }), snap.map || (zoneMode ? 'Zone Control' : 'Turf War'))),
+          h('div', { class: 'iw-pmatch__mode' }, h('span', { class: 'iw-pmatch__tag' }, zoneMode ? 'ZONE CONTROL' : 'TURF RIOT'), diff ? h('span', { class: 'iw-pmatch__diff' }, h('i', { html: GLYPHS.bot }), t('{n} bots', { n: t(diff.name) })) : null),
+          h('div', { class: 'iw-pmatch__map' }, h('i', { html: GLYPHS.map }), snap.map || (zoneMode ? 'Zone Control' : 'Turf Riot'))),
         clock),
       zoneStrip, you, teams, ctlWrap);
     colorVars(matchPanel, 'ta', snap.colors[0]);
@@ -3554,7 +3554,7 @@ export class Menus {
     const selfTeam = self ? self.team : 0;
     const winTeam = win ? selfTeam : 1 - selfTeam;
     const reduced = prefersReducedMotion();
-    // Zone Control: final countdowns + how it was decided (the coverage-margin tags are a Turf War thing)
+    // Zone Control: final countdowns + how it was decided (the coverage-margin tags are a Turf Riot thing)
     const zd = d.mode === 'zones' && d.zones ? d.zones : null;
     const resMode = boss ? 'boss' : zd ? 'zones' : 'turf';
     if (zd) {

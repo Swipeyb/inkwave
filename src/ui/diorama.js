@@ -130,7 +130,7 @@ export class DioramaOverlay {
     const cam = G.camera, W = innerWidth, H = innerHeight;
     if (!me || !cam) return;
     const allies = (G.actors || []).filter((o) => o.team === me.team && o !== me);
-    const col = G.teamHex?.[me.team] || '#ff8a14';
+    const col = G.teamHex?.[me.team] || '#22e0a1';
     if (col !== this._last.col) { this._last.col = col; this.el.style.setProperty('--c', col); }
     const canJump = !!(me.alive && me.canSuperJump && me.canSuperJump());
     // splatted in a live round: picks plan the respawn's Super Jump instead (player.js queueJump)

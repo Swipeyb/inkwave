@@ -28,7 +28,7 @@ test('base64 and sha256 helpers', async () => {
 
 test('wallet signMessage proofs verify, tampering fails', async () => {
   const k = await keypair();
-  const msg = 'INKWAVE prize wallet check\nnonce: 123';
+  const msg = 'SPLURT prize wallet check\nnonce: 123';
   const sig = new Uint8Array(await crypto.subtle.sign({ name: 'Ed25519' }, k.privateKey, new TextEncoder().encode(msg)));
   assert.equal(await verifyEd25519(k.pubkey, msg, sig), true);
   assert.equal(await verifyEd25519(k.pubkey, msg + 'x', sig), false);

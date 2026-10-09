@@ -1,11 +1,11 @@
 // Mode variants of a stage. A layout piece (single / half) or a dressing item may carry
 //   onlyIn: 'zones'   — built only in that mode (e.g. Zone Control access ramps)
 //   notIn:  'zones'   — built in every mode except that one (e.g. benches cleared out of a zone)
-// Everything untagged is shared. A stage with no tagged items for a mode builds (and bakes) exactly as its Turf War
+// Everything untagged is shared. A stage with no tagged items for a mode builds (and bakes) exactly as its Turf Riot
 // layout; one with tagged items gets its own world + lightmap (assets/lightmaps/<id>.<mode>.{png,json}).
 export const inMode = (it, mode) => (!it.onlyIn || it.onlyIn === mode) && (!it.notIn || it.notIn !== mode);
 
-// does building this stage for `mode` differ from its Turf War build?
+// does building this stage for `mode` differ from its Turf Riot build?
 export function hasVariant(layout, dressing, mode) {
   if (!mode || mode === 'turf') return false;
   const any = (list) => (list || []).some((it) => (it.onlyIn || it.notIn) && inMode(it, mode) !== inMode(it, 'turf'));

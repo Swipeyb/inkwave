@@ -625,7 +625,7 @@ function miniSquid(x, cx, cy, s, body, eye = '#fff', pupil = INK.navy) {
 function drawStreetPrint(x) {
   const I = INK;
   // ---------------------------------------------------------------- posters
-  region(x, 'pst0', (x, w, h) => { // TURF WAR FINALS
+  region(x, 'pst0', (x, w, h) => { // TURF RIOT FINALS
     paperBG(x, w, h, '#f3ead6', 11);
     x.fillStyle = '#e8dcc0'; for (let i = -6; i < 16; i++) { x.beginPath(); x.moveTo(i * 30, h); x.lineTo(i * 30 + 14, h); x.lineTo(i * 30 + 214, 0); x.lineTo(i * 30 + 200, 0); x.fill(); }
     x.fillStyle = I.coral; splatShape(x, 78, 168, 78, 3, 2);
@@ -635,7 +635,7 @@ function drawStreetPrint(x) {
     x.beginPath(); x.moveTo(140, 96); x.lineTo(108, 170); x.lineTo(134, 170); x.lineTo(112, 248); x.lineTo(160, 156); x.lineTo(134, 156); x.lineTo(156, 96); x.closePath(); x.fill(); x.stroke();
     miniSquid(x, 62, 172, 30, I.cream, I.coraldk, '#fff');
     miniSquid(x, 200, 188, 30, I.cream, I.tealdk, '#fff');
-    txt(x, 'TURF WAR', w / 2, 46, 46, FD, I.navy, I.cream, 10, w - 20);
+    txt(x, 'TURF RIOT', w / 2, 46, 46, FD, I.navy, I.cream, 10, w - 20);
     ribbon(x, w / 2, 282, 170, 44, I.mustard, '#b98f2f');
     txt(x, 'FINALS', w / 2, 284, 36, FD, I.navy, null, 0, 160);
     txt(x, 'SAT · 8PM', w / 2, 326, 22, FT, I.navy, null, 0, w - 30, 'center');
@@ -821,7 +821,7 @@ function drawStreetPrint(x) {
     x.fillStyle = I.lav; splatShape(x, 420, 70, 50, 9, 1);
     miniSquid(x, 108, 118, 52, I.navy, '#fff', I.navy);
     txt(x, 'INK THE TOWN', 336, 88, 50, FD, I.navy, null, 0, 300);
-    txt(x, 'TURF WAR · SEASON 3', 336, 140, 26, FD, I.coral, null, 0, 300);
+    txt(x, 'TURF RIOT · SEASON 3', 336, 140, 26, FD, I.coral, null, 0, 300);
     txt(x, 'NEW STAGES · NEW GEAR · SAME SQUIDS', 336, 180, 13, FT, I.navy, null, 0, 300);
     x.fillStyle = I.teal; x.fillRect(0, h - 26, w, 26); txt(x, 'KELPLINE TERMINAL NOW OPEN', w / 2, h - 13, 12, FT, I.cream, null, 0, w - 40);
     vignette(x, w, h, 0.14);
@@ -941,7 +941,7 @@ function drawStreetPrint(x) {
     x.fillStyle = '#b4b4b4'; x.beginPath(); x.arc(c, c, 40, 0, TAU); x.fill();
     miniSquid(x, c, c + 2, 30, '#e2e2e2', '#8a8a8a', '#e2e2e2');
     x.font = FT(15); x.fillStyle = '#e8e8e8'; x.textAlign = 'center'; x.textBaseline = 'middle';
-    const s = 'INKWAVE HARBOR · SEWER · INKWAVE HARBOR · SEWER · ';
+    const s = 'SPLURT HARBOR · SEWER · SPLURT HARBOR · SEWER · ';
     for (let i = 0; i < s.length; i++) { const a = (i / s.length) * TAU - HP; x.save(); x.translate(c + Math.cos(a) * 95, c + Math.sin(a) * 95); x.rotate(a + HP); x.fillText(s[i], 0, 0); x.restore(); }
   });
   region(x, 'gully', (x, w, h) => { x.clearRect(0, 0, w, h); x.fillStyle = '#fff'; x.fillRect(0, 0, w, 10); x.fillRect(0, h - 10, w, 10); x.fillRect(0, 0, 10, h); x.fillRect(w - 10, 0, 10, h); for (let i = 1; i < 8; i++) x.fillRect(i * 16 - 3, 0, 6, h); x.fillRect(0, h / 2 - 4, w, 8); });
@@ -3099,7 +3099,7 @@ export class PropKit {
     this.group = new THREE.Group(); this.group.name = 'props';
     if (scene) scene.add(this.group);
     this.uTime = { value: 0 };
-    this.teamColors = [new THREE.Color('#ff8a14'), new THREE.Color('#2f5bff')];
+    this.teamColors = [new THREE.Color('#22e0a1'), new THREE.Color('#ff4d3d')];
     this._headless = !!opts.headless || typeof document === 'undefined';
     if (!this._headless) this._makeMaterials();
     this._buckets = new Map();

@@ -1,4 +1,4 @@
-// Optional Solana prize pool UI (docs/PRIZE_POOL.md). Completely inert unless the relay says the pool is enabled
+// Optional $SPLURT (Solana) prize pool UI (docs/PRIZE_POOL.md). Completely inert unless the relay says the pool is enabled
 // (GET <relay>/prize): no requests at all while offline, nothing on screen in solo play.
 //
 //   online lobby  → a small card: pool balance, prize range, "Connect wallet" (Phantom / Solflare / any injected
@@ -24,7 +24,7 @@ const CSS = `
 .iw-prize__tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, .12); font: 600 10px/1.5 Rubik, sans-serif; color: #fff; vertical-align: middle; letter-spacing: .04em; }
 .iw-prize__note { font-size: var(--fs-xs, 11px); color: var(--muted, #c3bdd6); font-weight: 500; }
 .iw-prize__btn { margin-top: 8px; width: 100%; padding: 7px 10px; border: 0; border-radius: 10px; cursor: pointer;
-  background: var(--a, #ff8a14); color: var(--a-ink, #15121c); font: 700 var(--fs-s, 13px)/1.2 Rubik, sans-serif; }
+  background: var(--a, #22e0a1); color: var(--a-ink, #15121c); font: 700 var(--fs-s, 13px)/1.2 Rubik, sans-serif; }
 .iw-prize__btn:disabled { opacity: .6; cursor: default; }
 .iw-prize__wallet { margin-top: 8px; font-family: ui-monospace, monospace; font-size: var(--fs-xs, 11px); }
 .iw-prize__err { margin-top: 6px; color: #ff8fa3; font-size: var(--fs-xs, 11px); }
@@ -149,11 +149,11 @@ class PrizeUI {
     this.el.hidden = !show;
     if (!show) return;
     const tag = i.mode !== 'live' ? '<span class="iw-prize__tag">DRY RUN</span>' : '';
-    const hold = i.minHolding > 0 && i.mint ? `<div class="iw-prize__note">Hold ≥ ${esc(i.minHolding)} tokens (${esc(shortAddr(i.mint))}) to win.</div>` : '';
+    const hold = i.minHolding > 0 && i.mint ? `<div class="iw-prize__note">Hold ≥ ${esc(Number(i.minHolding).toLocaleString())} $SPLURT (${esc(shortAddr(i.mint))}) to win.</div>` : '';
     const wallet = this.wallet
       ? `<div class="iw-prize__wallet">◎ ${esc(shortAddr(this.wallet))} ✓ verified</div>`
       : `<button class="iw-prize__btn" data-act="connect" ${this.busy ? 'disabled' : ''}>${this.busy ? 'Check your wallet…' : solanaProvider() ? 'Connect wallet to win' : 'Get a Solana wallet'}</button>`;
-    this.el.innerHTML = `<div class="iw-prize__k">Prize pool${tag}</div>
+    this.el.innerHTML = `<div class="iw-prize__k">$SPLURT prize pool${tag}</div>
       <div class="iw-prize__pool">◎ ${sol(i.poolSol)} SOL</div>
       <div class="iw-prize__note">Each online match: ${esc(i.minPct)}–${esc(i.maxPct)}% of the pool (max ${esc(i.maxSol)} SOL) to a random player on the winning team. ${esc(i.minHumans)}+ players.</div>
       ${hold}${wallet}${this.err ? `<div class="iw-prize__err">${esc(this.err)}</div>` : ''}`;

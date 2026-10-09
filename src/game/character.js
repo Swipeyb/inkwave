@@ -520,7 +520,7 @@ export class Character {
     this.style = resolveStyle(st, seed);
     this.rng = mulberry(seed);
     this.color = new THREE.Color();
-    this.enemyColor = new THREE.Color('#2f5bff');
+    this.enemyColor = new THREE.Color('#ff4d3d');
     /** Distance from root to the wall surface while climbing (engine keeps the player centre this far off the wall). */
     this.climbInset = PLAYER.radius;
 
@@ -642,7 +642,7 @@ export class Character {
       charge: 0, full: false, chargeFlash: 0, lowInk: 0, firing: false, rolling: 0, grounded: true, groundSpeed: 0, worldQuat: null };
     this._wq = new THREE.Quaternion();
 
-    this.setColor(opts.color ?? '#ff8a14');
+    this.setColor(opts.color ?? '#22e0a1');
     this.setWeapon(opts.weapon || 'shooter');
     poseNeutral(this.P);
   }

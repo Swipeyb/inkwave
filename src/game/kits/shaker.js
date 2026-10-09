@@ -37,7 +37,7 @@ const RAD = 0.19;                  // world contact radius (the centre rests thi
 // ================================================================================================= model
 // Prop space: origin at the bottom centre, +Y up, +Z front. A cream can, Ø 0.10 × 0.21 at hand scale, with an ink window
 // round its waist. A dark strip up the front carries the three charge lamps (bottom to top). On top is a metal cap with a
-// fizz vent, and a knurled grip knob that the left fist holds, as with the Splat Bomb.
+// fizz vent, and a knurled grip knob that the left fist holds, as with the Goo Bomb.
 const LAMP_Y = [0.0665, 0.081, 0.0955], LAMP_R = 0.0547;
 const NOZ = { p: new V3(), n: new V3() };                      // fizz vent tip + direction (set by the builder)
 function buildShaker() {
@@ -511,7 +511,7 @@ function blast(it) {
   emit('bomb:explode', { actor: a, pos: c.clone(), team, radius: s.radius, kind: 'shaker', n: it.blasts });
   const loc = G.local;
   if (loc && loc.alive) { const d = loc.pos.distanceTo(c); if (d < 12) G.input?.rumble?.(clamp(1 - d / 12, 0, 1) * 0.45, clamp(1 - d / 12, 0, 1) * 0.4, 120); }
-  // damage: like a smaller Splat Bomb (line of sight from just above the can)
+  // damage: like a smaller Goo Bomb (line of sight from just above the can)
   _v2.copy(c); _v2.y += 0.3;
   for (const e of G.actors) {
     if (e.team === team || !e.alive) continue;

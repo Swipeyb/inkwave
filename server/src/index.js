@@ -1,4 +1,4 @@
-// INKWAVE online relay (Cloudflare Worker + Durable Object).
+// SPLURT online relay (based on the INKWAVE relay) (Cloudflare Worker + Durable Object).
 //
 //   GET /room/<CODE>?name=<name>&create=1&v=<proto>   (WebSocket upgrade) → the Room object for that code
 //   GET /health                                          → "ok"
@@ -30,7 +30,8 @@ import { parsePubkey, verifyEd25519, b64decode } from './solana.js';
 const PROTO = 1, MAX = 8;
 // Public relay hygiene: only the game's own site may open rooms (plus local dev), each socket gets a message budget
 // (the game sends ~25/s; a runaway or hostile client is cut off before it can eat the account's quota) and a size cap.
-const ORIGIN_OK = (o) => /^https:\/\/([a-z0-9-]+\.)?inkwave-aah\.pages\.dev$/.test(o)
+const ORIGIN_OK = (o) => /^https:\/\/(www\.)?playsplurt\.online$/.test(o)   // SPLURT's site
+  || /^https:\/\/([a-z0-9-]+\.)?inkwave-aah\.pages\.dev$/.test(o)   // the original INKWAVE site (upstream)
   || /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|[a-z0-9-]+\.local)(:\d+)?$/.test(o);   // dev + LAN play
 const MSG_MAX = 65536, RATE = 90, BURST_STRIKES = 4;
 // A socket whose "ping"s stop is a player whose connection died without closing (Wi-Fi gone, laptop lid shut): drop
@@ -50,7 +51,7 @@ export default {
       return json(url.pathname === '/prize' ? await ledger.status() : await ledger.recent(+(url.searchParams.get('n') || 50)));
     }
     const m = url.pathname.match(/^\/room\/([A-Za-z0-9]+)$/);
-    if (!m) return new Response('INKWAVE relay', { status: 404 });
+    if (!m) return new Response('SPLURT relay', { status: 404 });
     const code = m[1].toUpperCase();
     if (!CODE.test(code)) return new Response('bad code', { status: 400 });
     if (req.headers.get('Upgrade') !== 'websocket') return new Response('expected websocket', { status: 426 });
@@ -168,7 +169,7 @@ export class Room extends DurableObject {
     if (!this._ledger()) return this._send(ws, { t: 'wallet', a: 'err', e: 'Prizes are off on this server' });
     if (o.a === 'nonce') {
       const n = crypto.randomUUID();
-      me.walletMsg = `INKWAVE prize wallet check\nroom: ${this.code || me.code}\nplayer: ${me.id}\nnonce: ${n}\n(signing this costs nothing and sends no transaction)`;
+      me.walletMsg = `SPLURT prize wallet check\nroom: ${this.code || me.code}\nplayer: ${me.id}\nnonce: ${n}\n(signing this costs nothing and sends no transaction)`;
       ws.serializeAttachment(me);
       return this._send(ws, { t: 'wallet', a: 'nonce', msg: me.walletMsg });
     }

@@ -165,7 +165,7 @@ function drawGraffiti(g, W, H, rnd) {
   g.fillStyle = mixP(0, 0.5, 0.6);
   for (let i = 0; i < 26; i++) { g.beginPath(); g.arc(W * (0.05 + rnd() * 0.9), H * (0.25 + rnd() * 0.5), 8 + rnd() * 26, 0, 7); g.fill(); }
   // letters
-  const word = 'INKWAVE', size = H * 0.5;
+  const word = 'SPLURT', size = H * 0.5;
   g.font = titan(size); g.lineJoin = 'round'; g.textBaseline = 'alphabetic';
   const adv = [...word].map((ch) => g.measureText(ch).width * 0.86);
   const total = adv.reduce((a, b) => a + b, 0);
@@ -269,7 +269,7 @@ function drawLit(g) {
     g.fillStyle = '#16c0d8'; g.fillRect(0, 0, w, 170);
     g.fillStyle = '#ffffff'; g.font = titan(88); g.textAlign = 'center'; g.fillText('SPLASH', w / 2, 112);
     g.font = rubik(26); g.fillText('ICE COLD · 150', w / 2, 152);
-    const cols = ['#ff5a3c', '#2fd1ff', '#ffd23c', '#7cff6b', '#ff4fa8', '#ffffff', '#ff8a14', '#6a5bff'];
+    const cols = ['#ff5a3c', '#2fd1ff', '#ffd23c', '#7cff6b', '#ff4fa8', '#ffffff', '#22e0a1', '#6a5bff'];
     for (let r = 0; r < 5; r++) {
       const y = 200 + r * 160;
       g.fillStyle = 'rgba(40,70,100,0.35)'; g.fillRect(16, y + 118, w - 32, 10);
@@ -288,7 +288,7 @@ function drawLit(g) {
     // warm back room: floor, a wall of skate decks, boxes, a hanging bulb glow
     let gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#6b3a1e'); gr.addColorStop(0.55, '#c9803f'); gr.addColorStop(1, '#8a4e25'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
     const rg = g.createRadialGradient(w * 0.55, h * 0.18, 10, w * 0.55, h * 0.2, h * 0.6); rg.addColorStop(0, 'rgba(255,236,190,0.95)'); rg.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = rg; g.fillRect(0, 0, w, h);
-    const deck = ['#ff8a14', '#2f5bff', '#f2e312', '#ff3f9e', '#18d48c', '#ffffff', '#8a3cff', '#ff5a1f'];
+    const deck = ['#22e0a1', '#ff4d3d', '#12b3c4', '#ffc233', '#4cc3ff', '#ffffff', '#e3264f', '#ffb627'];
     for (let i = 0; i < 7; i++) { const x = 30 + i * 66; g.fillStyle = deck[i]; g.beginPath(); g.roundRect(x, 190 + (i % 2) * 14, 48, 330, 24); g.fill(); g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x + 6, 300, 36, 50); }
     g.fillStyle = '#4a2a16'; g.fillRect(0, 540, w, 22);
     for (let i = 0; i < 4; i++) { g.fillStyle = ['#b98552', '#a47244', '#c79a62', '#8f6238'][i]; g.fillRect(40 + i * 110 + (i % 2) * 20, 700 - (i % 2) * 90, 120, 200 + (i % 2) * 90); g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(40 + i * 110 + (i % 2) * 20, 760, 120, 10); }

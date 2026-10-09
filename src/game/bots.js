@@ -299,7 +299,7 @@ export class BotBrain {
     this.strikes = 0; this.strikeT = 0; this.wiggleT = 0; this.wiggleYaw = 0; this.airStill = 0;
     this.dispT = 0; this.moveAcc = 0; this.snap = new THREE.Vector3(); this.paintYawOff = 0; this.paintScanT = 0; this.goalCheckT = 0;
     this.climbT = 0; this.noClimbUntil = 0; this._climbAim = null;
-    // Zone Control (unused in Turf War): role + zone from the team plan, the hold timer at a guard / watch spot, and
+    // Zone Control (unused in Turf Riot): role + zone from the team plan, the hold timer at a guard / watch spot, and
     // the needy patch of the zone being aimed at
     this.zRole = null; this.zZone = -1; this.zHoldUntil = 0; this.zHoldDur = 0; this._zAct = null; this.zAimT = 0; this._zAim = null; this.zFail = 0; this.zFace = 0; this.zJumpAt = 0; this.zBomb = null; this.zBombScan = 0;
     // threats (enemy Waddles / Torpedoes hunting us, enemy canopies): the device being dealt with, when each one was
@@ -352,7 +352,7 @@ export class BotBrain {
     const tgt = this.target;
     if (tgt && !tgt.alive) { this.target = null; }
 
-    // ---------------- Zone Control: the team plan (null in Turf War); re-target at once on a rotation or a new role
+    // ---------------- Zone Control: the team plan (null in Turf Riot); re-target at once on a rotation or a new role
     const zp = zonePlan();
     if (zp) this._zoneSync(zp);
 
@@ -372,7 +372,7 @@ export class BotBrain {
     }
     if (this.mode === 'refill' && inkFrac >= this.refillUntil) this.mode = 'paint';
     if (zp) {
-      // the objective first: only take fights that are in range or on / by the zone (pushers fight like Turf War)
+      // the objective first: only take fights that are in range or on / by the zone (pushers fight like Turf Riot)
       if (this.mode !== 'refill' && this.mode !== 'retreat') {
         const m = this.target && this._zoneEngage(zp) ? 'fight' : 'paint';
         if (m === 'paint' && this.mode === 'fight') { this.goalTimer = 0; this.zHoldUntil = 0; }   // back to the zone

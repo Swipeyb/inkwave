@@ -1,19 +1,19 @@
 // Shared tuning + content definitions. Every module reads from here; nothing here imports anything.
 
-export const GAME_TITLE = 'INKWAVE';
+export const GAME_TITLE = 'SPLURT';
 export const GAME_SUBTITLE = 'Turf Riot';
 export const VERSION = '1.0.0';
 
 // Team ink palettes. Team 0 ("Alpha") is always the local player's team; a palette is picked per match.
 export const TEAM_PALETTES = [
-  { id: 'tangerine-cobalt', a: '#ff8a14', b: '#2f5bff', names: ['Tangerine', 'Cobalt'] },
-  { id: 'bubblegum-mint', a: '#ff3f9e', b: '#18d48c', names: ['Bubblegum', 'Mint'] },
-  { id: 'lemon-grape', a: '#f2e312', b: '#8a3cff', names: ['Lemon', 'Grape'] },
-  { id: 'aqua-cherry', a: '#10d2e6', b: '#ff4150', names: ['Aqua', 'Cherry'] },
-  { id: 'lime-magenta', a: '#a6f01a', b: '#e02cd8', names: ['Lime', 'Magenta'] },
+  // SPLURT's own inks (no orange/blue, yellow/purple or pink/green signature pairs); each pair differs strongly in
+  // lightness as well as hue, so the two teams still read apart for red-green colour vision and at dusk
+  { id: 'goo-lava', a: '#22e0a1', b: '#ff4d3d', names: ['Goo', 'Lava'] },
+  { id: 'lagoon-bullion', a: '#12b3c4', b: '#ffc233', names: ['Lagoon', 'Bullion'] },
+  { id: 'sky-ruby', a: '#4cc3ff', b: '#e3264f', names: ['Sky', 'Ruby'] },
 ];
-// Used instead when settings.colorblind is on (yellow vs blue is safe for all common CVD types).
-export const COLORBLIND_PALETTE = { id: 'cb-yellow-blue', a: '#ffd21a', b: '#2a52ff', names: ['Sun', 'Sea'] };
+// Used instead when settings.colorblind is on (amber vs deep blue: safe for all common CVD types).
+export const COLORBLIND_PALETTE = { id: 'cb-honey-deep', a: '#ffb627', b: '#2f6bdc', names: ['Honey', 'Deep'] };
 
 export const TEAM_NAMES = ['Alpha', 'Bravo'];
 
@@ -287,7 +287,7 @@ export const WEAPONS = {
     special: 'slam', specialCost: 175,
   },
   splatling: {
-    id: 'splatling', name: 'Gyre Splatling', kind: 'splatling', class: 'Splatling', sub: 'bomb',
+    id: 'splatling', name: 'Gyre Gatling', kind: 'splatling', class: 'Gatling', sub: 'bomb',
     blurb: 'Hold to spin up, release for a long high-speed stream. The more charge, the longer it lasts.',
     stats: { range: 0.78, damage: 0.55, rate: 1.0, mobility: 0.38, paint: 0.7 },
     chargeTime: 0.85, burstMin: 0.3, burstMax: 1.7, fireInterval: 0.066, damage: 28, inkPerShot: 0.6,
@@ -317,7 +317,7 @@ export function weaponRange(w) {
 // Sub weapons. Each weapon has a default (`sub` on the weapon); the loadout can swap it for any of these.
 export const SUBS = {
   bomb: {
-    id: 'bomb', name: 'Splat Bomb', kind: 'bomb', blurb: 'Bounces, arms when it lands, then bursts. Splats anyone close.',
+    id: 'bomb', name: 'Goo Bomb', kind: 'bomb', blurb: 'Bounces, arms when it lands, then bursts. Splats anyone close.',
     inkCost: 70, throwSpeed: 13.5, fuse: 0.95, radius: 3.1, damageMax: 180, damageMin: 35, paintRadius: 2.7,
   },
   sticky: {
@@ -369,7 +369,7 @@ export const SUBS = {
     // rate; each jump press adds jumpBoost, each stick / mouse waggle shakeBoost; never faster than maxRate per second
     chargeTime: 2.7, moveBoost: 0.9, jumpBoost: 0.075, shakeBoost: 0.05, maxRate: 1.6,
     fuse: 0.5, gap: 0.42, hopSpeed: 4.2, hopUp: 4.6,          // first landing → first blast, blast → blast, each blast's hop
-    radius: 2.3, damageMax: 110, damageMin: 30, paintRadius: 2.0, // per blast: a smaller Splat Bomb
+    radius: 2.3, damageMax: 110, damageMin: 30, paintRadius: 2.0, // per blast: a smaller Goo Bomb
     trailEvery: 0.38, trailRadius: 0.3,                       // thin ink trail sprayed while it travels
   },
   waddle: {
@@ -377,7 +377,7 @@ export const SUBS = {
     inkCost: 65, throwSpeed: 12,
     senseRadius: 7.5, senseUp: 4, fuse: 1.1,                  // sensing circle on landing; nobody inside → blows after fuse
     speed: 4.0, turnRate: 8, life: 9, maxTravel: 26, triggerDist: 1.2,   // tracks its foe (nav paths, hops up steps)
-    radius: 3.0, damageMax: 180, damageMin: 35, paintRadius: 2.6, hp: 30,  // Splat Bomb blast; shoot-able (30 hp)
+    radius: 3.0, damageMax: 180, damageMin: 35, paintRadius: 2.6, hp: 30,  // Goo Bomb blast; shoot-able (30 hp)
   },
   torpedo: {
     id: 'torpedo', name: 'Tide Torpedo', kind: 'torpedo', blurb: 'Locks onto a foe in mid-air, then darts at them and bursts into droplets. One out at a time.',
@@ -395,13 +395,13 @@ export const SUBS = {
     puddleRadius: 1.35, directDamage: 35, directMark: 9, trailLife: 1.0, trailRadius: 0.42, trailDamage: 22, trailMark: 3,
   },
   boomerang: {
-    id: 'boomerang', name: 'Whirl Boomerang', kind: 'boomerang', blurb: 'Spins out, hovers and shreds, whirls back round you, then bursts. Hit a foe and it bursts on them like a Splat Bomb. One out at a time.',
+    id: 'boomerang', name: 'Whirl Boomerang', kind: 'boomerang', blurb: 'Spins out, hovers and shreds, whirls back round you, then bursts. Hit a foe and it bursts on them like a Goo Bomb. One out at a time.',
     inkCost: 60, throwSpeed: 16,           // throwSpeed: only the bots' lob maths read it (the throw itself is flat)
     range: 9, outTime: 0.6,                // flat along the aim, easing to a stop ~9 m out (stops early at a wall)
     hover: 1.75, hoverRadius: 1.35, tickRate: 8, tickDamage: 9, hoverPaint: 1.0,   // shreds ≈ 72 dmg/s around it
     returnSpeed: 17, orbit: 2.5, orbitRadius: 1.5, orbitSpin: 7, orbitDamage: 6, orbitHitCd: 0.3,
     radius: 2.4, damageMax: 100, damageMin: 30, paintRadius: 2.2,                 // the burst beside you at the end
-    contact: 0.3, hitFuse: 0.6, hitRadius: 3.1, hitDamageMax: 180, hitDamageMin: 35, hitPaintRadius: 2.7,   // hit a foe in flight: Splat Bomb
+    contact: 0.3, hitFuse: 0.6, hitRadius: 3.1, hitDamageMax: 180, hitDamageMin: 35, hitPaintRadius: 2.7,   // hit a foe in flight: Goo Bomb
   },
 };
 export const SUB_ORDER = ['bomb', 'sticky', 'burst', 'shaker', 'seeker', 'waddle', 'torpedo', 'tracer', 'boomerang', 'scan', 'curtain', 'sprinkler', 'mine', 'beacon', 'mist'];
@@ -413,7 +413,7 @@ export const SPECIALS = {
   storm: { id: 'storm', name: 'Ink Tempest', blurb: 'Hurl a rain cloud that soaks the turf below.', duration: 6.5, radius: 3.4, dps: 34, throwSpeed: 16, driftSpeed: 1.1 },
   // Bomb Barrages: throw one kind of bomb as fast as you like (no ink) while the main weapon still works. Each variant
   // is its own special (kind 'barrage'); `gap` = the shortest time between throws.
-  barrage: { id: 'barrage', kind: 'barrage', bomb: 'bomb', name: 'Splat Bomb Barrage', blurb: 'Throw Splat Bombs as fast as you like for a few seconds — no ink needed. Your main weapon still works.', duration: 6.5, gap: 0.3 },
+  barrage: { id: 'barrage', kind: 'barrage', bomb: 'bomb', name: 'Goo Bomb Barrage', blurb: 'Throw Goo Bombs as fast as you like for a few seconds — no ink needed. Your main weapon still works.', duration: 6.5, gap: 0.3 },
   barrage_sticky: { id: 'barrage_sticky', kind: 'barrage', bomb: 'sticky', name: 'Cling Charge Barrage', blurb: 'Stick Cling Charges to every wall in sight — no ink needed. Your main weapon still works.', duration: 6.5, gap: 0.4 },
   barrage_burst: { id: 'barrage_burst', kind: 'barrage', bomb: 'burst', name: 'Pop Pellet Barrage', blurb: 'Pelt foes with rapid-fire Pop Pellets — no ink needed. Your main weapon still works.', duration: 6.5, gap: 0.2 },
   barrage_seeker: { id: 'barrage_seeker', kind: 'barrage', bomb: 'seeker', name: 'Skitter Bomb Barrage', blurb: 'Send a pack of Skitter Bombs chasing foes, each inking a trail — no ink needed. Your main weapon still works.', duration: 6.5, gap: 0.5 },
@@ -433,14 +433,14 @@ export const SPECIALS = {
   // speaker: after a short charge, a sound wave in the aimed direction through walls; splats anything in it
   wail: { id: 'wail', name: 'Howl Box', blurb: 'Hold up a huge speaker, aim it and click: it blasts a sound wave that goes through walls and splats anything in its path.',
     charge: 1.3, blast: 3.2, radius: 1.5, range: 72, dps: 260, holdTime: 6, holdSpeed: 3.2 },
-  // invincible kraken: fast through any ink, splats with a jump attack
-  kraken: { id: 'kraken', name: 'Kraken', blurb: 'Turn into an invincible kraken. Race through any ink (even the enemy\'s) and splat foes with a jump attack.',
+  // invincible goo beast: fast through any ink, splats with a jump attack
+  kraken: { id: 'kraken', name: 'Goo Beast', blurb: 'Turn into an invincible goo beast. Race through any ink (even the enemy\'s) and splat foes with a jump attack.',
     duration: 7, speed: 7.2, hopVel: 10.5, attackVel: 8.5, attackFwd: 6.5, radius: 2.3, damage: 200, knockPerDamage: 0.02, cooldown: 0.65, paintRadius: 1.15 },
   // up to three giant bubbles: they wall off an area and burst into a deadly blast when your team shoots them
-  blower: { id: 'blower', name: 'Bubble Blower', blurb: 'Blow up to three giant bubbles that wall off an area. Shoot them (you or your team) to set off a huge ink blast.',
+  blower: { id: 'blower', name: 'Bubble Wand', blurb: 'Blow up to three giant bubbles that wall off an area. Shoot them (you or your team) to set off a huge ink blast.',
     duration: 9, max: 3, inflate: 1.0, rMin: 0.9, rMax: 2.1, drift: 1.4, life: 9, popDamage: 55, blastMul: 1.9, damageMax: 180, damageMin: 45 },
   // jetpack: hover and fire blaster-like shots; super jump back to the take-off point when it runs out
-  jetpack: { id: 'jetpack', name: 'Ink Jet', blurb: 'Hover over the stage firing powerful blasts — jump for a boost. When it runs out you super jump back to where you took off (marked for everyone to see).',
+  jetpack: { id: 'jetpack', name: 'Goo Jet', blurb: 'Hover over the stage firing powerful blasts — jump for a boost. When it runs out you super jump back to where you took off (marked for everyone to see).',
     duration: 7, height: 3.8, speed: 5.5, accel: 11, boost: 9, boostGap: 0.9, interval: 0.55, projSpeed: 30, range: 34, directDamage: 125, splashMax: 70, splashMin: 30, splashRadius: 2.4, paintRadius: 1.5 },
   // giant stamp: slam repeatedly while advancing, jump attack, or throw it (ends the special)
   stamp: { id: 'stamp', name: 'Mega Stamp', blurb: 'Charge forward smashing with a giant stamp: each swing deflects attacks from the front and smashes bombs before they go off, but it turns slowly and is open from the sides and back. Swing mid-air for a flip that reaches further and hits behind you too. Throw it (sub) as a long-range blast — that ends the special.',
@@ -524,7 +524,7 @@ export const MAPS = [
   { id: 'cargo', name: 'Cargo Terminal', blurb: 'A container terminal at shift change: a gantry crane straddles the pier between two moored box ships.', theme: 'day', times: { day: 'day', dusk: 'sunset' }, onlineOnly: true, noBots: true, noBoss: true },
 ];
 // Stage rules (a MAPS entry's flags), enforced by the lobby host (net/session.js, net/mock.js), the menus and main.js:
-//   onlineOnly  only in the online lobby's stage picker — never the offline Play flow (Turf War or Boss Battle)
+//   onlineOnly  only in the online lobby's stage picker — never the offline Play flow (Turf Riot or Boss Battle)
 //   noBots      humans only: "fill with bots" is forced off, a match needs 2+ players with one on each side, and a player
 //               who leaves mid-match is removed instead of handed to a bot; the menu backdrop runs without bots too
 //   noBoss      never a Boss Battle stage (a boss room switches away from it)
@@ -553,8 +553,8 @@ export const BOT_NAMES = [
 export const PROGRESSION = {
   xpForLevel: (lvl) => 800 + lvl * 350,
   xpWin: 1200, xpLose: 500, xpPerTurfPoint: 1.0, xpPerSplat: 40,
-  // Zone Control (5 min, so more turf gets inked than in a 3 min Turf War): turf counts for less, ink laid on the live
-  // zone counts extra, and a knockout win pays a flat bonus — a typical match lands close to a Turf War's XP
+  // Zone Control (5 min, so more turf gets inked than in a 3 min Turf Riot): turf counts for less, ink laid on the live
+  // zone counts extra, and a knockout win pays a flat bonus — a typical match lands close to a Turf Riot's XP
   zones: { turfScale: 0.6, xpPerZoneTurfPoint: 1.0, xpKnockout: 300 },
 };
 

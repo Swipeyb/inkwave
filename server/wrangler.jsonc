@@ -1,5 +1,5 @@
 {
-  // INKWAVE online relay: one Durable Object per room code (WebSocket fan-out + membership + host election).
+  // SPLURT online relay: one Durable Object per room code (WebSocket fan-out + membership + host election).
   "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "inkwave-net",
   "main": "src/index.js",
