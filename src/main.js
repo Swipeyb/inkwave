@@ -68,8 +68,9 @@ class Game {
     }
     // v1.1: fov became horizontal — migrate old vertical values once
     if (this.settings.fovMode !== 'h') { this.settings.fov = DEFAULT_SETTINGS.fov; this.settings.fovMode = 'h'; saveJSON('inkwave.settings', this.settings); }
-    // phones / tablets: start on Low graphics once (smooth frame rate, less heat); players can raise it in Settings
-    if (IS_TOUCH && !this.settings.touchTuned) { this.settings.quality = 'low'; this.settings.touchTuned = true; saveJSON('inkwave.settings', this.settings); }
+    // phones / tablets start on Medium (Low renders below screen resolution and looked blurry on phones). If a match
+    // still runs slow, the dynamic resolution and the automatic preset drop in _dynRes() step it down from there.
+    if (IS_TOUCH && this.settings.touchTuned !== 2) { this.settings.quality = 'medium'; this.settings.touchTuned = 2; saveJSON('inkwave.settings', this.settings); }
     this.profile = loadJSON('inkwave.profile', DEFAULT_PROFILE);
     if (WEAPON_SUCCESSOR[this.profile.weapon]) this.profile.weapon = WEAPON_SUCCESSOR[this.profile.weapon];   // retired weapons
     const app = document.getElementById('app');
@@ -1166,11 +1167,11 @@ class Game {
     const m = this.match;
     if (document.hidden || !m || m.attract || m.state !== 'playing') { d.fast = 0; d.slow = 0; return; }
     const s = this.R.dynScale || 1, tgt = this._frameTarget() / 1000;
-    // still under ~40 fps with the resolution already at its floor (or on Ultra, which never scales): the effects are
+    // still under ~28 fps for 12 s with the resolution already at its floor (or on Ultra, which never scales): the effects are
     // the bottleneck, so drop the graphics preset one notch (Ultra → High → Medium → Low), at most once per 20 s
     const atFloor = this.settings.quality === 'ultra' || s <= this.R.dynFloor() + 0.01;
-    d.slow = avg > Math.max(1 / 40, tgt * 1.12) && atFloor ? (d.slow || 0) + 1 : 0;   // (a 30 fps cap is not "slow")
-    if (d.slow >= 2 && performance.now() - (d.qT || 0) > 20000) {
+    d.slow = avg > Math.max(1 / 28, tgt * 1.12) && atFloor ? (d.slow || 0) + 1 : 0;   // (a 30 fps cap is not "slow")
+    if (d.slow >= 3 && performance.now() - (d.qT || 0) > 20000) {
       const order = ['low', 'medium', 'high', 'ultra'], i = order.indexOf(this.settings.quality);
       if (i > 0) {
         d.slow = 0; d.qT = performance.now();
