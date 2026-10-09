@@ -17,7 +17,7 @@ export function relayURL() {
   const h = location.hostname;
   const local = h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || /^(10|192\.168|172\.(1[6-9]|2\d|3[01]))\./.test(h) || h.endsWith('.local');
   if (local) return `ws://${h}:8787`;
-  return h === 'playsplurt.online' || h.endsWith('.playsplurt.online') ? SPLURT_RELAY : PROD_RELAY;
+  return h === 'playsplurt.online' || h.endsWith('.playsplurt.online') || h === 'splurt.pages.dev' || h.endsWith('.splurt.pages.dev') ? SPLURT_RELAY : PROD_RELAY;
 }
 
 // Debug: simulate a real connection on localhost — ?netlag=ms (extra one-way delay on everything received),

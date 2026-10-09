@@ -102,13 +102,18 @@ RPC — start it first with `node tools/prize-test.mjs --rpc` and the `.dev.vars
 
 ### Deploying (playsplurt.online)
 
-The relay only accepts browsers from `https://playsplurt.online`, `https://www.playsplurt.online`, the original INKWAVE
-site and localhost / LAN (`ORIGIN_OK` in `server/src/index.js`). The client picks its relay in `relayURL()`
-(`src/net/transport.js`): on `playsplurt.online` (and its subdomains) it connects to **`wss://api.playsplurt.online`**
-(`SPLURT_RELAY`); localhost uses `ws://localhost:8787`; `?relay=wss://…` overrides everything. So once the Worker is
-deployed, add a Cloudflare custom domain / route `api.playsplurt.online` → the `inkwave-net` Worker (or rename the
-Worker in `wrangler.jsonc`), or change `SPLURT_RELAY` if the relay lives elsewhere. Until then the site on
-playsplurt.online can't open rooms. The upstream relay rejects that origin, by design.
+The relay only accepts browsers from `https://playsplurt.online`, `https://www.playsplurt.online`,
+`https://splurt.pages.dev` (+ preview subdomains), the original INKWAVE site and localhost / LAN (`ORIGIN_OK` in
+`server/src/index.js`). The client picks its relay in `relayURL()` (`src/net/transport.js`): on `playsplurt.online`,
+its subdomains and `splurt.pages.dev` it connects to **`wss://api.playsplurt.online`** (`SPLURT_RELAY`); localhost uses
+`ws://localhost:8787`; `?relay=wss://…` overrides everything.
+
+Current setup: `server/wrangler.jsonc` routes the custom domain `api.playsplurt.online` to the `inkwave-net` Worker
+(`cd server && npx wrangler deploy`). The static client is the Cloudflare Pages project **`splurt`**: run
+`python3 tools/build-dist.py`, copy `dist/` to a temp folder (drop `.vercel`/`vercel.json`, add a `_headers` file with
+`Cache-Control: public, max-age=0, must-revalidate`) and `npx wrangler pages deploy . --project-name splurt --branch main`
+from that folder. `playsplurt.online` and `www.playsplurt.online` are attached as Pages custom domains; each needs a
+proxied DNS `CNAME` → `splurt.pages.dev` in the zone.
 
 Production (Cloudflare): `cd server && npx wrangler deploy` with the vars set in `wrangler.jsonc` / the dashboard,
 then `npx wrangler secret put TREASURY_SECRET_KEY` and set `PAYOUT_MODE=live` only after legal review and a devnet
