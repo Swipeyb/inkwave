@@ -125,9 +125,12 @@ class PrizeUI {
     else if (o.a === 'skip') this._showBanner(`No prize this round: ${esc(o.reason)}`, 5000);
     else if (o.a === 'reveal') {
       const tag = o.status === 'dry-run' ? ' <span class="iw-prize__tag">DRY RUN</span>' : '';
-      const me = o.winner && o.winner.wallet === this.wallet;
-      const head = o.winner && (o.status === 'paid' || o.status === 'dry-run')
-        ? `<b>${sol(o.prizeSol)} SOL</b> prize → ${me ? 'YOU' : esc(o.winner.name)} <span style="font-family:ui-monospace,monospace">${esc(shortAddr(o.winner.wallet))}</span>${tag}`
+      const ws = o.winners?.length ? o.winners : o.winner ? [o.winner] : [];
+      const me = ws.some((w) => w.wallet === this.wallet);
+      const who = ws.length > 1 ? `split ${ws.length} ways (${sol(o.eachSol)} SOL each)${me ? ' — YOU won a share' : ''}`
+        : ws[0] ? `→ ${me ? 'YOU' : esc(ws[0].name)} <span style="font-family:ui-monospace,monospace">${esc(shortAddr(ws[0].wallet))}</span>` : '';
+      const head = ws.length && (o.status === 'paid' || o.status === 'dry-run')
+        ? `<b>${sol(o.prizeSol)} SOL</b> prize ${who}${tag}`
         : o.status === 'failed' ? `Prize payout failed — it will be checked by hand${tag}`
           : `No prize this round: ${esc(o.reason || 'no eligible winner')}${tag}`;
       const tx = o.tx ? ` · tx ${esc(o.tx)}` : '';
@@ -158,7 +161,7 @@ class PrizeUI {
       : i.prizeMinSol === i.prizeMaxSol ? `◎ ${sol(i.prizeMaxSol)} SOL` : `◎ ${sol(i.prizeMinSol)}–${sol(i.prizeMaxSol)} SOL`;
     this.el.innerHTML = `<div class="iw-prize__k">Prize this match${tag}</div>
       <div class="iw-prize__pool">${est || `◎ ${sol(i.poolSol)} SOL pool`}</div>
-      <div class="iw-prize__note">${pct} of the ◎ ${sol(i.poolSol)} SOL pool (max ${esc(i.maxSol)} SOL) to a random wallet holder on the winning team. Needs a player with a connected wallet on each team.</div>
+      <div class="iw-prize__note">${pct} of the ◎ ${sol(i.poolSol)} SOL pool (max ${esc(i.maxSol)} SOL) split between the wallet holders on the winning team. Needs a player with a connected wallet on each team.</div>
       ${hold}${wallet}${this.err ? `<div class="iw-prize__err">${esc(this.err)}</div>` : ''}`;
   }
 }

@@ -55,7 +55,11 @@ test('dry-run: commit hides the seed, settle reveals it, nothing is sent, cooldo
   assert.equal(await sha256Hex(rec.seed), c.hash);   // the reveal matches the commitment
   const again = await drawRound(rec.seed, 10e9, eligibleCandidates({ players, winners: ['A', 'B', 'C'], cfg: prizeConfig({ SOLANA_RPC_URL: 'x', TREASURY_PUBLIC_KEY: t.pub }) }).candidates, prizeConfig({ SOLANA_RPC_URL: 'x', TREASURY_PUBLIC_KEY: t.pub }));
   assert.equal(rec.winner.wallet, again.winner.wallet);
-  assert.equal(rec.lamports, again.lamports);
+  // split (default): A and B (both winners with wallets) share it equally; C has no wallet
+  assert.equal(rec.winners.length, 2);
+  assert.deepEqual(rec.winners.map((w) => w.id).sort(), ['A', 'B']);
+  assert.equal(rec.lamports, Math.floor(again.lamports / 2) * 2);
+  assert.ok(rec.winners.every((w) => w.lamports === rec.lamports / 2));
   assert.equal(state.sent.length, 0);
   assert.ok(!state.calls.includes('sendTransaction'));
   assert.deepEqual(rec.rejected, [{ id: 'C', reason: 'no verified wallet' }]);
@@ -126,4 +130,19 @@ test('disabled config: status says so and never calls the RPC', async () => {
   assert.equal((await L.status()).enabled, false);
   assert.equal((await L.commit('r', 'R', 8)).skip, 'prizes disabled');
   assert.equal(state.calls.length, 0);
+});
+
+test('PRIZE_SPLIT=one pays a single random holder; live split pays everyone in one transaction', async () => {
+  const t = await treasury();
+  const one = new PrizeLedger({ env: { SOLANA_RPC_URL: 'http://rpc', TREASURY_PUBLIC_KEY: t.pub, PRIZE_SPLIT: 'one' }, storage: new MemStorage(), fetchFn: fakeRpc({ balance: 10e9, calls: [], sent: [], holdings: {}, mint: null }), log: () => {} });
+  await one.commit('o', 'R', 3);
+  const r = await one.settle({ round: 'o', players, winners: ['A', 'B', 'C'] });
+  assert.equal(r.winners.length, 1);
+  assert.equal(r.winners[0].wallet, r.winner.wallet);
+  const state = { balance: 10e9, calls: [], sent: [], holdings: {}, mint: null };
+  const live = new PrizeLedger({ env: { SOLANA_RPC_URL: 'http://rpc', TREASURY_PUBLIC_KEY: t.pub, TREASURY_SECRET_KEY: t.secret, PAYOUT_MODE: 'live' }, storage: new MemStorage(), fetchFn: fakeRpc(state), log: () => {} });
+  await live.commit('l', 'R', 3);
+  const p = await live.settle({ round: 'l', players, winners: ['A', 'B', 'C'] });
+  assert.equal(p.status, 'paid');
+  assert.equal(state.calls.filter((c) => c === 'sendTransaction').length, 1);   // one transaction for both shares
 });

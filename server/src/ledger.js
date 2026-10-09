@@ -2,7 +2,8 @@
 // pool reads and payouts are serialised across every room and the treasury is never double-spent. Storage / fetch /
 // clock are injected, so server/test/ledger.test.mjs runs it in plain Node with a fake RPC.
 import { prizeConfig, publicConfig, newSeedHex, commitOf, roundBlock, eligibleCandidates, drawRound, prizeEstimate, bothSidesBlock } from './prize-core.js';
-import { getBalanceLamports, getTokenHolding, parseSecretKey, importSigner, sendTransfer, parsePubkey, LAMPORTS_PER_SOL, b58encode } from './solana.js';
+import { getBalanceLamports, getTokenHolding, parseSecretKey, importSigner, sendTransfer, sendTransfers, parsePubkey, LAMPORTS_PER_SOL, b58encode } from './solana.js';
+import { MIN_PRIZE_LAMPORTS } from './prize-core.js';
 
 const POOL_TTL = 30000, LOG_KEEP = 500;
 
@@ -96,17 +97,28 @@ export class PrizeLedger {
         rec.pct = d.pct;
         if (!d.winner) rec.reason = d.reason;
         else {
-          rec.prizeSol = d.lamports / LAMPORTS_PER_SOL;
-          rec.lamports = d.lamports;
+          // split (default): every eligible holder on the winning team gets an equal share; if a share would be below
+          // the minimum transfer, the whole prize goes to the seed's random pick instead (as with PRIZE_SPLIT=one)
+          let payees = [d.winner];
+          if (cfg.split === 'all' && candidates.length > 1 && Math.floor(d.lamports / candidates.length) >= MIN_PRIZE_LAMPORTS) payees = candidates;
+          const each = Math.floor(d.lamports / payees.length);
+          rec.lamports = each * payees.length;
+          rec.prizeSol = rec.lamports / LAMPORTS_PER_SOL;
+          rec.eachSol = each / LAMPORTS_PER_SOL;
+          rec.split = payees.length > 1;
+          rec.winners = payees.map((p) => ({ id: p.id, name: p.name, wallet: p.wallet, lamports: each }));
           rec.winner = { id: d.winner.id, name: d.winner.name, wallet: d.winner.wallet, index: d.index };
           if (cfg.mode === 'live') {
             try {
-              const sent = await sendTransfer(cfg.rpcUrl, await this._getSigner(), parsePubkey(d.winner.wallet), d.lamports, this.fetchFn);
+              const signer = await this._getSigner();
+              const sent = payees.length === 1
+                ? await sendTransfer(cfg.rpcUrl, signer, parsePubkey(payees[0].wallet), each, this.fetchFn)
+                : await sendTransfers(cfg.rpcUrl, signer, payees.map((p) => ({ to: parsePubkey(p.wallet), lamports: each })), this.fetchFn);
               rec.status = 'paid'; rec.tx = sent.signature;
               this._pool = null;
             } catch (e) { rec.status = 'failed'; rec.reason = 'payout failed: ' + (e.message || e); }
           } else rec.status = 'dry-run';
-          if (rec.status !== 'failed') await this.storage.put('cd:' + d.winner.wallet, now);
+          if (rec.status !== 'failed') for (const p of payees) await this.storage.put('cd:' + p.wallet, now);
         }
       }
     }

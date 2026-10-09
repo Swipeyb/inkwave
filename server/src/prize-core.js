@@ -41,6 +41,8 @@ export function prizeConfig(env = {}) {
     minHumans: Math.max(1, Math.floor(num(env.MIN_HUMAN_PLAYERS, 2))),
     minHolding: Math.max(0, num(env.MIN_TOKEN_HOLDING, 0)),
     cooldownMs: Math.max(0, num(env.PRIZE_COOLDOWN_SEC, 3600)) * 1000,
+    // PRIZE_SPLIT: "all" (default) = every eligible holder on the winning team gets an equal share; "one" = one random holder
+    split: String(env.PRIZE_SPLIT || 'all').trim() === 'one' ? 'one' : 'all',
     problems: [],
   };
   if ((env.TREASURY_PUBLIC_KEY || env.SOLANA_RPC_URL) && !cfg.enabled) cfg.problems.push('SOLANA_RPC_URL and a valid TREASURY_PUBLIC_KEY are both required');
@@ -55,7 +57,7 @@ export function publicConfig(cfg) {
   return {
     enabled: cfg.enabled, mode: cfg.mode, treasury: cfg.treasury, mint: cfg.mint,
     minPct: cfg.minPct, maxPct: cfg.maxPct, maxSol: cfg.maxLamports / LAMPORTS_PER_SOL, reserveSol: cfg.reserveLamports / LAMPORTS_PER_SOL,
-    minHumans: cfg.minHumans, minHolding: cfg.minHolding, cooldownSec: cfg.cooldownMs / 1000,
+    minHumans: cfg.minHumans, minHolding: cfg.minHolding, cooldownSec: cfg.cooldownMs / 1000, split: cfg.split,
   };
 }
 

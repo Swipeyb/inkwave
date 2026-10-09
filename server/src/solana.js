@@ -94,6 +94,22 @@ export function transferMessage(from32, to32, lamports, blockhash32) {
   ]);
 }
 
+/** Legacy message with one SystemProgram.transfer per payment (fee payer = from). With one payment it is byte-identical
+ *  to transferMessage(). payments: [{ to: Uint8Array(32), lamports }], all recipients distinct. */
+export function multiTransferMessage(from32, payments, blockhash32) {
+  if (!payments.length || payments.length > 20) throw new Error('1-20 payments');
+  for (const p of payments) if (!Number.isSafeInteger(p.lamports) || p.lamports <= 0) throw new Error('bad lamports');
+  const n = payments.length, keys = [from32, ...payments.map((p) => p.to), SYSTEM_PROGRAM];
+  const out = [1, 0, 1, ...compactU16(keys.length)];
+  for (const k of keys) out.push(...k);
+  out.push(...blockhash32, ...compactU16(n));
+  payments.forEach((p, i) => {
+    const data = [2, 0, 0, 0, ...u64le(p.lamports)];
+    out.push(n + 1, ...compactU16(2), 0, i + 1, ...compactU16(data.length), ...data);
+  });
+  return Uint8Array.from(out);
+}
+
 export async function signedTransfer(signer, to32, lamports, blockhash32) {
   const msg = transferMessage(signer.pubkey, to32, lamports, blockhash32);
   const sig = await signer.sign(msg);
@@ -126,6 +142,16 @@ export async function getTokenHolding(url, owner, mint, fetchFn) {
     }
   }
   return total;
+}
+
+/** Pay several wallets in one transaction (the split prize). */
+export async function sendTransfers(url, signer, payments, fetchFn) {
+  const bh = await rpc(url, 'getLatestBlockhash', [{ commitment: 'confirmed' }], fetchFn);
+  const msg = multiTransferMessage(signer.pubkey, payments, b58decode(bh.value.blockhash));
+  const sig = await signer.sign(msg);
+  const tx = Uint8Array.from([...compactU16(1), ...sig, ...msg]);
+  const sent = await rpc(url, 'sendTransaction', [b64encode(tx), { encoding: 'base64', preflightCommitment: 'confirmed', maxRetries: 5 }], fetchFn);
+  return { signature: sent || b58encode(sig), lastValidBlockHeight: bh.value.lastValidBlockHeight };
 }
 
 export async function sendTransfer(url, signer, to32, lamports, fetchFn) {

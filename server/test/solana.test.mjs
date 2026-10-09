@@ -72,3 +72,13 @@ test('transfer transaction: signed by the treasury, decodes as a System transfer
     .add(web3.SystemProgram.transfer({ fromPubkey: new web3.PublicKey(k.pubkey), toPubkey: new web3.PublicKey(to), lamports: 123456789 }));
   assert.deepEqual([...ref.serializeMessage()], [...msg]);
 });
+
+test('multi-transfer: one payment is byte-identical to the single transfer; two payments have two instructions', async () => {
+  const { multiTransferMessage, transferMessage } = await import('../src/solana.js');
+  const from = new Uint8Array(32).fill(7), a = new Uint8Array(32).fill(1), b = new Uint8Array(32).fill(2), bh = new Uint8Array(32).fill(9);
+  assert.deepEqual([...multiTransferMessage(from, [{ to: a, lamports: 5000000 }], bh)], [...transferMessage(from, a, 5000000, bh)]);
+  const m = multiTransferMessage(from, [{ to: a, lamports: 1000000 }, { to: b, lamports: 2000000 }], bh);
+  assert.deepEqual([...m.slice(0, 4)], [1, 0, 1, 4]);                 // fee payer + 2 recipients + system program
+  assert.equal(m[4 + 4 * 32 + 32], 2);                                 // two instructions
+  assert.throws(() => multiTransferMessage(from, [], bh));
+});
