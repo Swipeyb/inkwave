@@ -68,6 +68,11 @@ class PrizeUI {
     for (const ev of ['keydown', 'pointerdown', 'mousedown']) this.el.addEventListener(ev, (e) => e.stopPropagation());
 
     net.on('state', ({ state }) => this._state(state));
+    // the Online hub shows the pool too (no wallet button there: wallets are checked per room)
+    this._fetch();
+    setInterval(() => { if (!document.hidden && this._onHub()) this._fetch(); }, POLL);
+    let was = false;
+    setInterval(() => { const h = this._onHub(); if (h !== was) { was = h; this.render(); } }, 400);
     net.on('wallet', (o) => this._walletMsg(o));
     net.on('prize', (o) => this._prizeMsg(o));
   }
@@ -147,9 +152,11 @@ class PrizeUI {
   }
   _hideBanner() { this.banner.hidden = true; clearTimeout(this._bannerT); }
 
+  _onHub() { return G.game?.menus?.current === 'online' && (this.net.state === 'offline' || this.net.state === 'error'); }
+
   render() {
-    const i = this.info, st = this.net.state;
-    const show = !!i?.enabled && (st === 'lobby' || st === 'starting');
+    const i = this.info, st = this.net.state, hub = this._onHub();
+    const show = !!i?.enabled && (st === 'lobby' || st === 'starting' || hub);
     this.el.hidden = !show;
     if (!show) return;
     const tag = i.mode !== 'live' ? '<span class="iw-prize__tag">DRY RUN</span>' : '';
@@ -161,10 +168,10 @@ class PrizeUI {
     const pct = i.minPct === i.maxPct ? `${esc(i.minPct)}%` : `${esc(i.minPct)}–${esc(i.maxPct)}%`;
     const est = i.prizeMaxSol == null ? '' : !i.prizeMaxSol ? 'Pool too small for a prize right now'
       : i.prizeMinSol === i.prizeMaxSol ? `◎ ${sol(i.prizeMaxSol)} SOL` : `◎ ${sol(i.prizeMinSol)}–${sol(i.prizeMaxSol)} SOL`;
-    this.el.innerHTML = `<div class="iw-prize__k">Prize this match${tag}</div>
+    this.el.innerHTML = `<div class="iw-prize__k">${hub ? "Next match prize" : "Prize this match"}${tag}</div>
       <div class="iw-prize__pool">${est || `◎ ${sol(i.poolSol)} SOL pool`}</div>
       <div class="iw-prize__note">${pct} of the ◎ ${sol(i.poolSol)} SOL pool (max ${esc(i.maxSol)} SOL) split between the wallet holders on the winning team. Needs a player with a connected wallet on each team.</div>
-      ${hold}${wallet}${this.err ? `<div class="iw-prize__err">${esc(this.err)}</div>` : ''}`;
+      ${hold}${hub ? '<div class="iw-prize__note">Hit QUICK PLAY to play for it.</div>' : wallet}${this.err && !hub ? `<div class="iw-prize__err">${esc(this.err)}</div>` : ''}`;
   }
 }
 
