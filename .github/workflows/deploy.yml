@@ -1,0 +1,56 @@
+# Deploys SPLURT on every push to solana-prize-pool (or by hand: Actions → Deploy SPLURT → Run workflow).
+#   game   → Cloudflare Pages project "splurt"  (playsplurt.online, www, splurt.pages.dev)
+#   server → Worker "inkwave-net"               (api.playsplurt.online)
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   token with Workers Scripts:Edit + Cloudflare Pages:Edit
+#   CLOUDFLARE_ACCOUNT_ID  shown on the Cloudflare dashboard home
+# The treasury key is never used here: it only ever goes in via `wrangler secret put`, and server/wrangler.jsonc pins
+# PAYOUT_MODE=dry-run.
+name: Deploy SPLURT
+on:
+  push:
+    branches: [solana-prize-pool]
+  workflow_dispatch:
+concurrency: { group: deploy, cancel-in-progress: false }
+permissions: { contents: read }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Check secrets
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID under Settings → Secrets and variables → Actions"; exit 1; fi
+      - name: Install
+        run: npm install --no-audit --no-fund
+      - name: Test
+        run: npm run -s check && npm test
+      - name: Safety — payouts must stay dry-run
+        run: |
+          grep -Eq '"PAYOUT_MODE"[[:space:]]*:[[:space:]]*"dry-run"' server/wrangler.jsonc || { echo "::error::server/wrangler.jsonc must keep PAYOUT_MODE=dry-run"; exit 1; }
+      - name: Deploy server
+        working-directory: server
+        run: npx --yes wrangler@4 deploy
+      - name: Build game
+        run: |
+          python3 tools/build-dist.py
+          STAGE="$RUNNER_TEMP/pages"; rm -rf "$STAGE"; mkdir -p "$STAGE"
+          rsync -a --exclude '.vercel' --exclude 'vercel.json' dist/ "$STAGE/"
+          printf '/*\n  Cache-Control: public, max-age=0, must-revalidate\n' > "$STAGE/_headers"
+          echo "STAGE=$STAGE" >> "$GITHUB_ENV"
+      - name: Deploy game
+        working-directory: ${{ env.STAGE }}
+        run: npx --yes wrangler@4 pages deploy . --project-name splurt --branch main --commit-dirty=true --commit-hash "$GITHUB_SHA"
+      - name: Summary
+        run: |
+          echo "### Deployed $(git rev-parse --short HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Game: https://www.playsplurt.online" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Server: https://api.playsplurt.online/health · prize log: https://api.playsplurt.online/prize/log" >> "$GITHUB_STEP_SUMMARY"

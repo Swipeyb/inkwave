@@ -9,6 +9,8 @@
   // Optional Solana prize pool (docs/PRIZE_POOL.md). Off unless SOLANA_RPC_URL and TREASURY_PUBLIC_KEY are set.
   // Non-secret settings can go in "vars"; TREASURY_SECRET_KEY only ever via `wrangler secret put` (or .dev.vars locally).
   "vars": { "PAYOUT_MODE": "dry-run" },
+  // Deploys keep any other vars you set in the Cloudflare dashboard (RPC URL, treasury public key, prize settings).
+  "keep_vars": true,
   // Public relay endpoint for playsplurt.online (Cloudflare creates the DNS record + cert for a custom domain).
   "routes": [{ "pattern": "api.playsplurt.online", "custom_domain": true }],
   "observability": { "enabled": false }
