@@ -24,6 +24,7 @@ export default {
     const body = async () => (req.method === 'POST' ? await req.json().catch(() => ({})) : {});
     try {
       if (path === '/pool') return json(await league.pool(), 200, 'public, max-age=20');
+      if (path === '/status') return json(await league.status());
       if (path === '/board') return json(await league.board(url.searchParams.get('day') || dayKey()), 200, 'public, max-age=15');
       if (path === '/join' && req.method === 'POST') return json(await league.join((await body()).name, req.headers.get('cf-connecting-ip') || ''));
       if (path === '/me') return json(await league.me(auth));
@@ -88,11 +89,13 @@ export class League extends DurableObject {
         this.sql.exec(`DELETE FROM pool`);
         pool.forEach((c, i) => this.sql.exec(`INSERT INTO pool (mint, rank) VALUES (?, ?)`, c.mint, i));
       }
-      this.sql.exec(`INSERT OR REPLACE INTO meta (k, v) VALUES ('refreshed', ?), ('errors', ?), ('found', ?)`, String(now), JSON.stringify(errors.slice(0, 5)), String(pool.length));
+      this.sql.exec(`INSERT OR REPLACE INTO meta (k, v) VALUES ('refreshed', ?), ('errors', ?), ('found', ?), ('candidates', ?), ('quoted', ?)`, String(now), JSON.stringify(errors.slice(0, 8)), String(pool.length), String(mints.length), String(q.size));
       this.sql.exec(`DELETE FROM coins WHERE updated < ? AND mint NOT IN (SELECT mint FROM pool)`, now - 2 * 86400000);
       return { pool: pool.length, quoted: q.size, errors };
     } finally { this._busy = false; }
   }
+
+  status() { return Object.fromEntries(this.rows(`SELECT k, v FROM meta`).map((r) => [r.k, r.v])); }
 
   pool() {
     const coins = this.rows(`SELECT c.mint, c.name, c.symbol, c.image, c.url, c.price, c.liq, c.mcap, c.vol1h, c.chg1h, c.created FROM pool p JOIN coins c ON c.mint = p.mint ORDER BY p.rank`);

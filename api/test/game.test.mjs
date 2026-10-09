@@ -24,7 +24,7 @@ test('eligibility: age window, liquidity, volume', () => {
   const ok = bestPairs([pair('A'.repeat(40))]).get('A'.repeat(40));
   assert.ok(eligible(ok, now));
   assert.ok(!eligible({ ...ok, created: now - 5 * 60000 }, now));     // too new (likely to rug instantly)
-  assert.ok(!eligible({ ...ok, created: now - 30 * H }, now));        // not a fresh launch
+  assert.ok(!eligible({ ...ok, created: now - 50 * H }, now));        // not a fresh launch
   assert.ok(!eligible({ ...ok, liq: RULES.minLiq - 1 }, now));
   assert.ok(!eligible({ ...ok, vol1h: 0 }, now));
 });

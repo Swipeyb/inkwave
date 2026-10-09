@@ -18,7 +18,11 @@ export async function discover(fetchFn = fetch) {
   const jobs = [
     getJSON(fetchFn, `${DS}/token-profiles/latest/v1`).then((a) => { for (const x of a || []) if (x.chainId === 'solana' && isMint(x.tokenAddress)) mints.add(x.tokenAddress); }),
     getJSON(fetchFn, `${DS}/token-boosts/latest/v1`).then((a) => { for (const x of a || []) if (x.chainId === 'solana' && isMint(x.tokenAddress)) mints.add(x.tokenAddress); }),
-    ...[1, 2, 3].map((page) => getJSON(fetchFn, `${GT}/networks/solana/new_pools?page=${page}`).then(addGT)),
+    getJSON(fetchFn, `${DS}/token-boosts/top/v1`).then((a) => { for (const x of a || []) if (x.chainId === 'solana' && isMint(x.tokenAddress)) mints.add(x.tokenAddress); }),
+    // DexScreener search: fresh pump.fun / PumpSwap pairs
+    ...['pump', 'pumpswap', 'solana meme'].map((q) => getJSON(fetchFn, `${DS}/latest/dex/search?q=${encodeURIComponent(q)}`).then((j) => { for (const p of j?.pairs || []) if (p.chainId === 'solana' && isMint(p.baseToken?.address)) mints.add(p.baseToken.address); })),
+    ...[1, 2, 3, 4, 5, 6].map((page) => getJSON(fetchFn, `${GT}/networks/solana/new_pools?page=${page}`).then(addGT)),
+    ...[1, 2].map((page) => getJSON(fetchFn, `${GT}/networks/solana/dexes/pumpswap/pools?page=${page}&sort=h24_volume_usd_desc`).then(addGT)),
     getJSON(fetchFn, `${GT}/networks/solana/trending_pools?page=1&duration=1h`).then(addGT),
   ];
   function addGT(j) {

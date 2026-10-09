@@ -5,8 +5,8 @@ export const ROUND_MS = 24 * 3600 * 1000;      // a team is scored over the 24 h
 export const POOL_SIZE = 60;                   // coins offered to a draft room (8 players × 5 picks = 40, plus choice)
 export const MAX_GAIN = 5000;                  // one coin can add at most +5000 % (a single moonshot can't decide everything)
 
-// draftable: launched 20 min – 24 h ago, real liquidity and trading, a price
-export const RULES = { minAgeMs: 20 * 60 * 1000, maxAgeMs: 24 * 3600 * 1000, minLiq: 8000, minVol1h: 3000, deadLiq: 300 };
+// draftable: launched 20 min – 48 h ago, real liquidity and trading, a price
+export const RULES = { minAgeMs: 20 * 60 * 1000, maxAgeMs: 48 * 3600 * 1000, minLiq: 5000, minVol1h: 1000, deadLiq: 300 };
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 
