@@ -11,7 +11,7 @@
   "vars": {
     "PAYOUT_MODE": "dry-run",
     "TREASURY_PUBLIC_KEY": "HMJMFqTjED8dwa7sqQYeaQbk2WXSGmLpd4Ksrwq1DCZW",   // prize wallet (public address)                                   // HARD RULE: stays dry-run until legal review (deploy refuses otherwise)
-    "SOLANA_RPC_URL": "https://api.mainnet-beta.solana.com",    // public mainnet RPC (fine for dry-run reads; use Helius/QuickNode before live)
+    "SOLANA_RPC_URL": "https://solana-rpc.publicnode.com",      // free keyless mainnet RPC (api.mainnet-beta blocks Cloudflare: 403). Use Helius before live
     "PRIZE_PCT": "3",                                           // each match pays 3% of the pool...
     "PRIZE_MAX_SOL": "1",                                       // ...never more than 1 SOL a match...
     "PRIZE_RESERVE_SOL": "0.05",                                // ...and never touches the last 0.05 SOL
