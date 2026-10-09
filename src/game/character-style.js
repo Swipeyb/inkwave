@@ -60,8 +60,8 @@ export const HAIR_STYLES = HAIR_STYLE_NAMES.length;
 // ---- headgear (optional, `hat`): built into the hair mesh by character-geo.js (HAT_KINDS, same order). Every style's
 // tentacles are re-rooted under the rim so nothing clips; styles whose shape sits on top switch to a hat variant
 // (low ponytail, low bun, lower twin ties, back flicks). 0 = none.
-export const HATS = ['none', 'cap', 'beanie', 'bucket'];
-export const HAT_NAMES = ['None', 'Snapback', 'Beanie', 'Bucket Hat'];
+export const HATS = ['none', 'cap', 'beanie', 'bucket', 'frog', 'cat', 'shiba'];
+export const HAT_NAMES = ['None', 'Snapback', 'Beanie', 'Bucket Hat', 'Frog Hood', 'Cat Ears', 'Shiba Hood'];
 
 // ---- brows (optional, `brows`): shape of the painted-ink brow strokes. 0 = classic.
 export const BROWS = ['classic', 'bold', 'arched', 'straight'];
@@ -79,6 +79,9 @@ export const PRESETS = [
   { id: 'suki', name: 'Suki', blurb: 'Side-swept and too cool for the lobby.', style: { hair: 7, skin: 8, outfit: 1, eyes: 6, hat: 0, brows: 2 } },
   { id: 'kelp', name: 'Kelp', blurb: 'Beanie season, all season.', style: { hair: 3, skin: 2, outfit: 2, eyes: 3, hat: 2, brows: 0 } },
   { id: 'skipper', name: 'Skipper', blurb: 'Snapback, raglan, harbour regular.', style: { hair: 0, skin: 5, outfit: 3, eyes: 0, hat: 1, brows: 1 } },
+  { id: 'croak', name: 'Croak', blurb: 'Frog hood, zero thoughts, maximum splat.', style: { hair: 0, skin: 2, outfit: 6, eyes: 4, hat: 4, brows: 3 } },
+  { id: 'whiskers', name: 'Whiskers', blurb: 'Cat ears up. Knocks your stuff off the ledge.', style: { hair: 3, skin: 4, outfit: 4, eyes: 6, hat: 5, brows: 2 } },
+  { id: 'shibo', name: 'Shibo', blurb: 'Such hood. Very splat.', style: { hair: 7, skin: 1, outfit: 1, eyes: 1, hat: 6, brows: 1 } },
 ];
 
 const wrap = (v, n) => ((Math.round(v) % n) + n) % n;
@@ -98,7 +101,7 @@ export function randomStyle(rng = Math.random) {
   const pick = (n) => Math.min(n - 1, (rng() * n) | 0);
   return {
     hair: pick(HAIR_STYLES), skin: pick(SKIN_TONES.length), outfit: pick(OUTFITS.length), eyes: pick(IRIS.length),
-    hat: rng() < 0.34 ? 1 + pick(HATS.length - 1) : 0, brows: pick(BROWS.length),
+    hat: rng() < 0.5 ? 1 + pick(HATS.length - 1) : 0,   // half the bots wear headgear (animal hoods included) brows: pick(BROWS.length),
   };
 }
 

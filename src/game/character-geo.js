@@ -1117,6 +1117,27 @@ export const HAT_KINDS = [
     lift: (az, el) => 0.016 * sstep(0.45, 1.0, el) * (1 - 0.55 * sstep(1.15, 1.57, el)) + 0.004,
     shape: () => 0,
   },
+  // animal hoods (original meme-animal looks): a smooth knit dome in a fixed colour (`rgb`) plus the animal's features
+  { // frog hood: big googly eyes on top
+    name: 'frog', cls: 5, rgb: [0.36, 0.74, 0.3], col: [-2, 1.0], thick: 0.0085, exitMax: 0.052, flare: 0.009, rows: [0, 0.03, 0.09, 0.17, 0.25, 0.32], crown: 7,
+    rim: rimTable([[0, 0.67], [0.6, 0.62], [1.2, 0.43], [1.6, 0.28], [2.3, 0.05], [Math.PI, -0.05]]),
+    lift: (az, el) => 0.007 + 0.013 * Math.max(0, -Math.cos(az)) * sstep(0.3, 1.1, el) * (1 - 0.5 * sstep(1.2, 1.57, el)),
+    shape: () => 0,
+  },
+  { // cat beanie: two pointy ears with pink insides
+    name: 'cat', cls: 5, rgb: [0.93, 0.6, 0.27], inner: [0.98, 0.66, 0.72], col: [-2, 1.0], thick: 0.0085, exitMax: 0.052, flare: 0.009, rows: [0, 0.03, 0.09, 0.17, 0.25, 0.32], crown: 7,
+    ears: { az: 0.78, el: 1.08, r: 0.034, h: 0.062, tilt: 0.25 },
+    rim: rimTable([[0, 0.67], [0.6, 0.62], [1.2, 0.43], [1.6, 0.28], [2.3, 0.05], [Math.PI, -0.05]]),
+    lift: (az, el) => 0.006 + 0.013 * Math.max(0, -Math.cos(az)) * sstep(0.3, 1.1, el) * (1 - 0.5 * sstep(1.2, 1.57, el)),
+    shape: () => 0,
+  },
+  { // shiba-style dog hood: tall upright ears, cream insides
+    name: 'shiba', cls: 5, rgb: [0.85, 0.5, 0.2], inner: [0.99, 0.92, 0.8], col: [-2, 1.0], thick: 0.0085, exitMax: 0.052, flare: 0.009, rows: [0, 0.03, 0.09, 0.17, 0.25, 0.32], crown: 7,
+    ears: { az: 0.86, el: 1.0, r: 0.04, h: 0.085, tilt: 0.12 },
+    rim: rimTable([[0, 0.67], [0.6, 0.62], [1.2, 0.43], [1.6, 0.28], [2.3, 0.05], [Math.PI, -0.05]]),
+    lift: (az, el) => 0.006 + 0.013 * Math.max(0, -Math.cos(az)) * sstep(0.3, 1.1, el) * (1 - 0.5 * sstep(1.2, 1.57, el)),
+    shape: () => 0,
+  },
 ];
 
 /** Classify every strand against a dome hat and build the clearance field the hat's inner surface follows. */
@@ -1217,7 +1238,8 @@ function buildHat(B, hat, ctx, D = null) {
   const pole = at(0, Math.PI / 2, offIn(0, Math.PI / 2) + T);
   const dome = gridGeo(rows, { wrapU: true, poles: { end: pole }, outward: HEAD_C, uv: (i, j) => [i / nA, rowV[j]], poleUv: { end: [0.5, 1.4] } });
   const tint = -2 - hat.cls;
-  B.add(dome, { ex: tint, uv: true, color: gcol(hat.col[0], hat.col[1]), bone: 'head' });
+  if (hat.rgb) B.add(dome, { ex: GEAR.fabric, uv: true, color: new THREE.Color(...hat.rgb), bone: 'head' });
+  else B.add(dome, { ex: tint, uv: true, color: gcol(hat.col[0], hat.col[1]), bone: 'head' });
   const n = new V3(), p = new V3();
   if (hat.name === 'cap') {
     // bill: a curved half-ellipse plate hanging off the front rim (top in the crown colour, team underside)
@@ -1263,6 +1285,43 @@ function buildHat(B, hat, ctx, D = null) {
     const pom = superEllipsoid(0.03, 0.027, 0.03, 1, 1, 14, 10, (q) => { const k = 1 + 0.09 * Math.sin(q.x * 420) * Math.sin(q.y * 390 + 1.3) * Math.sin(q.z * 410 + 2.1); q.multiplyScalar(k); });
     at(0, 1.5, offIn(0, 1.5) + T + 0.018, p); pom.translate(p.x, p.y, p.z - 0.004);
     B.add(pom, { ex: GEAR.fabric, color: gcol(-1, 1.08), bone: 'head' });
+  } else if (hat.name === 'frog') {
+    // two big eyes sitting on the crown, looking forward: white ball, dark pupil, a glint
+    for (const sgn of [-1, 1]) {
+      const az = sgn * 0.5, el = 1.12;
+      const c = at(az, el, offIn(az, el) + T + 0.024, new V3(), n);
+      const ball = superEllipsoid(0.036, 0.034, 0.032, 1, 1, far ? 10 : 18, far ? 6 : 12);
+      ball.translate(c.x, c.y, c.z);
+      B.add(ball, { ex: GEAR.fabric, color: new THREE.Color(0.97, 0.97, 0.95), bone: 'head' });
+      const pupil = superEllipsoid(0.017, 0.019, 0.008, 1, 1, far ? 8 : 14, far ? 4 : 8);
+      const fwd = new V3(Math.sin(az) * 0.35, 0.05, 1).normalize();
+      pupil.translate(c.x + fwd.x * 0.03, c.y + fwd.y * 0.03 + 0.002, c.z + fwd.z * 0.03);
+      B.add(pupil, { ex: GEAR.plastic, color: new THREE.Color(0.05, 0.05, 0.06), bone: 'head' });
+      if (!far) {
+        const glint = superEllipsoid(0.005, 0.005, 0.003, 1, 1, 8, 4);
+        glint.translate(c.x + fwd.x * 0.037 + 0.006, c.y + 0.01, c.z + fwd.z * 0.037);
+        B.add(glint, { ex: GEAR.plastic, color: new THREE.Color(1, 1, 1), bone: 'head' });
+      }
+    }
+  } else if (hat.ears) {
+    // pointy ears (cat / dog): a lathed cone standing on the dome, tilted outward, with a lighter inner cone in front
+    const E = hat.ears, seg = far ? 6 : 14;
+    for (const sgn of [-1, 1]) {
+      const az = sgn * E.az, el = E.el;
+      const c = at(az, el, offIn(az, el) + T * 0.5, new V3(), n);
+      const up = n.clone().add(new V3(Math.sin(az) * E.tilt, 0.6, 0)).normalize();
+      const right = new V3().crossVectors(up, new V3(0, 0, 1)).normalize();
+      const cone = (r, h) => revolve([[r, 0], [r * 0.82, h * 0.35], [r * 0.5, h * 0.7], [r * 0.12, h * 0.95], [0, h]], seg);
+      const outerEar = cone(E.r, E.h);
+      outerEar.scale(1, 1, 0.55);
+      placeBasis(outerEar, right, up, c);
+      B.add(outerEar, { ex: GEAR.fabric, color: new THREE.Color(...hat.rgb), bone: 'head' });
+      const innerEar = cone(E.r * 0.62, E.h * 0.78);
+      innerEar.scale(1, 1, 0.4);
+      const fwd = new V3().crossVectors(right, up).normalize();
+      placeBasis(innerEar, right, up, c.clone().addScaledVector(fwd, E.r * 0.3).addScaledVector(up, E.h * 0.06));
+      B.add(innerEar, { ex: GEAR.fabric, color: new THREE.Color(...hat.inner), bone: 'head' });
+    }
   } else if (hat.name === 'bucket') {
     // brim: a stitched ring sloping down and out from the rim, top + rolled edge + underside (wraps round)
     const rowsR = [], vR = [];
