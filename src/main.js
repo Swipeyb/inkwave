@@ -1147,8 +1147,23 @@ class Game {
     const avg = d.acc / d.n;
     d.acc = 0; d.n = 0; d.t = 0;
     const m = this.match;
-    if (this.settings.quality === 'ultra' || document.hidden || !m || m.attract || m.state !== 'playing') { d.fast = 0; return; }
+    if (document.hidden || !m || m.attract || m.state !== 'playing') { d.fast = 0; d.slow = 0; return; }
     const s = this.R.dynScale || 1, tgt = this._frameTarget() / 1000;
+    // still under ~40 fps with the resolution already at its floor (or on Ultra, which never scales): the effects are
+    // the bottleneck, so drop the graphics preset one notch (Ultra → High → Medium → Low), at most once per 20 s
+    const atFloor = this.settings.quality === 'ultra' || s <= this.R.dynFloor() + 0.01;
+    d.slow = avg > Math.max(1 / 40, tgt * 1.12) && atFloor ? (d.slow || 0) + 1 : 0;   // (a 30 fps cap is not "slow")
+    if (d.slow >= 2 && performance.now() - (d.qT || 0) > 20000) {
+      const order = ['low', 'medium', 'high', 'ultra'], i = order.indexOf(this.settings.quality);
+      if (i > 0) {
+        d.slow = 0; d.qT = performance.now();
+        this._setSettings({ quality: order[i - 1] });
+        this.R.setDynamicScale?.(1);
+        this.menus?.toast?.(`Graphics lowered to ${order[i - 1].toUpperCase()} for smoother play (Settings → Video)`, { ms: 4200 });
+        return;
+      }
+    }
+    if (this.settings.quality === 'ultra') { d.fast = 0; return; }
     if (avg > tgt * 1.12 && s > this.R.dynFloor() + 0.01) { this.R.setDynamicScale(s - 0.125); d.fast = 0; }
     else if (avg < tgt * 1.04 && s < 1 && d.ups < 2) { if (++d.fast >= 3) { this.R.setDynamicScale(s + 0.125); d.fast = 0; d.ups++; } }
     else d.fast = 0;

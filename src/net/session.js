@@ -20,7 +20,7 @@ const TEAM = 4;
 export const QUICK_WAIT = 30, QUICK_FULL = 5;
 // While the game is quiet (fewer than BOT_FILL_BELOW people online, per the relay's /online count in src/ui/online.js),
 // a lone player isn't left waiting: the match starts QUICK_SOLO seconds after they join and bots fill every empty slot.
-export const QUICK_SOLO = 12, BOT_FILL_BELOW = 20;
+export const QUICK_SOLO = 30, BOT_FILL_BELOW = 20;
 // a loadout's sub / special: a known id, or null (= the weapon's own)
 const subOf = (id) => (SUBS[id] ? id : null), specialOf = (id) => (SPECIALS[id] ? id : null);
 
