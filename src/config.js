@@ -2,7 +2,7 @@
 
 // $SPLURT on Solana (pump.fun). Shown on the title + online screens with copy / buy buttons.
 // ca: '' shows "SOON" (no copy / buy) until launch; paste the mint here and in server/wrangler.jsonc TOKEN_MINT
-export const COIN = { ticker: '$SPLURT', ca: '', buyUrl: '' };
+export const COIN = { ticker: '$SPLURT', ca: '776KTsTFt1unyiTjT2LfYRk3c3ZzWikdqwJMhuf8pump', buyUrl: 'https://pump.fun/coin/776KTsTFt1unyiTjT2LfYRk3c3ZzWikdqwJMhuf8pump' };
 export const GAME_TITLE = 'SPLURT';
 export const GAME_SUBTITLE = 'Turf Riot';
 export const VERSION = '1.0.0';
