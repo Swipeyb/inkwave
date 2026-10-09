@@ -30,7 +30,7 @@
 </head>
 <body>
 <script>
-  // Phones / tablets (touch, no hover): mark the page and lay it out at a "virtual" size of at least 1024 × 600 CSS px.
+  // Phones / tablets (touch, no hover): mark the page and lay it out at a "virtual" size of at least 1024 × 640 CSS px.
   // The whole UI was designed for desktop screens, so instead of re-laying out every menu we let the browser scale the
   // page down — every screen, the HUD and the touch controls stay consistent with each other (one coordinate space).
   (function () {
@@ -44,8 +44,8 @@
       var w = screen.width, h = screen.height;
       var vw = Math.max(w, h), vh = Math.min(w, h);   // landscape dims (portrait shows "rotate your phone")
       var landscape = innerWidth > innerHeight || (screen.orientation && /landscape/.test(screen.orientation.type));
-      if (!landscape || (vw >= 1024 && vh >= 600)) { set('width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'); return; }
-      var cssW = Math.round(Math.max(1024, 600 * vw / vh));
+      if (!landscape || (vw >= 1024 && vh >= 640)) { set('width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'); return; }
+      var cssW = Math.round(Math.max(1024, 640 * vw / vh));
       set('width=' + cssW + ', user-scalable=no, viewport-fit=cover');
     }
     fit();

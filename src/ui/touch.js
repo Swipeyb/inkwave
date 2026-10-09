@@ -185,16 +185,13 @@ export function installTouch(game) {
   addEventListener('blur', releaseAll);
   document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
 
-  // first tap anywhere: start audio (desktop does this on the first key press) and go fullscreen where allowed (Android)
+  // first tap anywhere: start audio (desktop does this on the first key press). No fullscreen request: in fullscreen
+  // Chrome ignores the viewport scaling from index.html and every screen would render at phone size.
   const first = () => {
     if (!game._audioOn) {
       game._audioOn = true;
       G.audio?.init?.(); game._applyAudioVolumes?.();
       game._playMusic?.(game.menus?.current === 'title' || !game.menus ? 'title' : 'menu');
-    }
-    const de = document.documentElement;
-    if (!document.fullscreenElement && de.requestFullscreen) {
-      de.requestFullscreen({ navigationUI: 'hide' }).then(() => { try { screen.orientation?.lock?.('landscape').catch(() => {}); } catch { /* ignore */ } }).catch(() => {});
     }
     removeEventListener('pointerup', first, true);
   };
