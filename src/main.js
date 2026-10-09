@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { G, on, emit, clamp, damp } from './core/ctx.js';
 import { Renderer } from './core/renderer.js';
 import { Input } from './core/input.js';
+import { IS_TOUCH, installTouch } from './ui/touch.js';
 import { mapTheme,
   DEFAULT_SETTINGS, QUALITY, TEAM_PALETTES, COLORBLIND_PALETTE, TEAM_NAMES, WEAPONS, WEAPON_ORDER, WEAPON_SUCCESSOR, ZONES, SUB, SUBS, SUB_ORDER, SPECIALS, SPECIAL_ORDER,
   MAPS, DIFFICULTY, PLAYER, PROGRESSION, VERSION, MATCH, OFFLINE_MAPS, mapOfflineOk, mapNoBots, mapBossOk,
@@ -67,6 +68,8 @@ class Game {
     }
     // v1.1: fov became horizontal — migrate old vertical values once
     if (this.settings.fovMode !== 'h') { this.settings.fov = DEFAULT_SETTINGS.fov; this.settings.fovMode = 'h'; saveJSON('inkwave.settings', this.settings); }
+    // phones / tablets: start on Low graphics once (smooth frame rate, less heat); players can raise it in Settings
+    if (IS_TOUCH && !this.settings.touchTuned) { this.settings.quality = 'low'; this.settings.touchTuned = true; saveJSON('inkwave.settings', this.settings); }
     this.profile = loadJSON('inkwave.profile', DEFAULT_PROFILE);
     if (WEAPON_SUCCESSOR[this.profile.weapon]) this.profile.weapon = WEAPON_SUCCESSOR[this.profile.weapon];   // retired weapons
     const app = document.getElementById('app');
@@ -103,6 +106,7 @@ class Game {
       if (G.mode === 'match' && this.match && !this.match.attract && !this.match.paused && !this.menus?.current && !this.input.locked) { this._relock = false; this.input.requestLock(); }
     });
     this._clickToAim();
+    try { this.touch = installTouch(this); } catch (e) { console.warn('[inkwave] touch controls', e); }
 
     // modules built by other authors
     const [charMod, fxMod, envMod, audioMod, musicMod] = await Promise.all([

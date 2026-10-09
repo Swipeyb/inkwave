@@ -29,6 +29,30 @@
 </script>
 </head>
 <body>
+<script>
+  // Phones / tablets (touch, no hover): mark the page and lay it out at a "virtual" size of at least 1024 × 600 CSS px.
+  // The whole UI was designed for desktop screens, so instead of re-laying out every menu we let the browser scale the
+  // page down — every screen, the HUD and the touch controls stay consistent with each other (one coordinate space).
+  (function () {
+    var q = location.search;
+    var touch = /[?&]touch=1/.test(q) || (!/[?&]touch=0/.test(q) && matchMedia('(hover: none) and (pointer: coarse)').matches);
+    if (!touch) return;
+    document.documentElement.classList.add('is-touch');
+    var meta = document.querySelector('meta[name=viewport]');
+    function set(c) { if (meta.getAttribute('content') !== c) meta.setAttribute('content', c); }
+    function fit() {
+      var w = screen.width, h = screen.height;
+      var vw = Math.max(w, h), vh = Math.min(w, h);   // landscape dims (portrait shows "rotate your phone")
+      var landscape = innerWidth > innerHeight || (screen.orientation && /landscape/.test(screen.orientation.type));
+      if (!landscape || (vw >= 1024 && vh >= 600)) { set('width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'); return; }
+      var cssW = Math.round(Math.max(1024, 600 * vw / vh));
+      set('width=' + cssW + ', user-scalable=no, viewport-fit=cover');
+    }
+    fit();
+    addEventListener('orientationchange', function () { setTimeout(fit, 120); });
+    addEventListener('resize', function () { clearTimeout(fit._t); fit._t = setTimeout(fit, 150); });
+  })();
+</script>
 <div id="app"></div>
 <div id="ui-root"></div>
 <div id="fade"></div>

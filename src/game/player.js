@@ -49,7 +49,8 @@ export class PlayerController {
       else if (!m || m.state !== 'playing') this.jumpQueue = null;
       return;
     }
-    const usingPad = !!inp.pad && inp.lastDevice === 'pad';
+    const usingTouch = inp.lastDevice === 'touch';
+    const usingPad = (!!inp.pad && inp.lastDevice === 'pad') || usingTouch;   // touch aims like a stick: full aim assist
     // ---- aim assist target (computed from last frame's camera; cheap)
     const as = this._assistTarget(usingPad ? (s.aimAssist ?? 1) : (s.aimAssistMouse ? 0.5 : 0));
     // ---- look
@@ -63,6 +64,7 @@ export class PlayerController {
       const mm = G.game?.minimap;
       let cx = mdx * 0.45 * (s.sensitivity ?? 1), cy = mdy * 0.45 * (s.sensitivity ?? 1);
       if (inp.pad) { inp.padStick(2, 3, _stick, 0.12, 0.96); cx += _stick.x * 320 * dt; cy += _stick.y * 320 * dt; inp.padStick(0, 1, _stick, 0.14, 0.95); cx += _stick.x * 320 * dt; cy += _stick.y * 320 * dt; }
+      if (inp.touchMove) { cx += inp.touchMove.x * 320 * dt; cy += inp.touchMove.y * 320 * dt; }
       if (inp.down('KeyW')) cy -= 260 * dt; if (inp.down('KeyS')) cy += 260 * dt; if (inp.down('KeyA')) cx -= 260 * dt; if (inp.down('KeyD')) cx += 260 * dt;
       G.specials.aimMove(a, cx, cy, mm);
       // launch on a fresh press (a trigger still held from shooting when the special started doesn't count)
@@ -78,7 +80,7 @@ export class PlayerController {
     const mapUp = (G.rig?.mapK ?? 0) > 0.05 || inp.down('Tab') || inp.down('KeyM') || inp.padButton(8);
     const ldx = mapUp ? 0 : mdx, ldy = mapUp ? 0 : mdy;
     if (ldx || ldy) {
-      const sens = 0.0021 * (s.sensitivity ?? 1) * (s.aimAssistMouse ? friction : 1);
+      const sens = 0.0021 * (s.sensitivity ?? 1) * (s.aimAssistMouse || usingTouch ? friction : 1);
       rig.yaw -= ldx * sens;
       rig.pitch -= ldy * sens * inv;
       lookActive = true;
@@ -104,6 +106,7 @@ export class PlayerController {
     if (inp.down('KeyA') || inp.down('ArrowLeft')) mx -= 1;
     if (inp.down('KeyD') || inp.down('ArrowRight')) mx += 1;
     if (inp.pad) { inp.padStick(0, 1, _stick, 0.14, 0.95); mx += _stick.x; mz -= _stick.y; }
+    if (inp.touchMove) { mx += inp.touchMove.x; mz -= inp.touchMove.y; }
     const ml = Math.hypot(mx, mz);
     if (ml > 1) { mx /= ml; mz /= ml; }
     // tracking assist: carry a share of the target's angular motion while the player is engaging (look or move input)

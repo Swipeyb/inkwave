@@ -10,6 +10,7 @@
 // signature and pays prizes from its own treasury.
 import { G } from '../core/ctx.js';
 import { relayURL } from '../net/transport.js';
+import { IS_TOUCH } from './touch.js';
 
 const POLL = 30000;
 const CSS = `
@@ -47,6 +48,13 @@ export function solanaProvider() {
   const w = typeof window !== 'undefined' ? window : {};
   return w.phantom?.solana || w.solflare || w.backpack?.solana || w.solana || null;
 }
+
+/** Phones: a normal mobile browser (Safari / Chrome) has no wallet inside it. Phantom's universal link reopens this
+ *  page inside the Phantom app's own browser, where the wallet is available. */
+export function phantomBrowseUrl(url = location.href) {
+  return `https://phantom.app/ul/browse/${encodeURIComponent(url)}?ref=${encodeURIComponent(location.origin)}`;
+}
+export const openInPhantom = () => { location.href = phantomBrowseUrl(); };
 
 function toB64(bytes) { let s = ''; for (const b of bytes) s += String.fromCharCode(b); return btoa(s); }
 
@@ -98,7 +106,7 @@ class PrizeUI {
   // ---- wallet: connect, then sign the relay's one-time message ----
   async connect() {
     const p = solanaProvider();
-    if (!p) { window.open('https://phantom.com/download', '_blank', 'noopener'); return; }
+    if (!p) { if (IS_TOUCH) openInPhantom(); else window.open('https://phantom.com/download', '_blank', 'noopener'); return; }
     if (this.busy) return;
     this.busy = true; this.err = ''; this.render();
     try {
@@ -167,7 +175,7 @@ class PrizeUI {
       : i.minHolding > 0 ? `Hold min ${esc(Math.ceil(Number(i.minHolding)).toLocaleString('en-US'))} $SPLURT to win` : 'Connect a wallet to win';
     const wallet = this.wallet
       ? `<div class="iw-prize__wallet">◎ ${esc(shortAddr(this.wallet))} ✓</div>`
-      : `<button class="iw-prize__btn" data-act="connect" ${this.busy ? 'disabled' : ''}>${this.busy ? 'Check your wallet…' : solanaProvider() ? 'Connect wallet' : 'Get a Solana wallet'}</button>`;
+      : `<button class="iw-prize__btn" data-act="connect" ${this.busy ? 'disabled' : ''}>${this.busy ? 'Check your wallet…' : solanaProvider() ? 'Connect wallet' : IS_TOUCH ? 'Open in Phantom' : 'Get a Solana wallet'}</button>`;
     this.el.title = `Each match pays ${i.minPct === i.maxPct ? i.minPct : `${i.minPct}–${i.maxPct}`}% of the pool (max ${i.maxSol} SOL), split between the wallet holders on the winning team. The last ${i.reserveSol ?? 0.05} SOL always stays in the pool.`;
     this.el.innerHTML = `<div class="iw-prize__k">Prize pool${tag}</div>
       <div class="iw-prize__pool">◎ ${i.poolSol != null ? sol(i.poolSol) : '—'} SOL</div>
@@ -180,7 +188,10 @@ class PrizeUI {
 export const holderWallet = {
   async connect() {
     const p = solanaProvider();
-    if (!p) { const e = new Error('No Solana wallet in this browser'); e.code = 'ERR_NO_WALLET'; throw e; }
+    if (!p) {
+      if (IS_TOUCH) openInPhantom();   // phone browser: reopen SPLURT inside Phantom, then tap Holders Only again there
+      const e = new Error('No Solana wallet in this browser'); e.code = 'ERR_NO_WALLET'; throw e;
+    }
     const res = await p.connect();
     const pk = (res?.publicKey || p.publicKey)?.toString();
     if (!pk) throw new Error('No wallet address');

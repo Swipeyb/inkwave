@@ -1805,7 +1805,7 @@ export class HUD {
     const canJump = this.lab ? true : !!(me && me.canSuperJump && me.canSuperJump());
     // virtual cursor (pointer is locked in-game: steer with mouse deltas; magnet toward beacons)
     const inp = G.input;
-    if (M.open && inp && inp.locked) {
+    if (M.open && inp && (inp.locked || inp.lastDevice === 'touch')) {
       M.cx = clamp(M.cx + (inp.mouse.dx || 0) / Math.max(80, bw), 0.02, 0.98);
       M.cy = clamp(M.cy + (inp.mouse.dy || 0) / Math.max(80, bh), 0.02, 0.98);
       let best = -1, bd = 0.09;
@@ -1819,7 +1819,7 @@ export class HUD {
       this.mapCursor.style.transform = `translate3d(${(M.cx * bw).toFixed(1)}px,${(M.cy * bh).toFixed(1)}px,0)`;
       this.mapCursor.classList.toggle('is-snap', M.hover >= 0);
     }
-    if (M.open !== L.curOn) { L.curOn = M.open; this.mapCursor.classList.toggle('is-on', !!(M.open && inp && inp.locked)); }
+    if (M.open !== L.curOn) { L.curOn = M.open; this.mapCursor.classList.toggle('is-on', !!(M.open && inp && (inp.locked || inp.lastDevice === 'touch'))); }
     // number keys pressed this frame → flash the matching beacon (the controller performs the jump)
     if (M.open && inp) for (let i = 0; i < NB; i++) if (inp.wasPressed && inp.wasPressed('Digit' + slotKey(i))) { M.pressed = i; M.pressT = 0.5; this._restart(this.beacons[i], 'is-press'); }
     M.pressT = Math.max(0, M.pressT - dt);

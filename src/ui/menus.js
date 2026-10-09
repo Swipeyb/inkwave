@@ -27,6 +27,7 @@ import { bossEmblem, BOSS_GLYPH, BOSS_NAME, BOSS_EPITHET } from './boss-art.js';
 import { WhatsNew } from './news.js';
 import { t, LANGUAGES } from '../i18n/strings.js';
 import { ERR, codeFromText } from '../net/errors.js';
+import { IS_TOUCH } from './touch.js';
 import { holderWallet } from './prize.js';
 
 const SCREENS = ['loading', 'title', 'main', 'loadout', 'locker', 'settings', 'howto', 'credits', 'pause', 'results', 'online', 'lobby'];
@@ -61,7 +62,9 @@ const JOIN_ERR = {
   [ERR.NOT_HOLDER]: { title: 'HOLDERS ONLY', text: 'Holder matches are for $SPLURT holders. Grab some, or hop into open Quick Play.', short: 'Holder matches need $SPLURT in your wallet.', icon: 'lock' },
   [ERR.HOLDER_SIG]: { title: 'WALLET CHECK', text: 'The wallet signature didn’t go through. Approve it in your wallet to join a holder match.', short: 'Approve the wallet signature to join.', icon: 'key' },
   [ERR.WALLET_DUP]: { title: 'ALREADY IN', text: 'That wallet is already in this match.', short: 'That wallet is already in this match.', icon: 'users' },
-  [ERR.NO_WALLET]: { title: 'GET A WALLET', text: 'Holder matches need a Solana wallet like Phantom in this browser.', short: 'Install Phantom to join holder matches.', icon: 'key' },
+  [ERR.NO_WALLET]: IS_TOUCH
+    ? { title: 'OPEN IN PHANTOM', text: 'Holder matches need your wallet. Opening SPLURT in the Phantom app — tap Holders Only again there.', short: 'Opening Phantom… tap Holders Only there.', icon: 'key' }
+    : { title: 'GET A WALLET', text: 'Holder matches need a Solana wallet like Phantom in this browser.', short: 'Install Phantom to join holder matches.', icon: 'key' },
   [ERR.LOST]: { title: 'CONNECTION LOST', text: 'The link to the room dropped. Check your connection and join again.', short: 'The link to the room dropped.', icon: 'signal' },
   [ERR.STALE]: { title: 'PLEASE REFRESH', text: 'The game was updated since this page loaded. Refresh to play online again.', short: 'Refresh the page to play online.', icon: 'reset' },
   [ERR.MATCH_START]: { title: 'COULDN\u2019T START', text: 'The match never got going. Back to the lobby — try again.', short: 'The match never got going.', icon: 'close' },
@@ -880,8 +883,8 @@ export class Menus {
   // ================================================================ SCREEN: title
   _scr_title() {
     const press = h('div', { class: 'iw-title__press iw-in iw-in--up' },
-      h('span', { class: 'iw-title__presstext' }, this._input === 'pad' ? 'PRESS ANY BUTTON' : 'PRESS ANY KEY'),
-      h('span', { class: 'iw-title__presssub' }, this._input === 'pad' ? '' : 'or click to start'));
+      h('span', { class: 'iw-title__presstext' }, IS_TOUCH ? 'TAP TO START' : this._input === 'pad' ? 'PRESS ANY BUTTON' : 'PRESS ANY KEY'),
+      h('span', { class: 'iw-title__presssub' }, IS_TOUCH || this._input === 'pad' ? '' : 'or click to start'));
     const el = h('div', { class: 'iw-screen iw-title', onclick: () => this._titleGo() },
       h('div', { class: 'iw-title__scrim' }),
       h('div', { class: 'iw-title__logo iw-in iw-in--logo' }, h('i', { class: 'iw-title__shock' }), h('div', { class: 'iw-title__logoin', html: logoMarkup(GAME_TITLE, GAME_SUBTITLE, 'xl') })),
@@ -892,6 +895,7 @@ export class Menus {
     return {
       el, noCursor: true,
       onInputMode: (m) => {
+        if (IS_TOUCH) return;
         press.firstChild.textContent = t(m === 'pad' ? 'PRESS ANY BUTTON' : 'PRESS ANY KEY');
         press.lastChild.textContent = m === 'pad' ? '' : t('or click to start');
       },
@@ -2144,7 +2148,25 @@ export class Menus {
       h('div', { class: 'iw-join__foot' }, hintEl, jstat));
     join.dataset.cur = 'own';
     this._fx(join, { tilt: 0, press: false });
-    join.addEventListener('click', () => { if (st.mode === 'idle') enterEntry(firstEmpty()); });
+    join.addEventListener('click', () => { if (st.mode === 'idle') enterEntry(firstEmpty()); if (kb) kb.focus(); });
+    // phones: an invisible text field brings up the on-screen keyboard; its letters feed the 5 code boxes.
+    // A zero-width "sentinel" character stays in the field so Backspace is detectable on every mobile keyboard.
+    const kb = IS_TOUCH ? h('input', { class: 'iw-code__kb', type: 'text', autocapitalize: 'characters', autocomplete: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'go', 'aria-label': 'Room code' }) : null;
+    if (kb) {
+      const SENT = '\u200b';
+      kb.value = SENT;
+      kb.style.cssText = 'position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0;pointer-events:none;';
+      join.appendChild(kb);
+      kb.addEventListener('input', () => {
+        const v = kb.value;
+        if (!v.includes(SENT)) backspace();
+        for (const c of v.replace(SENT, '').toUpperCase()) if (/[A-Z0-9]/.test(c)) type(c);
+        kb.value = SENT;
+        try { kb.setSelectionRange(1, 1); } catch { /* ignore */ }
+      });
+      kb.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); kb.blur(); if (full()) doJoin(); } });
+      for (const b of boxes) b.addEventListener('click', () => kb.focus());
+    }
 
     // ---- how it works: three little stickers, comic-strip style
     const steps = h('div', { class: 'iw-hub__steps iw-in iw-in--up' },

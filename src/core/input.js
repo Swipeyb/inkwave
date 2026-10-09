@@ -64,6 +64,8 @@ export class Input {
 
   requestLock() {
     if (this.locked) return;
+    // phones / tablets aim with touch (src/ui/touch.js): a locked pointer would freeze touch coordinates
+    if (document.documentElement.classList.contains('is-touch')) return;
     try {
       const p = this.canvas.requestPointerLock({ unadjustedMovement: true });
       // some platforms reject unadjustedMovement: fall back to a plain request
