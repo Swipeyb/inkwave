@@ -649,6 +649,7 @@ export class NetMatch {
   }
   sendResult(result) {
     if (!this.isHost) return;
+    this.s.reportPrizeResult?.(result.winner);
     this._sendNow({ k: 'res', cov: result.coverage, win: result.winner, mode: result.mode, bo: result.boss,
       ...(result.mode === 'zones' ? { zc: result.counts, zp: result.penalty, zr: result.reason, zo: result.overtime ? 1 : 0, zl: result.log } : {}),
       st: this.match.actors.map((a) => [a.nid, Math.round(a.stats.turf), a.stats.splats, a.stats.deaths, Math.round(a.stats.bossDmg || 0), a.stats.weakHits || 0]) });
@@ -662,6 +663,7 @@ export class NetMatch {
       : d.mode === 'zones' ? { mode: 'zones', coverage: d.cov, winner: d.win, reason: d.zr, counts: d.zc, penalty: d.zp, overtime: !!d.zo, log: d.zl || [] }
         : { coverage: d.cov, winner: d.win };
     m.setState('judge');
+    this.s.reportPrizeResult?.(d.win);
   }
   sendEnd() { if (this.isHost) this._sendNow({ k: 'end' }); }
 

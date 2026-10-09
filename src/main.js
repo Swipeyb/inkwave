@@ -157,6 +157,8 @@ class Game {
     // online session (G.net) — the menus' online screens and startNetMatch/netMatchGo/netMatchEnd below drive it
     try { (await import('./net/session.js')).installNet(); } catch (e) { console.error('[inkwave] net', e); }
     G.net?.on?.('lobby', ({ lobby }) => this._roomPalette(lobby));
+    // optional Solana prize pool card + results line (inert unless the relay has it configured — docs/PRIZE_POOL.md)
+    try { (await import('./ui/prize.js')).installPrize(); } catch (e) { console.warn('[inkwave] prize', e); }
     await progress(0.7, 'Tuning the tentacles…');
 
     this._setPalette(this._pickPalette());

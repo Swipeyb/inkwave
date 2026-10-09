@@ -15,3 +15,6 @@ songs/**/*.opus
 songs/**/*.wav
 songs/**/*.flac
 songs/manifest.json
+.dev.vars
+*.keypair.json
+!.env.example

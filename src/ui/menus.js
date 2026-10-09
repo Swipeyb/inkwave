@@ -23,16 +23,16 @@ import {
   computeAwards, medalMarkup, awardBadge, awardIcon, rankEmblem, rankTier, RANK_TIERS, inkBurst, InkWipe, createPreview,
   sweepEdge, sweepClip, splatClip, splatCover, skinSwatch, irisSwatch, outfitIcon, tagArt, inkBand, dripsSVG, computeBossAwards,
 } from './menu-art.js';
-import { bossSilhouette, bossEmblem, BOSS_GLYPH, BOSS_NAME, BOSS_EPITHET } from './boss-art.js';
+import { bossEmblem, BOSS_GLYPH, BOSS_NAME, BOSS_EPITHET } from './boss-art.js';
 import { WhatsNew } from './news.js';
 import { t, LANGUAGES } from '../i18n/strings.js';
 import { ERR, codeFromText } from '../net/errors.js';
 
-const SCREENS = ['loading', 'title', 'main', 'mode', 'loadout', 'setup', 'locker', 'settings', 'howto', 'credits', 'pause', 'results', 'online', 'lobby'];
+const SCREENS = ['loading', 'title', 'main', 'loadout', 'locker', 'settings', 'howto', 'credits', 'pause', 'results', 'online', 'lobby'];
 // Transitions that get the full-screen ink wipe (the rest use staggered pop-ins).
 const WIPES = new Set(['loading>title', 'title>main', 'results>main', 'pause>main', 'results>null', 'pause>title', 'online>lobby', 'lobby>online', 'lobby>main', 'results>lobby', 'pause>online']);
 // Pushes/pops between these get the light ink swipe (decorative — the swap itself is immediate).
-const LIGHT = new Set(['main', 'mode', 'loadout', 'setup', 'locker', 'settings', 'howto', 'credits', 'pause', 'online', 'lobby']);
+const LIGHT = new Set(['main', 'loadout', 'locker', 'settings', 'howto', 'credits', 'pause', 'online', 'lobby']);
 // ?netmock=1 → an offline stand-in for G.net (src/net/mock.js) so the online screens work without the relay
 const NETMOCK = typeof location !== 'undefined' && new URLSearchParams(location.search).get('netmock') === '1';
 // room codes (the session generates them from this set: no O/0, I/1)
@@ -168,9 +168,8 @@ const LOCKER_TABS = [
   { id: 'outfit', label: 'OUTFIT', icon: 'shirt', sections: ['outfit'] },
 ];
 const MENU_DESC = {
-  play: 'Turf War or Zone Control 4 v 4 — or team up with the bots against HULLBREAKER in a Boss Battle',
-  online: 'Private rooms for up to 8 friends — create one or join with a room code',
-  loadout: 'Choose your weapon, sub and special — or practice with it',
+  online: 'Online rooms for up to 8 players — create one or join with a room code',
+  loadout: 'Choose your weapon, sub and special',
   locker: 'Choose your squidkid — tentacles, headgear, eyes, skin and outfit',
   settings: 'Controls, video, audio and gameplay options',
   howto: 'The rules in 30 seconds, plus every control',
@@ -211,7 +210,6 @@ const settingsTabs = () => [
     { key: 'rumble', label: t('settings.row.rumble.label'), type: 'slider', min: 0, max: 1, step: 0.05, fmt: pctFmt, help: t('settings.row.rumble.help') },
     { key: 'colorblind', label: t('settings.row.colorblind.label'), type: 'toggle', help: t('settings.row.colorblind.help') },
     { key: 'minimap', label: t('settings.row.minimap.label'), type: 'toggle', help: t('settings.row.minimap.help') },
-    { key: 'difficulty', label: t('settings.row.difficulty.label'), type: 'seg', options: null, help: t('settings.row.difficulty.help') },
     { key: 'matchLength', label: t('settings.row.matchLength.label'), type: 'seg', options: null, help: t('settings.row.matchLength.help') },
   ] },
 ];
@@ -259,7 +257,6 @@ export class Menus {
     this._extTick = 0;
     this._sfxAt = {};
     this._swapToken = 0;
-    this._setup = null;
     this._accentExternal = false;
     this._cur = { x: new Spring(0, 560, 34), y: new Spring(0, 560, 34), w: new Spring(0, 560, 34), h: new Spring(0, 560, 34), on: false, r: '' };
 
@@ -573,7 +570,7 @@ export class Menus {
     if (this._stack.length > 1) {
       this._sfx('ui_back');
       this.show(this._stack[this._stack.length - 2], { pop: true, back: true });
-    } else if (['mode', 'loadout', 'setup', 'locker', 'settings', 'howto', 'credits', 'online'].includes(this.current)) {
+    } else if (['loadout', 'locker', 'settings', 'howto', 'credits', 'online'].includes(this.current)) {
       this._sfx('ui_back'); // opened directly by the engine: fall back to the main menu
       this.show('main', { back: true });
     }
@@ -586,7 +583,7 @@ export class Menus {
     this._sfx('ui_confirm');
     this._sfx('splat_small');
     if (this._scr) this._scr.el.classList.add('is-go');
-    setTimeout(() => { this._leavingTitle = false; this.show('main', { wipe: true }); }, 200);
+    setTimeout(() => { this._leavingTitle = false; this.show('online', { wipe: true }); }, 200);   // online-only: straight to create / join (Back → main menu)
   }
 
   // ================================================================ focus + navigation
@@ -903,8 +900,8 @@ export class Menus {
     const sp = this._special();
     const sub = this._sub();
     const items = [
-      { id: 'play', label: 'PLAY', sub: 'Turf War · Zone Control · Boss Battle', icon: GLYPHS.play, cls: 'iw-btn--menu iw-btn--xl iw-btn--primary', accept: () => this._go('mode'), sound: 'ui_confirm' },
-      { id: 'online', label: 'ONLINE', sub: 'Play with friends · private rooms', icon: GLYPHS.online, cls: 'iw-btn--menu iw-btn--online', accept: () => this._go('online'), sound: 'ui_confirm',
+      // online-only build: no solo / vs-bots PLAY entry — every match is an online room
+      { id: 'online', label: 'PLAY ONLINE', sub: 'Create or join a room', icon: GLYPHS.online, cls: 'iw-btn--menu iw-btn--xl iw-btn--primary iw-btn--online', accept: () => this._go('online'), sound: 'ui_confirm',
         badge: h('span', { class: 'iw-btn__live' }, h('i'), 'LIVE') },
       { id: 'loadout', label: 'LOADOUT', icon: weaponIcon(W.kind || lo.weapon), cls: 'iw-btn--menu', accept: () => this._go('loadout') },
       { id: 'locker', label: 'LOCKER', icon: GLYPHS.hanger, cls: 'iw-btn--menu', accept: () => this._go('locker') },
@@ -962,98 +959,7 @@ export class Menus {
     };
   }
 
-  // ================================================================ SCREEN: mode (offline Play: Turf War | Zone Control | Boss Battle)
-  _scr_mode() {
-    const s = this._settings();
-    const st = this._setup || (this._setup = { times: {} });
-    const reduced = prefersReducedMotion();
-    const cur = modeOf(st.mode || s.lastMode);
-    const bossLen = [180, 240, 300].includes(s.bossLength) ? s.bossLength : 240;
-    const MODES = [
-      { id: 'turf', name: 'TURF WAR', kicker: 'CLASSIC', img: stageArt('tidewater', 'day'),
-        blurb: 'Two teams of four, one harbour. Ink the most ground before the whistle.',
-        chips: [[GLYPHS.users, '4 V 4'], [GLYPHS.clock, durLabel(s.matchLength || MATCH.defaultDuration || 180)], [GLYPHS.bot, 'VS BOTS']] },
-      { id: 'zones', name: 'ZONE CONTROL', kicker: 'RANKED RULES', img: stageArt('crossmarket', 'day'),
-        blurb: 'Take the live zone and hold it: your count ticks down from 100. The zone moves, so keep up!',
-        chips: [[GLYPHS.users, '4 V 4'], [GLYPHS.clock, `${Math.round((ZONES.duration || 300) / 60)}:00 + OT`], [ZONE_GLYPH, 'ROTATING ZONES']] },
-      { id: 'boss', name: 'BOSS BATTLE', kicker: 'CO-OP', img: stageArt('kelpline', 'dusk'), badge: 'NEW!', beta: true,
-        blurb: `Everyone's one squad against ${BOSS_NAME}, a giant crab in a rusted container. Sink it before time runs out!`,
-        chips: [[GLYPHS.users, 'SQUAD OF 8'], [GLYPHS.clock, durLabel(bossLen)], [BOSS_GLYPH, '1 BOSS']] },
-    ];
-    let picking = false;
-    const pick = (id, c) => {
-      if (picking) return;
-      picking = true;
-      st.mode = id;
-      this._setSetting('lastMode', id);
-      this._sfx('ui_confirm'); this._sfx('splat_small', 0.06);
-      restartAnim(c, 'is-pick');
-      cards.forEach((x) => x.classList.toggle('is-picked', x === c));
-      this._burstAt(c.querySelector('.iw-mode__tape'), { count: 16, dist: 10, size: 1.3, color: 'var(--mc)' });
-      setTimeout(() => { picking = false; if (this.current === 'mode') this._go('setup'); }, reduced ? 0 : 260);
-    };
-    const cards = MODES.map((m, i) => {
-      const img = h('img', { class: 'iw-mode__img', alt: '', draggable: 'false' });
-      img.addEventListener('error', () => img.remove(), { once: true });
-      img.src = m.img;
-      const hero = m.id === 'boss'
-        ? h('span', { class: 'iw-mode__hero is-boss', html: bossSilhouette() })
-        : h('span', { class: 'iw-mode__hero is-turf' },
-          h('i', { class: 'iw-mode__squid is-a', html: SQUID }),
-          m.id === 'zones' ? h('i', { class: 'iw-mode__zone', html: ZONE_GLYPH }) : h('b', { class: 'iw-mode__vs iw-display' }, 'VS'),
-          h('i', { class: 'iw-mode__squid is-b', html: SQUID }));
-      const c = h('button', { class: `iw-mode iw-mode--${m.id} iw-in iw-in--pop`, style: { '--tilt': `${[-1.4, 0.6, 1.4][i] ?? 0}deg` } },
-        h('span', { class: 'iw-mode__art' }, img, h('i', { class: 'iw-mode__tint' }),
-          h('span', { class: 'iw-mode__splat', html: splatSVG({ seed: 51 + i * 9, fill: 'var(--mc)', r: 58, arms: 9, drops: 5 }) }),
-          hero, h('i', { class: 'iw-mode__glare' })),
-        h('span', { class: 'iw-mode__kicker' }, m.kicker),
-        m.beta ? h('span', { class: 'iw-beta iw-mode__beta' }, 'PUBLIC BETA') : null,
-        h('span', { class: 'iw-mode__tape' }, h('span', { class: 'iw-display' }, m.name)),
-        h('span', { class: 'iw-mode__blurb' }, m.blurb),
-        h('span', { class: 'iw-mode__chips' }, m.chips.map(([ic, txt]) => h('span', { class: 'iw-chip' }, h('i', { html: ic }), /^\d+:00 \+ OT$/.test(txt) ? t('{n}:00 + OT', { n: txt.split(':')[0] }) : txt))),
-        m.badge ? h('span', { class: 'iw-mode__new' }, m.badge) : null,
-        h('span', { class: 'iw-mode__go' }, h('i', { html: GLYPHS.play }), 'SELECT'));
-      c.dataset.cur = 'own';
-      c._mode = m.id;
-      this._fx(c, { tilt: 7 });
-      this._bind(c, { id: 'mode-' + m.id, accept: () => pick(m.id, c) });
-      return c;
-    });
-    const bg = h('div', { class: 'iw-ss__bg' });
-    const setBg = (id) => {
-      const m = MODES.find((x) => x.id === id);
-      const im = h('img', { class: 'iw-ss__bgimg', alt: '', draggable: 'false' });
-      im.addEventListener('error', () => im.remove(), { once: true });
-      im.src = m.img.replace('.webp', '-sm.webp');
-      const olds = [...bg.children];
-      bg.appendChild(im);
-      requestAnimationFrame(() => requestAnimationFrame(() => im.classList.add('is-on')));
-      setTimeout(() => olds.forEach((o) => o.remove()), 900);
-    };
-    const el = h('div', { class: 'iw-screen iw-modesel' },
-      bg, h('div', { class: 'iw-ss__scrim' }),
-      this._header('PLAY', { sub: 'Choose a mode · you and the bots' }),
-      h('div', { class: 'iw-modesel__row' + (cards.length > 2 ? ' is-three' : '') }, cards),
-      this._prompts([[['←', '→'], 'DPad', 'Mode'], ['Enter', 'A', 'Select'], ['Esc', 'B', 'Back']]));
-    el.dataset.mode = cur;
-    setBg(cur);
-    const graph = new Map(cards.map((c, i) => [c, { left: cards[i - 1] || null, right: cards[i + 1] || null }]));
-    return {
-      el, initial: cards.find((c) => c._mode === cur) || cards[0],
-      onFocus: (f) => { if (f && f._mode && f._mode !== el.dataset.mode) { el.dataset.mode = f._mode; setBg(f._mode); } },
-      onNav: (dir) => this._graphNav(graph, dir),
-    };
-  }
-
-  // ================================================================ SCREEN: setup (stage select)
-  /** The time of day a stage will be played at: this session's pick → saved per-stage pick → settings.timeOfDay. */
-  _stageTime(id) {
-    const s = this._settings();
-    const t = (this._setup && this._setup.times && this._setup.times[id]) || (s.stageTimes && s.stageTimes[id]);
-    return t === 'dusk' || t === 'day' ? t : (s.timeOfDay === 'dusk' ? 'dusk' : 'day');
-  }
-
-  /** Warm the image cache with every stage render (hero + thumbnail, day + dusk) so switches never flash. */
+  // ================================================================ stage art preload (online lobby stage cards)
   _preloadStages() {
     if (this._stageImgs) return;
     this._stageImgs = [];
@@ -1069,377 +975,6 @@ export class Menus {
       }
     }
   }
-
-  _scr_setup() {
-    const s = this._settings();
-    const maps = this._maps().filter((m) => !m.onlineOnly);   // (online-only stages live in the online lobby's picker)
-    const diffs = this._diffs();
-    const byId = (id) => maps.find((m) => m.id === id);
-    const st = this._setup || (this._setup = { times: {} });
-    st.mode = modeOf(st.mode || s.lastMode);   // picked on the mode screen (Play › mode), else the last one played
-    const boss = st.mode === 'boss';
-    const durations = boss ? BOSS_DURATIONS : (MATCH.durations || [90, 180]);
-    const diffText = (v) => (boss ? BOSS_DIFF_INFO[v] : DIFF_INFO[v]?.text) || '';
-    st.times = { ...(s.stageTimes || {}), ...(st.times || {}) };
-    if (!byId(st.mapId)) st.mapId = byId(s.lastStage) ? s.lastStage : maps[0].id;
-    st.difficulty = diffs[s.difficulty] ? s.difficulty : 'normal';
-    st.duration = boss ? (durations.includes(s.bossLength) ? s.bossLength : 240) : durations.includes(s.matchLength) ? s.matchLength : (MATCH.defaultDuration || 180);
-    const timeOf = (id) => this._stageTime(id);
-    const reduced = prefersReducedMotion();
-    this._preloadStages();
-
-    // ---- JS tweens (driven by tick → honour the lab's freeze / slow-mo)
-    const tweens = [];
-    const tween = (dur, step, done = null, delay = 0) => { const o = { t: -delay, dur, step, done }; tweens.push(o); if (delay <= 0) step(0); return o; };
-
-    // ---- hero: big stage art, name tape, DAY / DUSK switch, layout sticker
-    const art = h('div', { class: 'iw-ss__art' });
-    const counter = h('span', { class: 'iw-ss__count' });
-    const layoutMap = h('span', { class: 'iw-ss__layoutmap' });
-    const layoutEl = h('div', { class: 'iw-ss__layout' }, layoutMap, h('span', { class: 'iw-ss__layoutlbl' }, h('i', { html: GLYPHS.map }), 'LAYOUT'));
-    const stars = h('div', { class: 'iw-ss__stars' }, Array.from({ length: 16 }, (_, i) => {
-      const x = ((i * 0.618034 + 0.13) % 1) * 96 + 2, y = ((i * 0.41421 + 0.07) % 1) * 34 + 3;
-      return h('i', { style: { left: `${x.toFixed(1)}%`, top: `${y.toFixed(1)}%`, '--d': `${((i * 0.37) % 1 * 3).toFixed(2)}s`, '--s': (0.55 + ((i * 0.73) % 1) * 0.8).toFixed(2) } });
-    }));
-    const bossTag = boss ? h('div', { class: 'iw-ss__bosstag' }, h('span', { class: 'iw-ss__bossemb', html: bossEmblem() }), h('span', { class: 'iw-ss__bosstxt' }, h('small', null, 'BOSS'), h('b', { class: 'iw-display' }, BOSS_NAME))) : null;
-    const frame = h('div', { class: 'iw-ss__frame' }, art, h('i', { class: 'iw-ss__sun' }), stars, h('i', { class: 'iw-ss__glare' }), h('i', { class: 'iw-ss__vig' }), counter, layoutEl, bossTag);
-    const nameEl = h('div', { class: 'iw-ss__name' });
-    const blurbEl = h('div', { class: 'iw-ss__blurb' });
-    const caption = h('div', { class: 'iw-ss__caption' }, h('div', { class: 'iw-ss__tape' }, nameEl), blurbEl);
-    const drips = h('div', { class: 'iw-ss__drips', html: `<svg viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true">${
-      [[38, 1], [96, 1.6], [140, 0.8], [226, 1.3], [300, 0.9], [352, 1.5]].map(([x, k], i) => `<g class="iw-ss__drip" style="--d:${i}"><path class="iw-fa" d="M${x - 6} 0 L${x + 6} 0 L${x + 4} ${22 * k} Q${x} ${31 * k} ${x - 4} ${22 * k} Z"/></g>`).join('')}</svg>` });
-
-    // DAY / DUSK switch (big, sticker-like; the thumb carries a sun that sets and a moon that rises)
-    const optDay = h('span', { class: 'iw-daytgl__opt is-day iw-noclick' }, 'DAY');
-    const optDusk = h('span', { class: 'iw-daytgl__opt is-dusk iw-noclick' }, 'DUSK');
-    const tgl = h('button', { class: 'iw-daytgl' },
-      h('span', { class: 'iw-daytgl__sky' }, h('i', { class: 'iw-daytgl__cloud' }), h('i', { class: 'iw-daytgl__cloud is-2' }),
-        ...Array.from({ length: 6 }, (_, i) => h('i', { class: 'iw-daytgl__star', style: { '--i': i } }))),
-      h('span', { class: 'iw-daytgl__thumb' }, h('i', { class: 'iw-daytgl__sunico', html: GLYPHS.sun }), h('i', { class: 'iw-daytgl__moonico', html: GLYPHS.moon })),
-      optDay, optDusk);
-    const timeText = h('span', { class: 'iw-ss__timetext' });
-    const tglWrap = h('div', { class: 'iw-ss__time' }, h('div', { class: 'iw-ss__timehead' }, h('small', null, 'TIME OF DAY'), this._hint(['Q', 'E'], null)), tgl, timeText);
-    tglWrap.querySelector('.iw-padg').innerHTML = padGlyph('LB') + padGlyph('RB');
-    const hero = h('div', { class: 'iw-ss__hero iw-in iw-in--pop' },
-      h('div', { class: 'iw-ss__splat', html: splatSVG({ seed: 21, cls: 'iw-fa', r: 60, arms: 9, drops: 6 }) }),
-      h('div', { class: 'iw-ss__splat is-b', html: splatSVG({ seed: 34, cls: 'iw-fb', r: 56, arms: 8, drops: 4 }) }),
-      frame, drips, caption, tglWrap);
-    this._fx(frame, { tilt: 3, press: false });
-
-    // ---- background: the selected stage, blurred, washing the whole screen in its light
-    const bg = h('div', { class: 'iw-ss__bg' });
-    const setBg = () => {
-      const im = h('img', { class: 'iw-ss__bgimg', alt: '', draggable: 'false' });
-      im.addEventListener('error', () => im.remove(), { once: true });
-      im.src = stageArt(st.mapId, timeOf(st.mapId), true);
-      const olds = [...bg.children];
-      bg.appendChild(im);
-      requestAnimationFrame(() => requestAnimationFrame(() => im.classList.add('is-on')));
-      setTimeout(() => olds.forEach((o) => o.remove()), 900);
-    };
-
-    // ---- art layers + ink reveals
-    const makeLayer = (id, time) => {
-      const m = byId(id);
-      const img = h('img', { class: 'iw-ss__img', alt: '', draggable: 'false' });
-      const L = h('div', { class: 'iw-ss__layer', 'data-time': time }, img);
-      img.addEventListener('error', () => {
-        L.classList.add('is-noart');
-        L.appendChild(h('div', { class: 'iw-ss__fallback', html: (m && m.thumb) || mapThumb(m, 3) }));
-      }, { once: true });
-      img.src = stageArt(id, time);
-      L._img = img;
-      return L;
-    };
-    const whenReady = (img, cb) => {
-      if (img.complete || !img.decode) { cb(); return; }
-      let fired = false;
-      const go = () => { if (!fired) { fired = true; cb(); } };
-      img.decode().then(go, go);
-      setTimeout(go, 280); // never hold a reveal back for long
-    };
-    let artSeed = 3;
-    const showArt = (kind, fromEl) => {
-      const L = makeLayer(st.mapId, timeOf(st.mapId));
-      const finish = () => {
-        L.style.clipPath = '';
-        for (let n = L.previousSibling; n;) { const p = n.previousSibling; n.remove(); n = p; }
-      };
-      if (!art.firstChild || reduced || kind === 'instant') {
-        L.classList.add(art.firstChild ? 'is-fade' : 'is-first');
-        art.appendChild(L);
-        if (art.childElementCount > 1) setTimeout(finish, 320); else finish();
-        return;
-      }
-      const W = art.clientWidth || 1, H = art.clientHeight || 1;
-      const time = timeOf(st.mapId);
-      const ink = h('div', { class: `iw-ss__ink is-${kind} is-${time}` });
-      const ink2 = kind === 'stage' ? h('div', { class: 'iw-ss__ink is-stage is-b' }) : null;
-      const seed = (artSeed += 1);
-      ink.style.clipPath = L.style.clipPath = 'inset(0 0 0 100%)';
-      if (ink2) ink2.style.clipPath = ink.style.clipPath;
-      art.append(...[ink2, ink, L].filter(Boolean));
-      restartAnim(frame, kind === 'stage' ? 'is-hit' : 'is-flip');
-      whenReady(L._img, () => {
-        if (kind === 'time') {
-          // day → dusk: the ink edge sweeps right-to-left (the sun sets west); dusk → day the other way
-          const edge = sweepEdge(seed), dir = time === 'dusk' ? -1 : 1, D = 0.66;
-          tween(D, (k) => { ink.style.clipPath = sweepClip(edge, W, H, easeInOutCubic(k), dir); });
-          tween(D, (k) => { L.style.clipPath = sweepClip(edge, W, H, easeInOutCubic(k), dir); }, finish, 0.11);
-        } else {
-          // new stage: an ink splat thrown from the stage list side bursts open, carrying the new art inside it
-          let oy = H * 0.5;
-          if (fromEl && fromEl.isConnected) {
-            const fr = fromEl.getBoundingClientRect(), ar = art.getBoundingClientRect();
-            if (ar.height > 0) oy = clamp(((fr.top + fr.height / 2 - ar.top) / ar.height) * H, H * 0.12, H * 0.88);
-          }
-          const ox = W * 0.02, R = splatCover(ox, oy, W, H), D = 0.6;
-          const grow = (el, s, k) => { el.style.clipPath = splatClip(ox, oy, R * easeOutCubic(k), s); };
-          tween(D, (k) => grow(ink2, seed + 7, k));
-          tween(D, (k) => grow(ink, seed, k), null, 0.05);
-          tween(D, (k) => grow(L, seed + 3, k), finish, 0.12);
-        }
-      });
-    };
-
-    // ---- stage list: tilted tickets with the render, name tape, time badge, select splat
-    const tickets = maps.map((m, i) => {
-      const imgDay = h('img', { class: 'iw-ticket__img is-day', alt: '', draggable: 'false' });
-      const imgDusk = h('img', { class: 'iw-ticket__img is-dusk', alt: '', draggable: 'false' });
-      for (const [im, t] of [[imgDay, 'day'], [imgDusk, 'dusk']]) {
-        im.addEventListener('error', () => { im.remove(); c.classList.add('is-noart'); }, { once: true });
-        im.src = stageArt(m.id, t, true);
-      }
-      const badge = h('span', { class: 'iw-ticket__time iw-noclick' },
-        h('i', { class: 'iw-ticket__sun', html: GLYPHS.sun }), h('i', { class: 'iw-ticket__moon', html: GLYPHS.moon }));
-      const c = h('button', { class: 'iw-ticket iw-in iw-in--left', style: { '--tilt': `${[-1.2, 0.9, -0.7, 1.1][i % 4]}deg` } },
-        h('span', { class: 'iw-ticket__art' }, h('span', { class: 'iw-ticket__fallback', html: m.thumb || mapThumb(m, i + 2) }), imgDay, imgDusk, h('i', { class: 'iw-ticket__shade' })),
-        h('span', { class: 'iw-ticket__ink', html: splatSVG({ seed: 60 + i * 5, cls: 'iw-fa', r: 58, arms: 9, drops: 5 }) }),
-        h('span', { class: 'iw-ticket__num' }, String(i + 1).padStart(2, '0')),
-        h('span', { class: 'iw-ticket__name' }, m.name),
-        badge,
-        h('span', { class: 'iw-ticket__check', html: GLYPHS.check }));
-      c._mid = m.id;
-      c.dataset.cur = 'own';
-      this._fx(c, { tilt: 8 });
-      this._bind(c, {
-        id: 'map-' + m.id,
-        accept: (src) => select(m.id, src === 'mouse' ? 'click' : 'lock', c),
-        adjust: (d) => { select(m.id, 'nav', c); setTime(m.id, d < 0 ? 'day' : 'dusk', 'key'); },
-      });
-      badge.addEventListener('click', () => { this._setFocus(c); select(m.id, 'click', c); setTime(m.id, timeOf(m.id) === 'day' ? 'dusk' : 'day', 'mouse'); });
-      return c;
-    });
-    const refreshTicket = (c) => {
-      const t = timeOf(c._mid);
-      c.classList.toggle('is-dusk', t === 'dusk');
-      c.classList.toggle('is-sel', c._mid === st.mapId);
-    };
-    // more stages than fit: compact tickets in a scrolling list (the focused one is kept in view)
-    const listEl = h('div', { class: 'iw-ss__list' + (tickets.length > 3 ? ' is-many' : '') }, tickets);
-
-    // ---- match options (bot skill + length)
-    const dOpts = Object.values(diffs).map((d) => [d.id, h('span', { class: 'iw-diffopt' }, h('span', { class: 'iw-pips' }, Array.from({ length: 3 }, (_, k) => h('i', { class: k < (DIFF_INFO[d.id]?.pips || 2) ? 'on' : '' }))), d.name)]);
-    const dText = h('div', { class: 'iw-setup__desc' });
-    const diffSeg = this._seg(dOpts, st.difficulty, (v) => {
-      st.difficulty = v; dText.textContent = t(diffText(v)); restartAnim(dText, 'is-in');
-      safeCall(() => this.api.setSettings && this.api.setSettings({ difficulty: v })); updateStart();
-    });
-    dText.textContent = t(diffText(st.difficulty));
-    const diffRow = h('div', { class: 'iw-setrow iw-setrow--stack' }, h('div', { class: 'iw-setrow__label' }, h('i', { html: boss ? BOSS_GLYPH : GLYPHS.bot }), boss ? 'DIFFICULTY' : 'BOT SKILL'), diffSeg.el);
-    this._bind(diffRow, { id: 'difficulty', type: 'row', adjust: diffSeg.adjust, accept: diffSeg.cycle });
-    const lOpts = durations.map((d) => [d, durLabel(d)]);
-    const lenSeg = this._seg(lOpts, st.duration, (v) => {
-      st.duration = v; safeCall(() => this.api.setSettings && this.api.setSettings(boss ? { bossLength: v } : { matchLength: v })); updateStart();
-    });
-    // Zone Control always runs 5:00 (+ overtime): the length shows locked and never touches the saved Turf War length
-    const zMin = Math.round((ZONES.duration || 300) / 60);
-    const lenLock = h('div', { class: 'iw-lenlock' }, h('b', null, `${zMin}:00`), h('span', null, '+ OVERTIME'), h('em', null, 'ZONE CONTROL'));
-    const lenRow = h('div', { class: 'iw-setrow iw-setrow--stack' }, h('div', { class: 'iw-setrow__label' }, h('i', { html: GLYPHS.clock }), 'MATCH LENGTH'), lenSeg.el, lenLock);
-    const lenLocked = () => { this._sfx('ui_error', 0.15); restartAnim(lenLock, 'is-edge-r'); };
-    this._bind(lenRow, { id: 'length', type: 'row', adjust: (d) => (st.mode === 'zones' ? lenLocked() : lenSeg.adjust(d)), accept: () => (st.mode === 'zones' ? lenLocked() : lenSeg.cycle()) });
-    const matchPanel = this._panel('iw-ss__match iw-in iw-in--up', diffRow, dText, lenRow);
-
-    // ---- your weapon + your look + START
-    const lo = this._loadout();
-    const W = this._weapons()[lo.weapon];
-    const weaponChip = h('button', { class: 'iw-wchip iw-in' },
-      h('span', { class: 'iw-wchip__icon', html: weaponIcon(W.kind || lo.weapon) }),
-      h('span', { class: 'iw-wchip__text' }, h('small', null, 'WEAPON'), h('b', null, W.name)),
-      h('span', { class: 'iw-wchip__edit' }, h('i', { html: GLYPHS.pencil })));
-    this._fx(weaponChip);
-    this._bind(weaponChip, { id: 'weapon', accept: () => { this._sfx('ui_click'); this._go('loadout'); } });
-    const prof = this._profile();
-    const lookAv = h('span', { class: 'iw-lchip__av' }, h('span', { class: 'iw-lchip__blob', html: splatSVG({ seed: 17, cls: 'iw-fa', r: 62, arms: 8, drops: 0 }) }), h('span', { class: 'iw-lchip__squid', html: SQUID }));
-    const lookChip = h('button', { class: 'iw-wchip iw-lchip iw-in' }, lookAv,
-      h('span', { class: 'iw-wchip__text' }, h('small', null, 'SQUIDKID'), h('b', null, prof.name)),
-      h('span', { class: 'iw-wchip__edit' }, h('i', { html: GLYPHS.hanger })));
-    this._fx(lookChip);
-    this._bind(lookChip, { id: 'look', accept: () => { this._sfx('ui_click'); this._go('locker'); } });
-    this._portraitInto(lookAv, { kind: 'head', size: 128 });
-
-    const startSub = h('span');
-    const start = this._btn({ id: 'start', label: 'START!', icon: GLYPHS.play, cls: 'iw-btn--start iw-in iw-in--pop', sound: 'ui_confirm', accept: () => this._startMatch() });
-    start.querySelector('.iw-btn__text').appendChild(h('span', { class: 'iw-btn__sub' }, startSub));
-    start.append(h('span', { class: 'iw-start__charge' }, h('i')), h('span', { class: 'iw-start__ready' }, h('i', { html: GLYPHS.check }), 'READY'), h('span', { class: 'iw-start__chev' }, h('i'), h('i'), h('i')));
-    const updateStart = () => {
-      const m = byId(st.mapId);
-      // mode · stage · time (+ the length Turf War lets you pick; bot skill sits right beside it in its own panel)
-      startSub.textContent = `${t(MODE_INFO[st.mode].name)} · ${m ? t(m.name) : ''} · ${t(TIME_INFO[timeOf(st.mapId)].label)}${st.mode === 'zones' ? '' : ` · ${durLabel(st.duration)}`}`;
-      // long stage names: tighten the line a touch rather than cut it off
-      requestAnimationFrame(() => {
-        const box = startSub.parentElement;
-        if (!box || !box.isConnected) return;
-        box.classList.remove('is-tight');
-        if (box.scrollWidth > box.clientWidth + 1) box.classList.add('is-tight');
-      });
-    };
-
-    // ---- state changes
-    const renderTime = (anim) => {
-      const tod = timeOf(st.mapId);
-      tgl.dataset.time = tod; hero.dataset.time = tod; el.dataset.time = tod;
-      optDay.classList.toggle('is-on', tod === 'day'); optDusk.classList.toggle('is-on', tod === 'dusk');
-      timeText.textContent = t(TIME_INFO[tod].text);
-      if (anim) { restartAnim(tgl, 'is-flip'); restartAnim(timeText, 'is-in'); }
-      updateStart();
-    };
-    const renderStage = (anim) => {
-      const m = byId(st.mapId), i = maps.indexOf(m);
-      nameEl.innerHTML = t(m.name).split(' ').map((w, wi) => `<span class="iw-ss__word">${[...w].map((ch, k) => `<span style="--i:${wi * 4 + k}">${esc(ch)}</span>`).join('')}</span>`).join(' ');
-      blurbEl.textContent = t(m.blurb || '');
-      counter.innerHTML = `${t('STAGE')} <b>${String(i + 1).padStart(2, '0')}</b><em>/ ${String(maps.length).padStart(2, '0')}</em>`;
-      layoutMap.innerHTML = m.thumb || mapThumb(m, i + 2);
-      if (anim) { restartAnim(caption, 'is-in'); restartAnim(layoutEl, 'is-in'); restartAnim(counter, 'is-in'); }
-      renderTime(false);
-    };
-    const lockIn = () => {
-      this._sfx('ui_confirm');
-      restartAnim(start, 'is-recharge');
-      this._moveFocus(start, 'right');
-    };
-    const select = (id, how, fromEl) => {
-      const t = tickets.find((x) => x._mid === id);
-      if (st.mapId === id) {
-        if (how === 'lock') lockIn();
-        else if (how === 'click') { this._sfx('ui_click'); if (t) restartAnim(t, 'is-pick'); }
-        return;
-      }
-      st.mapId = id;
-      this._setSetting('lastStage', id);
-      tickets.forEach(refreshTicket);
-      if (t) { restartAnim(t, 'is-pick'); this._burstAt(t.querySelector('.iw-ticket__num'), { count: 9, dist: 4, size: 0.7 }); }
-      this._sfx('ui_toggle'); this._sfx('splat_small', 0.06);
-      renderStage(true);
-      showArt('stage', fromEl || t);
-      setBg();
-      restartAnim(start, 'is-recharge');
-      if (how === 'lock') lockIn();
-    };
-    const setTime = (id, time, src) => {
-      if (timeOf(id) === time) {
-        if (src === 'key' || src === 'tab') { this._sfx('ui_error', 0.15); restartAnim(tgl, time === 'day' ? 'is-edge-l' : 'is-edge-r'); }
-        return false;
-      }
-      st.times[id] = time;
-      this._setSetting('stageTimes', { ...st.times });
-      this._sfx('ui_toggle'); this._sfx(time === 'dusk' ? 'squid_in' : 'squid_out', 0.08);
-      const t = tickets.find((x) => x._mid === id);
-      if (t) { refreshTicket(t); restartAnim(t, 'is-timeflip'); }
-      if (id === st.mapId) { renderTime(true); showArt('time'); setBg(); }
-      return true;
-    };
-    this._bind(tgl, { id: 'time', type: 'row', accept: () => setTime(st.mapId, timeOf(st.mapId) === 'day' ? 'dusk' : 'day', 'toggle'), adjust: (d) => setTime(st.mapId, d < 0 ? 'day' : 'dusk', 'key') });
-    this._fx(tgl);
-    optDay.addEventListener('click', () => { this._setFocus(tgl); setTime(st.mapId, 'day', 'mouse'); });
-    optDusk.addEventListener('click', () => { this._setFocus(tgl); setTime(st.mapId, 'dusk', 'mouse'); });
-
-    const MI = MODE_INFO[st.mode];
-    const head = this._header(MI.label, { sub: boss ? `Pick a stage and the time of day · your squad of 8 vs ${BOSS_NAME}`
-      : st.mode === 'zones' ? 'Pick a stage and the time of day · 4 v 4 against bots · 5:00 + overtime' : 'Pick a stage and the time of day · 4 v 4 against bots' });
-    const el = h('div', { class: 'iw-screen iw-setup iw-ss' + (boss ? ' is-boss' : '') },
-      bg, h('div', { class: 'iw-ss__scrim' }),
-      head,
-      h('div', { class: 'iw-ss__left' }, h('div', { class: 'iw-seclabel iw-in' }, h('i', { html: GLYPHS.map }), 'STAGES'), listEl, matchPanel),
-      hero,
-      h('div', { class: 'iw-ss__foot' }, weaponChip, lookChip, start),
-      this._prompts([[['↑', '↓'], 'DPad', 'Stage'], [['←', '→'], null, 'Day · Dusk'], ['R', 'Y', 'Mode'], ['Enter', 'A', 'Select'], ['Esc', 'B', 'Back']]));
-    el.querySelector('.iw-prompts').children[1].querySelector('.iw-padg').innerHTML = padGlyph('LB') + padGlyph('RB');
-
-    // ---- the mode (picked on the mode screen): the locked Zone Control length, the START line
-    const renderMode = () => {
-      el.dataset.mode = st.mode;
-      lenRow.classList.toggle('is-locked', st.mode === 'zones');
-      updateStart();
-    };
-
-    // explicit focus graph (rows with ←/→ adjust would otherwise trap the pad in a column)
-    const selTicket = () => tickets.find((x) => x._mid === st.mapId) || tickets[0];
-    const graph = new Map();
-    tickets.forEach((t, i) => graph.set(t, { up: tickets[i - 1] || null, down: tickets[i + 1] || diffRow }));
-    const lenOrDiff = () => (st.mode === 'zones' ? diffRow : lenRow);
-    graph.set(tickets[0], { up: null, down: tickets[1] || diffRow });
-    graph.set(diffRow, { up: selTicket, down: () => (st.mode === 'zones' ? start : lenRow) });
-    graph.set(lenRow, { up: diffRow, down: start });
-    graph.set(tgl, { up: null, down: start });
-    graph.set(weaponChip, { up: tgl, down: null, left: lenOrDiff, right: lookChip });
-    graph.set(lookChip, { up: tgl, down: null, left: weaponChip, right: start });
-    graph.set(start, { up: tgl, down: null, left: lookChip, right: null });
-
-    tickets.forEach(refreshTicket);
-    renderStage(false);
-    renderMode();
-    showArt('instant');
-    setBg();
-    return {
-      el, initial: selTicket(),
-      onFocus: (f) => {
-        if (f._mid && this._navFocus) select(f._mid, 'nav', f);
-        if (f._mid && listEl.classList.contains('is-many')) f.scrollIntoView?.({ block: 'nearest', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
-      },
-      onNav: (dir) => {
-        if (dir === 'tab_prev' || dir === 'tab_next') { setTime(st.mapId, dir === 'tab_prev' ? 'day' : 'dusk', 'tab'); return true; }
-        if (dir === 'alt') { this._sfx('ui_back'); this._go('mode'); return true; }   // R / Y: back to the mode cards
-        return this._graphNav(graph, dir);
-      },
-      tick: (dt) => {
-        for (let i = tweens.length - 1; i >= 0; i--) {
-          const o = tweens[i];
-          o.t += dt;
-          if (o.t < 0) continue;
-          const k = clamp(o.t / o.dur);
-          safeCall(o.step, k);
-          if (k >= 1) { tweens.splice(i, 1); if (o.done) safeCall(o.done); }
-        }
-      },
-      destroy: () => { tweens.length = 0; },
-    };
-  }
-
-  _startMatch() {
-    if (this._starting) return;
-    this._starting = true;
-    const st = this._setup;
-    const time = this._stageTime(st.mapId);
-    const mode = modeOf(st.mode);
-    // Zone Control has a fixed length (main uses ZONES.duration) and never overwrites a saved length
-    const cfg = { mode, mapId: st.mapId, time, difficulty: st.difficulty, ...(mode === 'zones' ? {} : { duration: st.duration }) };
-    safeCall(() => this.api.setSettings && this.api.setSettings({ difficulty: st.difficulty, lastStage: st.mapId, lastMode: mode, stageTimes: { ...(st.times || {}) },
-      ...(mode === 'zones' ? {} : { [mode === 'boss' ? 'bossLength' : 'matchLength']: st.duration }) }));
-    if (this._scr) {
-      this._scr.el.classList.add('is-launch');
-      const b = this._scr.el.querySelector('.iw-btn--start');
-      this._burstAt(b, { count: 18, dist: 11, size: 1.4, ring: true });
-      this._burstAt(this._scr.el.querySelector('.iw-ss__frame'), { count: 14, dist: 16, size: 2.2 });
-      this._sfx('splat_big');
-    }
-    this._runWipe(() => {
-      this._starting = false;
-      safeCall(() => this.api.startMatch && this.api.startMatch(cfg));
-      if (this.current === 'setup') this.show(null, { instantLeave: true });
-    });
-  }
-
 
   /** Put a live 3D portrait of the player's squidkid into `host` (replacing its fallback squid glyph) when the
    *  showcase can render one (the UI lab can't → the glyph stays). */
@@ -1884,26 +1419,7 @@ export class Menus {
     };
     render(equipped);
 
-    // practice: from the lobby it starts a solo session on a random stage; mid-practice it drops you back in (whatever
-    // you equip here is already in your hands)
-    const goPractice = () => {
-      if (this._starting) return;
-      if (inPractice) { this._resume(); return; }
-      this._starting = true;
-      this._burstAt(practiceBtn, { count: 16, dist: 10, size: 1.3, ring: true });
-      this._sfx('splat_big');
-      this._runWipe(() => {
-        this._starting = false;
-        safeCall(() => this.api.startPractice && this.api.startPractice());
-        if (this.current === 'loadout') this.show(null, { instantLeave: true });
-      });
-    };
-    const practiceBtn = this._btn({
-      id: 'practice', icon: GLYPHS.play, cls: 'iw-btn--menu iw-btn--primary iw-loadout__practice iw-in iw-in--down', sound: 'ui_confirm', tilt: -1.2,
-      label: inPractice ? 'BACK TO PRACTICE' : 'PRACTICE',
-      sub: inPractice ? 'Your picks are already equipped' : 'Try this loadout on a random stage',
-      accept: goPractice,
-    });
+    // (online-only build: no PRACTICE button; inPractice is only true for a session the engine's own hooks start)
     // ---- your squidkid (→ locker)
     const lookAv = h('span', { class: 'iw-lchip__av' }, h('span', { class: 'iw-lchip__blob', html: splatSVG({ seed: 17, cls: 'iw-fa', r: 62, arms: 8, drops: 0 }) }), h('span', { class: 'iw-lchip__squid', html: SQUID }));
     const lookChip = inPractice ? null : h('button', { class: 'iw-wchip iw-lchip iw-lchip--sm iw-in iw-in--down' }, lookAv,
@@ -1918,19 +1434,17 @@ export class Menus {
     const el = h('div', { class: 'iw-screen iw-loadout' },
       h('div', { class: 'iw-scrim-left' }),
       this._header('LOADOUT', { sub: inPractice ? 'Swap weapons and subs mid-practice — changes apply straight away' : 'Pick your weapon, sub and special — your squidkid shows it off on the right' }),
-      practiceBtn,
       h('div', { class: 'iw-loadout__body' },
         h('div', { class: 'iw-seclabel iw-in' }, h('i', { html: WEAPON_ICONS.shooter }), 'WEAPON', h('span', { class: 'iw-seclabel__count' }, `${order.indexOf(equipped) + 1} / ${n}`)),
         grid,
         detail),
       lookChip ? h('div', { class: 'iw-loadout__look' }, lookChip) : null,
-      this._prompts(opts.quick ? [['Enter', 'A', 'Equip'], ['Esc', 'B', 'Resume']] : [['Enter', 'A', 'Equip'], ['P', 'Y', inPractice ? 'Resume' : 'Practice'], ['Esc', 'B', 'Back']]));
+      this._prompts(opts.quick ? [['Enter', 'A', 'Equip'], ['Esc', 'B', 'Resume']] : [['Enter', 'A', 'Equip'], ['Esc', 'B', 'Back']]));
     const countEl = el.querySelector('.iw-seclabel__count');
     let enterT = 0;
     return {
       el,
       initial: cards[order.indexOf(equipped)] || cards[0],
-      onNav: (dir) => { if (dir === 'alt') { this._sfx('ui_confirm'); this._press(practiceBtn); goPractice(); return true; } return false; },
       // opened straight from practice play (L / View): back goes back into the game
       onBack: opts.quick ? () => { if (performance.now() - this._shownAt > 200) this._resume(); } : undefined,
       onFocus: (f) => {
@@ -3016,11 +2530,12 @@ export class Menus {
     rMode._id = 'mode';
     modeArrows.children[0].addEventListener('click', (e) => { e.stopPropagation(); this._setFocus(rMode); setMode(-1); });
     modeArrows.children[1].addEventListener('click', (e) => { e.stopPropagation(); this._setFocus(rMode); setMode(1); });
-    const setRows = [rMode, rStage, rTime, rLen, rPal, rBots, rDiff];
+    // online-only build: no bot-skill picker (rooms play at 'normal'); rDiff is built but never shown
+    const setRows = [rMode, rStage, rTime, rLen, rPal, rBots];
     for (const r of setRows) r.dataset.curPad = '2';   // the rail is dense: a tight ring that never covers the next label
     const side = h('div', { class: 'iw-lob__side iw-in iw-in--left' },
       h('div', { class: 'iw-lob__sidehead' }, rMode, lock, hostChip),
-      h('div', { class: 'iw-lset__panel' }, rStage, rPair, rPal, rBots, rDiff,
+      h('div', { class: 'iw-lset__panel' }, rStage, rPair, rPal, rBots,
         h('span', { class: 'iw-lset__drips', html: dripsSVG([[40, 1.2], [92, 0.7], [250, 1.6], [330, 0.9]], 'iw-fa') })));
 
     // ---- your controls (bottom bar)

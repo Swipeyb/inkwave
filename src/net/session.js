@@ -33,6 +33,7 @@ export class NetSession {
     this._members = new Map();  // relay membership (id → name), authoritative for who is connected
     this._startCfg = null;
     this._botsPref = null;      // host: the "fill with bots" choice, kept while a humans-only stage forces bots off
+    this.prizeRound = null;     // prize pool round of the running match (docs/PRIZE_POOL.md): { id, hash } or null
   }
 
   get isHost() { return !!this.myId && this.myId === this.hostId; }
@@ -61,7 +62,7 @@ export class NetSession {
     // mode: 'turf' | 'zones' (Zone Control: the host runs the rules — zones.js) | 'boss' (Boss Battle: everyone is one
     // squad vs HULLBREAKER — docs/BOSS.md)
     const map = g?.mapDef?.id || MAPS[0].id;
-    return { map, time: g?.time || 'day', duration: g?.settings?.matchLength || MATCH.defaultDuration, bots: !mapNoBots(map), difficulty: g?.settings?.difficulty || 'normal', palette: g?.paletteIndex?.() ?? 0, mode: 'turf', players: [], maxPlayers: TEAM * 2 };
+    return { map, time: g?.time || 'day', duration: g?.settings?.matchLength || MATCH.defaultDuration, bots: !mapNoBots(map), difficulty: 'normal', palette: g?.paletteIndex?.() ?? 0, mode: 'turf', players: [], maxPlayers: TEAM * 2 };
   }
 
   _profile() {
@@ -122,6 +123,7 @@ export class NetSession {
     this._members.clear();
     this.lobby = this._blankLobby();
     this._startCfg = null;
+    this.prizeRound = null;
     if (!silent && was !== 'offline') { this._setState('offline'); this._emit('lobby', { lobby: this.lobby }); }
     else this.state = 'offline';
   }
@@ -149,6 +151,13 @@ export class NetSession {
 
   // ------------------------------------------------------------------ relay membership
   _control(o) {
+    // optional prize pool (src/ui/prize.js listens): wallet proofs and the round's commit / reveal
+    if (o.t === 'wallet') { this._emit('wallet', o); return; }
+    if (o.t === 'prize') {
+      if (o.a === 'commit') this.prizeRound = { id: o.round, hash: o.hash, reported: false };
+      this._emit('prize', o);
+      return;
+    }
     if (o.t === 'join') {
       this._members.set(o.m.id, o.m.name);
       if (this.isHost) {
@@ -346,10 +355,23 @@ export class NetSession {
     G.game.netMatchGo?.();
   }
 
+  // prize pool: send the relay the winning team's human players exactly as this screen was told them (every human
+  // reports; the relay only settles when the reports agree)
+  reportPrizeResult(winnerTeam) {
+    const r = this.prizeRound, cfg = this._startCfg;
+    if (!r || r.reported || !this.tr || !cfg) return;
+    r.reported = true;
+    const w = [...new Set(cfg.roster.filter((x) => !x.bot && x.team === winnerTeam).map((x) => x.owner))];
+    this.tr.control({ t: 'result', r: r.id, w });
+  }
+  // prize pool: ask the relay for a one-time message to sign / send the signature back
+  prizeControl(o) { return !!this.tr?.control(o); }
+
   // the match's results have been shown: everyone back to the lobby (the room stays)
   endMatch() {
     this.match?.dispose(); this.match = null;
     this._startCfg = null;
+    this.prizeRound = null;
     if (!this.tr) return;
     if (this.isHost) { this.tr.lock(false); for (const p of this.lobby.players) p.ready = false; this._broadcastLobby(); }
     this._setState('lobby');

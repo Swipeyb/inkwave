@@ -102,6 +102,7 @@ export class Transport {
   broadcast(obj) { return this._raw('b|' + JSON.stringify(obj)); }
   sendTo(id, obj) { return this._raw('s|' + id + '|' + JSON.stringify(obj)); }
   lock(v) { return this._raw(JSON.stringify({ t: 'lock', v: !!v })); }
+  control(obj) { return this._raw(JSON.stringify(obj)); }   // relay control frame (prize pool: wallet / result)
   get open() { return !!this.ws && this.ws.readyState === 1; }
 
   close() {

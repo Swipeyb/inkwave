@@ -22,6 +22,12 @@
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
+> **This fork is online-only.** The title screen goes straight to creating / joining an online room; the solo
+> PLAY (vs bots) modes, the loadout PRACTICE button and the bot-skill pickers are gone from the menus. Rooms can still
+> fill empty slots with bots, and a player who drops mid-match is still taken over by a bot (the netcode relies on it).
+> The offline match engine itself stays: online matches run on it, and so do the title-screen attract mode and the
+> `?autostart` smoke test.
+
 <p align="center">
   <a href="https://github.com/jaydendavisnc/inkwave/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/jaydendavisnc/inkwave/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="three.js r186" src="https://img.shields.io/badge/three.js-r186-000000?logo=three.js&logoColor=white">
@@ -83,6 +89,10 @@ npm run relay    # ws://<this machine>:8787
 ```
 
 A page opened from `localhost` or a LAN address uses that relay automatically; `?relay=wss://…` points it anywhere else.
+
+**Optional Solana prize pool.** The relay can run a prize pool for online matches (a random share of a treasury
+wallet's SOL to a random player on the winning team, with commit-reveal randomness and dry-run by default). It is off
+unless configured; see [`docs/PRIZE_POOL.md`](docs/PRIZE_POOL.md), including the legal warning, before enabling it.
 
 ## Running locally
 

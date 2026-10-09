@@ -4,7 +4,10 @@
   "name": "inkwave-net",
   "main": "src/index.js",
   "compatibility_date": "2026-09-01",
-  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }, { "name": "PRIZES", "class_name": "Prizes" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }, { "tag": "v2", "new_sqlite_classes": ["Prizes"] }],
+  // Optional Solana prize pool (docs/PRIZE_POOL.md). Off unless SOLANA_RPC_URL and TREASURY_PUBLIC_KEY are set.
+  // Non-secret settings can go in "vars"; TREASURY_SECRET_KEY only ever via `wrangler secret put` (or .dev.vars locally).
+  "vars": { "PAYOUT_MODE": "dry-run" },
   "observability": { "enabled": false }
 }

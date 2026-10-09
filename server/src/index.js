@@ -14,7 +14,18 @@
 //   "m|<fromId>|<payload>"                                      relayed game payload
 //   {"t":"welcome","id","host","members":[{id,name}]}           {"t":"join","m":{id,name}}
 //   {"t":"leave","id","host"}                                   {"t":"err","e":"…"} (then close)
+//
+// Prize pool (optional, docs/PRIZE_POOL.md; off unless SOLANA_RPC_URL + TREASURY_PUBLIC_KEY are configured):
+//   GET /prize          → public config + current pool balance        GET /prize/log → recent rounds (seed reveals, txs)
+//   client → room: {"t":"wallet","a":"nonce"} → {"t":"wallet","a":"nonce","msg"}   (sign msg with the wallet, then)
+//                  {"t":"wallet","a":"prove","pk","sig"} → {"t":"wallet","a":"ok","pk"} | {"t":"wallet","a":"err","e"}
+//                  {"t":"result","r":round,"w":[winning human ids]}   every human reports the result it was shown
+//   room → client: {"t":"prize","a":"commit","round","hash","poolSol"} | {"t":"prize","a":"skip","reason"} at match
+//                  start (host's lock), {"t":"prize","a":"reveal",…ledger record} once the round is settled
 import { DurableObject } from 'cloudflare:workers';
+import { PrizeLedger } from './ledger.js';
+import { prizeConfig, consensus } from './prize-core.js';
+import { parsePubkey, verifyEd25519, b64decode } from './solana.js';
 
 const PROTO = 1, MAX = 8;
 // Public relay hygiene: only the game's own site may open rooms (plus local dev), each socket gets a message budget
@@ -32,6 +43,12 @@ export default {
   async fetch(req, env) {
     const url = new URL(req.url);
     if (url.pathname === '/health') return new Response('ok', { headers: { 'access-control-allow-origin': '*' } });
+    if (url.pathname === '/prize' || url.pathname === '/prize/log') {
+      const json = (o) => new Response(JSON.stringify(o), { headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'cache-control': 'no-store' } });
+      if (!env.PRIZES || !prizeConfig(env).enabled) return json(url.pathname === '/prize' ? { enabled: false } : []);
+      const ledger = env.PRIZES.get(env.PRIZES.idFromName('ledger'));
+      return json(url.pathname === '/prize' ? await ledger.status() : await ledger.recent(+(url.searchParams.get('n') || 50)));
+    }
     const m = url.pathname.match(/^\/room\/([A-Za-z0-9]+)$/);
     if (!m) return new Response('INKWAVE relay', { status: 404 });
     const code = m[1].toUpperCase();
@@ -49,6 +66,7 @@ export class Room extends DurableObject {
     this.seq = 0;
     this.seen = new Map();   // ws → last message time (in memory: a busy room never hibernates; a quiet one has the pings)
     this.rate = new Map();   // ws → { t: window start, n: messages in it, strikes }
+    this.round = null;       // prize round of the running match: { id, humans: [{id,name,wallet}], reports: Map, settled }
     this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
     // hibernation: rebuild the join counter from surviving sockets
     for (const ws of this.ctx.getWebSockets()) { const a = ws.deserializeAttachment(); if (a && a.seq >= this.seq) this.seq = a.seq + 1; }
@@ -61,6 +79,7 @@ export class Room extends DurableObject {
 
   async fetch(req) {
     const url = new URL(req.url);
+    this.code = url.pathname.split('/').pop().toUpperCase();
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
@@ -78,7 +97,7 @@ export class Room extends DurableObject {
     const name = (url.searchParams.get('name') || 'Player').replace(/[^\p{L}\p{N} ._\-!?']/gu, '').slice(0, 16) || 'Player';
     let id;
     do { id = Math.random().toString(36).slice(2, 6).toUpperCase(); } while (ms.some((m) => m.a.id === id));
-    const a = { id, name, seq: this.seq++, at: Date.now() };
+    const a = { id, name, seq: this.seq++, at: Date.now(), code: this.code };
     server.serializeAttachment(a);
     const all = [...ms.map((m) => m.a), a];
     server.send(JSON.stringify({ t: 'welcome', id, host: all[0].id, members: all.map(({ id, name }) => ({ id, name })) }));
@@ -125,8 +144,83 @@ export class Room extends DurableObject {
     if (c === 123 /* { */) {
       let o; try { o = JSON.parse(msg); } catch { return; }
       if (o.t === 'ping') ws.send(JSON.stringify({ t: 'pong', c: o.c }));
-      else if (o.t === 'lock' && this.host() === me.id) this.locked = !!o.v;
+      else if (o.t === 'lock' && this.host() === me.id) {
+        const was = this.locked;
+        this.locked = !!o.v;
+        if (this.locked && !was) await this._prizeStart();
+        else if (!this.locked && was) await this._prizeSettle();
+      } else if (o.t === 'wallet') await this._wallet(ws, me, o);
+      else if (o.t === 'result') await this._prizeReport(me, o);
     }
+  }
+
+  // ---- prize pool (docs/PRIZE_POOL.md) ------------------------------------------------------------------------------
+  _ledger() {
+    if (!this.env.PRIZES || !prizeConfig(this.env).enabled) return null;
+    return this.env.PRIZES.get(this.env.PRIZES.idFromName('ledger'));
+  }
+  _send(ws, o) { try { ws.send(JSON.stringify(o)); } catch { /* closing */ } }
+  _toAll(o) { const s = JSON.stringify(o); for (const m of this.members()) try { m.ws.send(s); } catch { /* closing */ } }
+
+  // a player proves they own a wallet by signing a one-time message (Phantom / Solflare signMessage); one wallet per
+  // player and per room, and it can't change while a match runs
+  async _wallet(ws, me, o) {
+    if (!this._ledger()) return this._send(ws, { t: 'wallet', a: 'err', e: 'Prizes are off on this server' });
+    if (o.a === 'nonce') {
+      const n = crypto.randomUUID();
+      me.walletMsg = `INKWAVE prize wallet check\nroom: ${this.code || me.code}\nplayer: ${me.id}\nnonce: ${n}\n(signing this costs nothing and sends no transaction)`;
+      ws.serializeAttachment(me);
+      return this._send(ws, { t: 'wallet', a: 'nonce', msg: me.walletMsg });
+    }
+    if (o.a !== 'prove') return;
+    if (this.locked) return this._send(ws, { t: 'wallet', a: 'err', e: 'Wait for the match to end' });
+    const pk = String(o.pk || ''), key = parsePubkey(pk);
+    if (!me.walletMsg || !key) return this._send(ws, { t: 'wallet', a: 'err', e: 'Bad wallet proof' });
+    let sig;
+    try { sig = b64decode(String(o.sig || '')); } catch { sig = new Uint8Array(0); }
+    const msg = me.walletMsg;
+    me.walletMsg = null;   // one try per nonce
+    if (!(await verifyEd25519(key, msg, sig))) { ws.serializeAttachment(me); return this._send(ws, { t: 'wallet', a: 'err', e: 'Signature check failed' }); }
+    if (this.members().some((m) => m.ws !== ws && m.a.wallet === pk)) { ws.serializeAttachment(me); return this._send(ws, { t: 'wallet', a: 'err', e: 'That wallet is already in this room' }); }
+    me.wallet = pk;
+    ws.serializeAttachment(me);
+    this._send(ws, { t: 'wallet', a: 'ok', pk });
+  }
+
+  // match start (the host locks the room): snapshot the humans and their wallets, get a seed commitment
+  async _prizeStart() {
+    this.round = null;
+    const ledger = this._ledger();
+    if (!ledger) return;
+    const humans = this.members().map((m) => ({ id: m.a.id, name: m.a.name, wallet: m.a.wallet || null }));
+    const id = crypto.randomUUID();
+    let c;
+    try { c = await ledger.commit(id, this.code || this.members()[0]?.a.code, humans.length); } catch (e) { console.error('[prize] commit', e); return; }
+    if (c.skip) { this._toAll({ t: 'prize', a: 'skip', reason: c.skip }); return; }
+    this.round = { id, humans, reports: new Map(), hash: c.hash, settled: false };
+    this._toAll({ t: 'prize', a: 'commit', round: id, hash: c.hash, poolSol: c.poolSol });
+  }
+
+  async _prizeReport(me, o) {
+    const r = this.round;
+    if (!r || r.settled || o.r !== r.id || !r.humans.some((h) => h.id === me.id) || r.reports.has(me.id) || !Array.isArray(o.w)) return;
+    r.reports.set(me.id, o.w.slice(0, 8).map(String));
+    const here = new Set(this.members().map((m) => m.a.id));
+    if (r.humans.filter((h) => here.has(h.id)).every((h) => r.reports.has(h.id))) await this._prizeSettle();
+  }
+
+  // everyone still here has reported (or the host unlocked the room): agree on the winners, let the ledger draw / pay
+  async _prizeSettle() {
+    const r = this.round, ledger = this._ledger();
+    if (!r || r.settled || !ledger) return;
+    r.settled = true;
+    const here = new Set(this.members().map((m) => m.a.id));
+    const players = r.humans.filter((h) => here.has(h.id));   // left before the end: not eligible
+    const agreed = consensus(r.reports, players.map((h) => h.id));
+    let rec;
+    try { rec = await ledger.settle({ round: r.id, players, winners: agreed.winners || null, voidReason: agreed.error || null }); } catch (e) { console.error('[prize] settle', e); return; }
+    const { candidates, rejected, ...pub } = rec;
+    this._toAll({ t: 'prize', a: 'reveal', ...pub, candidates: candidates?.length || 0 });
   }
 
   async webSocketClose(ws) { this._gone(ws); }
@@ -142,5 +236,20 @@ export class Room extends DurableObject {
     const out = JSON.stringify({ t: 'leave', id: a.id, host });
     for (const m of this.members()) try { m.ws.send(out); } catch { /* closing */ }
     if (!this.members().length) this.locked = false;
+    // a player leaving mid-round no longer needs to report: settle if everyone left has
+    const r = this.round;
+    if (r && !r.settled && r.reports.size && r.humans.filter((h) => this.members().some((m) => m.a.id === h.id)).every((h) => r.reports.has(h.id))) this._prizeSettle().catch((e) => console.error('[prize] settle', e));
   }
+}
+
+// The prize ledger: a single Durable Object for the whole relay (commits, cooldowns, payouts; see ledger.js).
+export class Prizes extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.ledger = new PrizeLedger({ env, storage: ctx.storage });
+  }
+  status() { return this.ledger.status(); }
+  recent(n) { return this.ledger.recent(n); }
+  commit(round, room, humans) { return this.ledger.commit(round, room, humans); }
+  settle(input) { return this.ledger.settle(input); }
 }
