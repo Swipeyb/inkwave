@@ -165,13 +165,16 @@ class PrizeUI {
       ? `<div class="iw-prize__wallet">◎ ${esc(shortAddr(this.wallet))} ✓</div>`
       : `<button class="iw-prize__btn" data-act="connect" ${this.busy ? 'disabled' : ''}>${this.busy ? 'Check your wallet…' : solanaProvider() ? 'Connect wallet to win' : 'Get a Solana wallet'}</button>`;
     const pct = i.minPct === i.maxPct ? `${i.minPct}%` : `${i.minPct}–${i.maxPct}%`;
-    const est = i.prizeMaxSol == null || !i.prizeMaxSol ? 'Pool filling up…'
+    // below the reserve there's no prize yet: show the pool itself, and when prizes kick in
+    const noPrize = i.prizeMaxSol == null || !i.prizeMaxSol;
+    const est = noPrize ? (i.poolSol != null ? `◎ ${sol(i.poolSol)} SOL pool` : 'Pool filling up…')
       : i.prizeMinSol === i.prizeMaxSol ? `◎ ${sol(i.prizeMaxSol)} SOL` : `◎ ${sol(i.prizeMinSol)}–${sol(i.prizeMaxSol)} SOL`;
+    const sub = noPrize ? `Prizes start once the pool passes ${i.reserveSol ?? 0.05} SOL` : `Winning holders split it · ${holdTxt}`;
     // the full rules live in the tooltip; the card itself stays two short lines
     this.el.title = `${pct} of the ${sol(i.poolSol)} SOL prize pool (max ${i.maxSol} SOL) per match, split between the wallet holders on the winning team. Needs a holder on each team.`;
-    this.el.innerHTML = `<div class="iw-prize__k">${hub ? 'Next match prize' : 'Prize this match'}${tag}</div>
+    this.el.innerHTML = `<div class="iw-prize__k">${noPrize ? 'Prize pool' : hub ? 'Next match prize' : 'Prize this match'}${tag}</div>
       <div class="iw-prize__pool">${est}</div>
-      <div class="iw-prize__note">Winning holders split it · ${holdTxt}</div>
+      <div class="iw-prize__note">${sub}</div>
       ${hub ? '' : wallet}${this.err && !hub ? `<div class="iw-prize__err">${esc(this.err)}</div>` : ''}`;
   }
 }
