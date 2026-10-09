@@ -23,7 +23,9 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
  */
 export function prizeConfig(env = {}) {
   const treasury = env.TREASURY_PUBLIC_KEY && parsePubkey(env.TREASURY_PUBLIC_KEY) ? String(env.TREASURY_PUBLIC_KEY).trim() : null;
-  const rpcUrl = env.SOLANA_RPC_URL ? String(env.SOLANA_RPC_URL).trim() : null;
+  // HELIUS_RPC_URL (a secret: the URL carries an API key) wins over the plain SOLANA_RPC_URL var
+  const rpcRaw = env.HELIUS_RPC_URL || env.SOLANA_RPC_URL;
+  const rpcUrl = rpcRaw ? String(rpcRaw).trim() : null;
   const mint = env.TOKEN_MINT && parsePubkey(env.TOKEN_MINT) ? String(env.TOKEN_MINT).trim() : null;
   let minPct = clamp(num(env.PRIZE_MIN_PCT, 1), 0, 100), maxPct = clamp(num(env.PRIZE_MAX_PCT, 5), 0, 100);
   if (maxPct < minPct) [minPct, maxPct] = [maxPct, minPct];

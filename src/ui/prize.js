@@ -15,7 +15,7 @@ const POLL = 30000;
 const CSS = `
 .iw-prize, .iw-prize-banner { --u: min(1vw, 1.7778vh); }
 .iw-prize { position: fixed; right: calc(var(--u) * 1.6); top: calc(var(--u) * 23); z-index: 40; pointer-events: auto;
-  width: max(220px, calc(var(--u) * 17)); max-height: calc(100vh - var(--u) * 42); overflow: auto; padding: 12px 14px; border-radius: 14px; background: rgba(20, 16, 32, .88);
+  width: auto; max-width: 250px; padding: 8px 12px; border-radius: 12px; background: rgba(20, 16, 32, .88);
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .12), 0 8px 24px rgba(0, 0, 0, .35); color: #fff;
   font: 600 var(--fs-s, 13px)/1.35 Rubik, system-ui, sans-serif; transition: opacity .25s, transform .25s var(--out, ease); }
 .iw-prize[hidden] { display: block; opacity: 0; transform: translateY(12px); pointer-events: none; }
@@ -23,10 +23,10 @@ const CSS = `
 .iw-prize__pool { font: 400 var(--fs-l, 18px)/1.2 'Titan One', Rubik, sans-serif; color: var(--a-light, #ffc48a); margin: 2px 0 4px; }
 .iw-prize__tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, .12); font: 600 10px/1.5 Rubik, sans-serif; color: #fff; vertical-align: middle; letter-spacing: .04em; }
 .iw-prize__note { font-size: var(--fs-xs, 11px); color: var(--muted, #c3bdd6); font-weight: 500; }
-.iw-prize__btn { margin-top: 8px; width: 100%; padding: 7px 10px; border: 0; border-radius: 10px; cursor: pointer;
+.iw-prize__btn { margin-top: 6px; width: 100%; padding: 6px 10px; border: 0; border-radius: 10px; cursor: pointer;
   background: var(--a, #22e0a1); color: var(--a-ink, #15121c); font: 700 var(--fs-s, 13px)/1.2 Rubik, sans-serif; }
 .iw-prize__btn:disabled { opacity: .6; cursor: default; }
-.iw-prize__wallet { margin-top: 8px; font-family: ui-monospace, monospace; font-size: var(--fs-xs, 11px); }
+.iw-prize__wallet { margin-top: 4px; font-family: ui-monospace, monospace; font-size: var(--fs-xs, 11px); }
 .iw-prize__err { margin-top: 6px; color: #ff8fa3; font-size: var(--fs-xs, 11px); }
 .iw-prize-banner { position: fixed; left: 50%; top: calc(var(--u) * 1.4); transform: translateX(-50%); z-index: 45; pointer-events: none;
   max-width: min(92vw, 720px); padding: 10px 18px; border-radius: 14px; background: rgba(20, 16, 32, .9); color: #fff; text-align: center;
@@ -160,18 +160,19 @@ class PrizeUI {
     this.el.hidden = !show;
     if (!show) return;
     const tag = i.mode !== 'live' ? '<span class="iw-prize__tag">DRY RUN</span>' : '';
-    const usd = i.minHoldingUsd > 0 ? ` (≈ $${esc(Number(i.minHoldingUsd).toLocaleString())})` : '';
-    const hold = i.minHolding > 0 && i.mint ? `<div class="iw-prize__note">Hold ≥ ${esc(Math.ceil(Number(i.minHolding)).toLocaleString())} $SPLURT${usd} to win.</div>` : '';
+    const holdTxt = i.minHolding > 0 && i.mint ? (i.minHoldingUsd > 0 ? `hold ~$${esc(Number(i.minHoldingUsd).toLocaleString())} of $SPLURT` : `hold ${esc(Math.ceil(Number(i.minHolding)).toLocaleString())} $SPLURT`) : 'connect a wallet';
     const wallet = this.wallet
-      ? `<div class="iw-prize__wallet">◎ ${esc(shortAddr(this.wallet))} ✓ verified</div>`
+      ? `<div class="iw-prize__wallet">◎ ${esc(shortAddr(this.wallet))} ✓</div>`
       : `<button class="iw-prize__btn" data-act="connect" ${this.busy ? 'disabled' : ''}>${this.busy ? 'Check your wallet…' : solanaProvider() ? 'Connect wallet to win' : 'Get a Solana wallet'}</button>`;
-    const pct = i.minPct === i.maxPct ? `${esc(i.minPct)}%` : `${esc(i.minPct)}–${esc(i.maxPct)}%`;
-    const est = i.prizeMaxSol == null ? '' : !i.prizeMaxSol ? 'Pool too small for a prize right now'
+    const pct = i.minPct === i.maxPct ? `${i.minPct}%` : `${i.minPct}–${i.maxPct}%`;
+    const est = i.prizeMaxSol == null || !i.prizeMaxSol ? 'Pool filling up…'
       : i.prizeMinSol === i.prizeMaxSol ? `◎ ${sol(i.prizeMaxSol)} SOL` : `◎ ${sol(i.prizeMinSol)}–${sol(i.prizeMaxSol)} SOL`;
-    this.el.innerHTML = `<div class="iw-prize__k">${hub ? "Next match prize" : "Prize this match"}${tag}</div>
-      <div class="iw-prize__pool">${est || `◎ ${sol(i.poolSol)} SOL pool`}</div>
-      <div class="iw-prize__note">${pct} of the ◎ ${sol(i.poolSol)} SOL pool (max ${esc(i.maxSol)} SOL) split between the wallet holders on the winning team. Needs a player with a connected wallet on each team.</div>
-      ${hold}${hub ? '<div class="iw-prize__note">Hit QUICK PLAY to play for it.</div>' : wallet}${this.err && !hub ? `<div class="iw-prize__err">${esc(this.err)}</div>` : ''}`;
+    // the full rules live in the tooltip; the card itself stays two short lines
+    this.el.title = `${pct} of the ${sol(i.poolSol)} SOL prize pool (max ${i.maxSol} SOL) per match, split between the wallet holders on the winning team. Needs a holder on each team.`;
+    this.el.innerHTML = `<div class="iw-prize__k">${hub ? 'Next match prize' : 'Prize this match'}${tag}</div>
+      <div class="iw-prize__pool">${est}</div>
+      <div class="iw-prize__note">Winning holders split it · ${holdTxt}</div>
+      ${hub ? '' : wallet}${this.err && !hub ? `<div class="iw-prize__err">${esc(this.err)}</div>` : ''}`;
   }
 }
 
