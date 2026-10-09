@@ -160,21 +160,17 @@ class PrizeUI {
     this.el.hidden = !show;
     if (!show) return;
     const tag = i.mode !== 'live' ? '<span class="iw-prize__tag">DRY RUN</span>' : '';
-    const holdTxt = i.minHolding > 0 && i.mint ? (i.minHoldingUsd > 0 ? `hold ~$${esc(Number(i.minHoldingUsd).toLocaleString())} of $SPLURT` : `hold ${esc(Math.ceil(Number(i.minHolding)).toLocaleString())} $SPLURT`) : 'connect a wallet';
+    // kept deliberately short: pool size, the holding rule, the wallet button (full rules in the tooltip)
+    const usdMin = i.minHoldingUsd > 0 ? i.minHoldingUsd : null;
+    const holdTxt = usdMin ? `Hold min $${esc(Number(usdMin).toLocaleString('en-US'))} of $SPLURT to win`
+      : i.minHolding > 0 ? `Hold min ${esc(Math.ceil(Number(i.minHolding)).toLocaleString('en-US'))} $SPLURT to win` : 'Connect a wallet to win';
     const wallet = this.wallet
       ? `<div class="iw-prize__wallet">◎ ${esc(shortAddr(this.wallet))} ✓</div>`
-      : `<button class="iw-prize__btn" data-act="connect" ${this.busy ? 'disabled' : ''}>${this.busy ? 'Check your wallet…' : solanaProvider() ? 'Connect wallet to win' : 'Get a Solana wallet'}</button>`;
-    const pct = i.minPct === i.maxPct ? `${i.minPct}%` : `${i.minPct}–${i.maxPct}%`;
-    // below the reserve there's no prize yet: show the pool itself, and when prizes kick in
-    const noPrize = i.prizeMaxSol == null || !i.prizeMaxSol;
-    const est = noPrize ? (i.poolSol != null ? `◎ ${sol(i.poolSol)} SOL pool` : 'Pool filling up…')
-      : i.prizeMinSol === i.prizeMaxSol ? `◎ ${sol(i.prizeMaxSol)} SOL` : `◎ ${sol(i.prizeMinSol)}–${sol(i.prizeMaxSol)} SOL`;
-    const sub = noPrize ? `Prizes start once the pool passes ${i.reserveSol ?? 0.05} SOL` : `Winning holders split it · ${holdTxt}`;
-    // the full rules live in the tooltip; the card itself stays two short lines
-    this.el.title = `${pct} of the ${sol(i.poolSol)} SOL prize pool (max ${i.maxSol} SOL) per match, split between the wallet holders on the winning team. Needs a holder on each team.`;
-    this.el.innerHTML = `<div class="iw-prize__k">${noPrize ? 'Prize pool' : hub ? 'Next match prize' : 'Prize this match'}${tag}</div>
-      <div class="iw-prize__pool">${est}</div>
-      <div class="iw-prize__note">${sub}</div>
+      : `<button class="iw-prize__btn" data-act="connect" ${this.busy ? 'disabled' : ''}>${this.busy ? 'Check your wallet…' : solanaProvider() ? 'Connect wallet' : 'Get a Solana wallet'}</button>`;
+    this.el.title = `Each match pays ${i.minPct === i.maxPct ? i.minPct : `${i.minPct}–${i.maxPct}`}% of the pool (max ${i.maxSol} SOL), split between the wallet holders on the winning team. The last ${i.reserveSol ?? 0.05} SOL always stays in the pool.`;
+    this.el.innerHTML = `<div class="iw-prize__k">Prize pool${tag}</div>
+      <div class="iw-prize__pool">◎ ${i.poolSol != null ? sol(i.poolSol) : '—'} SOL</div>
+      <div class="iw-prize__note">${holdTxt}</div>
       ${hub ? '' : wallet}${this.err && !hub ? `<div class="iw-prize__err">${esc(this.err)}</div>` : ''}`;
   }
 }
