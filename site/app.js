@@ -1,30 +1,29 @@
-// DRAFTPUMP front end: plain ES module, hash routes (#/  #/draft  #/team/<id>). Talks to the Worker under /api/.
+// DRAFTPUMP front end: a memecoin "sportsbook". Plain ES module; hash routes #/board #/standings #/me #/team/<id>.
 const API = '/api';
 const TEAM = 5;
-const $view = document.getElementById('view');
-const $who = document.getElementById('who');
+const $ = (id) => document.getElementById(id);
+const $view = $('view'), $slip = $('slip');
 
-// ---------------------------------------------------------------- tiny helpers
+// ---------------------------------------------------------------- helpers
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const pct = (v) => `${v > 0 ? '+' : ''}${(Math.round(v * 10) / 10).toFixed(1)}%`;
+const pct = (v) => `${v > 0 ? '+' : ''}${(Math.round((v || 0) * 10) / 10).toFixed(1)}%`;
 const cls = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : '');
-const usd = (v) => (v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${Math.round(v / 1e3)}k` : `$${Math.round(v)}`);
-const ago = (t) => { const m = Math.max(0, (Date.now() - t) / 60000); return m < 60 ? `${Math.round(m)}m` : `${Math.round(m / 60)}h`; };
-const left = (t) => { const s = Math.max(0, t - Date.now()) / 1000; return s <= 0 ? 'final' : `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m left`; };
+const usd = (v) => (v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${Math.round(v / 1e3)}k` : `$${Math.round(v || 0)}`);
+const age = (t) => { const m = Math.max(0, (Date.now() - t) / 60000); return m < 60 ? `${Math.round(m)}m` : `${Math.round(m / 60)}h`; };
+const hms = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return [s / 3600, (s % 3600) / 60, s % 60].map((x) => String(Math.floor(x)).padStart(2, '0')).join(':'); };
 const img = (src, alt = '') => (src && /^https:\/\//.test(src) ? `<img src="${esc(src)}" alt="${esc(alt)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'ic'}))">` : '<span class="ic"></span>');
+const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { /* no haptics */ } };
 
 function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('on');
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2600);
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2400);
 }
-
-const store = {
-  get() { try { return JSON.parse(localStorage.getItem('dp.auth') || 'null'); } catch { return null; } },
-  set(v) { try { localStorage.setItem('dp.auth', JSON.stringify(v)); } catch { /* private mode: lives for this tab */ } store._mem = v; },
-  _mem: null,
+const ls = {
+  get(k, d = null) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } },
 };
-const auth = () => store.get() || store._mem;
+let authMem = null;
+const auth = () => ls.get('dp.auth') || authMem;
 
 async function api(path, { method = 'GET', body = null, signed = false } = {}) {
   const headers = { accept: 'application/json' };
@@ -37,236 +36,285 @@ async function api(path, { method = 'GET', body = null, signed = false } = {}) {
   return j;
 }
 
+// ---------------------------------------------------------------- shared state
+const S = {
+  pool: [], refreshed: 0, prevChg: new Map(),
+  slip: new Map((ls.get('dp.slip', []) || []).map((c) => [c.mint, c])),   // mint → coin (kept across reloads)
+  me: null, prevRank: new Map(), slipOpen: false, justLocked: null,
+};
+const saveSlip = () => ls.set('dp.slip', [...S.slip.values()]);
+
+// ---------------------------------------------------------------- live clock (round closes at midnight UTC)
+function tickClock() {
+  const now = new Date(), end = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  $('clockT').textContent = hms(end - now);
+}
+setInterval(tickClock, 1000); tickClock();
+
+// ---------------------------------------------------------------- data loops
+async function loadPool() {
+  try {
+    const p = await api('/pool');
+    S.prevChg = new Map(S.pool.map((c) => [c.mint, c.chg1h]));
+    S.pool = p.coins || []; S.refreshed = p.refreshed || 0;
+    // a coin that dropped out of the draft list can't stay on the slip
+    let dropped = 0;
+    for (const m of [...S.slip.keys()]) if (!S.pool.some((c) => c.mint === m)) { S.slip.delete(m); dropped++; }
+    if (dropped) { saveSlip(); toast(`${dropped} pick${dropped > 1 ? 's' : ''} left the board — choose again`); }
+    renderTape();
+  } catch { /* keep the last list */ }
+}
+async function loadMe() {
+  if (!auth()) { S.me = null; return; }
+  try { S.me = await api('/me', { signed: true }); } catch { S.me = null; }
+}
+
+function renderTape() {
+  const top = [...S.pool].sort((a, b) => Math.abs(b.chg1h) - Math.abs(a.chg1h)).slice(0, 12);
+  if (!top.length) { $('tapeIn').innerHTML = '<span class="tk">Loading markets…</span>'; return; }
+  const items = top.map((c) => `<a class="tk" href="${esc(c.url)}" target="_blank" rel="noopener">${img(c.image, c.symbol)}$${esc(c.symbol)} <span class="${cls(c.chg1h)}">${pct(c.chg1h)}</span></a>`).join('');
+  $('tapeIn').innerHTML = items + items;   // twice: the strip loops seamlessly at -50 %
+}
+
 // ---------------------------------------------------------------- router
-let timer = null;
+let loop = null;
 function route() {
-  clearInterval(timer); timer = null;
-  const a = auth();
-  $who.textContent = a ? `@${a.name}` : '';
-  const h = location.hash.replace(/^#/, '') || '/';
-  document.body.classList.toggle('drafting', h === '/draft');
-  if (h === '/draft') return draftView();
+  clearInterval(loop); loop = null;
+  const h = location.hash.replace(/^#/, '') || '/board';
+  const tab = h.startsWith('/standings') ? 'standings' : h.startsWith('/me') || h.startsWith('/team') ? 'me' : 'board';
+  document.querySelectorAll('#tabs a').forEach((a) => a.classList.toggle('on', a.dataset.t === tab));
   const m = h.match(/^\/team\/([0-9a-f]+)$/);
-  if (m) return teamView(m[1]);
-  return homeView();
+  if (m) return ticketView(m[1]);
+  if (tab === 'standings') return standingsView();
+  if (tab === 'me') return meView();
+  return marketsView();
 }
-addEventListener('hashchange', route);
+addEventListener('hashchange', () => { route(); scrollTo(0, 0); });
 
-// ---------------------------------------------------------------- home
-async function homeView() {
+// ---------------------------------------------------------------- markets (the draft board)
+let filter = 'hot';
+async function marketsView() {
   $view.innerHTML = `
-    <section class="hero">
-      <h1>Fantasy <em>memecoins.</em></h1>
-      <p>Draft 5 fresh Solana launches. Your score is how much they pump over the next 24 hours. Best team tops today’s board.</p>
-    </section>
-    <div id="mine"></div>
-    <section class="card"><h2>Today’s board <span id="count"></span></h2><ol class="board" id="board"><li class="skel"></li><li class="skel"></li></ol></section>
-    <section class="card"><h2>How it works</h2><ol class="steps">
-      <li>Pick 5 coins from the live list of today’s hottest new launches.</li>
-      <li>Lock in. Each coin’s price is recorded right then.</li>
-      <li>24 hours later your score is the average % move of your 5. One team per day.</li>
-    </ol><p class="empty">Free. No wallet, no sign-up form — just a nickname.</p></section>`;
-  const load = async () => {
-    const a = auth();
-    const [board, me] = await Promise.all([api('/board').catch(() => null), a ? api('/me', { signed: true }).catch(() => null) : null]);
-    renderMine(me);
-    if (board) renderBoard(board);
-  };
-  await load();
-  timer = setInterval(load, 60000);
-}
-
-function renderMine(me) {
-  const el = document.getElementById('mine');
-  if (!el) return;
-  if (me?.today) {
-    const t = me.today;
-    el.innerHTML = `<section class="card"><h2>Your team today</h2>
-      <div class="team__score num ${cls(t.score)}">${pct(t.score)}</div>
-      <div class="team__meta">${me.rank ? `#${me.rank} on the board · ` : ''}${t.final ? 'final' : left(t.ends)}</div>
-      ${picksHTML(t.picks)}
-      <div class="row" style="margin-top:14px"><a class="btn btn--wide" href="#/team/${t.id}">Share my team</a></div></section>`;
-  } else {
-    el.innerHTML = `<a class="btn btn--wide" href="#/draft" style="margin-top:8px">Draft today’s team →</a>`;
-  }
-}
-
-function picksHTML(picks) {
-  return `<div class="picks">${(picks || []).map((p) => `
-    <a class="pick ${p.dead ? 'dead' : ''}" href="${esc(p.url || '#')}" target="_blank" rel="noopener">
-      ${img(p.image, p.symbol)}
-      <div style="min-width:0"><div class="pick__sym">$${esc(p.symbol || '?')}</div><div class="pick__name">${esc(p.dead ? 'rugged / no liquidity' : p.name || '')}</div></div>
-      <span class="pick__pct num ${cls(p.pct)}">${pct(p.pct)}</span></a>`).join('')}</div>`;
-}
-
-function renderBoard(b) {
-  const list = document.getElementById('board'), cnt = document.getElementById('count');
-  if (!list) return;
-  if (cnt) cnt.textContent = b.count ? `· ${b.count} team${b.count === 1 ? '' : 's'}` : '';
-  if (!b.top.length) { list.innerHTML = '<li class="empty" style="display:block">No teams yet today — be first.</li>'; return; }
-  list.innerHTML = b.top.map((t, i) => `<li><a href="#/team/${t.id}"><span class="rank">${i + 1}</span>
-    <span><span class="name">${esc(t.name)}</span><span class="icons">${t.picks.map((p) => img(p.image, p.symbol)).join('')}</span></span>
-    <span class="sc ${cls(t.score)}">${pct(t.score)}</span></a></li>`).join('');
-}
-
-// ---------------------------------------------------------------- draft
-async function draftView() {
-  const picked = new Map();   // mint → coin
-  let coins = [], sort = 'hot';
-  $view.innerHTML = `
-    <div class="draft__head"><h1>Pick ${TEAM}</h1><span class="who" id="fresh"></span></div>
-    <div class="sorts" role="tablist">
-      <button data-s="hot" class="on">🔥 Hot</button><button data-s="new">🆕 Newest</button><button data-s="up">📈 1h gain</button><button data-s="mcap">💰 Mcap</button>
+    <div class="lede"><div><h1>Today’s markets</h1><p>Tap 5 coins to build your slip. Best 24h move wins the day.</p></div><span class="upd" id="upd"></span></div>
+    <div class="filters" id="filters">
+      <button data-f="hot" class="${filter === 'hot' ? 'on' : ''}">Hot</button><button data-f="new" class="${filter === 'new' ? 'on' : ''}">Just launched</button>
+      <button data-f="up" class="${filter === 'up' ? 'on' : ''}">Pumping</button><button data-f="down" class="${filter === 'down' ? 'on' : ''}">Dipping</button><button data-f="mcap" class="${filter === 'mcap' ? 'on' : ''}">Biggest</button>
     </div>
-    <div class="coins" id="coins">${'<div class="skel"></div>'.repeat(6)}</div>
-    <div class="tray"><div class="tray__in"><div class="slots" id="slots"></div><button class="btn" id="lock" disabled>Lock in</button></div></div>`;
-  const $coins = document.getElementById('coins'), $slots = document.getElementById('slots'), $lock = document.getElementById('lock');
-
-  const a = auth();
-  if (a) {
-    const me = await api('/me', { signed: true }).catch(() => null);
-    if (me?.today) { toast('You already drafted today'); location.hash = `#/team/${me.today.id}`; return; }
-  }
-
-  const sorted = () => {
-    const c = [...coins];
-    if (sort === 'new') c.sort((x, y) => y.created - x.created);
-    if (sort === 'up') c.sort((x, y) => y.chg1h - x.chg1h);
-    if (sort === 'mcap') c.sort((x, y) => y.mcap - x.mcap);
-    return c;
-  };
-  const render = () => {
-    $coins.innerHTML = sorted().map((c) => `
-      <button class="coin ${picked.has(c.mint) ? 'on' : ''}" data-m="${esc(c.mint)}" aria-pressed="${picked.has(c.mint)}">
-        ${img(c.image, c.symbol)}
-        <span style="min-width:0"><span class="coin__sym">$${esc(c.symbol)}</span> <span class="coin__sub">${esc(c.name)}</span>
-          <span class="coin__sub" style="display:block">${ago(c.created)} old · liq ${usd(c.liq)}</span></span>
-        <span class="coin__right">${usd(c.mcap)}<small class="${cls(c.chg1h)}">${pct(c.chg1h)} 1h</small></span>
-      </button>`).join('') || '<p class="empty">No coins pass the filters right now — check back in a few minutes.</p>';
-    const ps = [...picked.values()];
-    $slots.innerHTML = Array.from({ length: TEAM }, (_, i) => ps[i] ? `<span class="slot full">${img(ps[i].image, ps[i].symbol)}</span>` : `<span class="slot">${i + 1}</span>`).join('');
-    $lock.disabled = picked.size !== TEAM;
-    $lock.textContent = picked.size === TEAM ? 'Lock in team' : `${picked.size}/${TEAM}`;
-  };
-
-  document.querySelector('.sorts').addEventListener('click', (e) => {
+    <div class="mkts" id="mkts">${'<div class="skel"></div>'.repeat(6)}</div>
+    <p class="how"><b>How it works:</b> your picks’ prices are locked the moment you submit. Over the next 24 hours your slip scores the average % move of its 5 coins. A rugged coin counts −100%. One slip per day, free, no wallet.</p>`;
+  $('filters').onclick = (e) => {
     const b = e.target.closest('button'); if (!b) return;
-    sort = b.dataset.s;
-    document.querySelectorAll('.sorts button').forEach((x) => x.classList.toggle('on', x === b));
-    render();
-  });
-  $coins.addEventListener('click', (e) => {
-    const b = e.target.closest('.coin'); if (!b) return;
-    const m = b.dataset.m;
-    if (picked.has(m)) picked.delete(m);
-    else if (picked.size >= TEAM) { toast(`Max ${TEAM} — tap one to drop it`); return; }
-    else picked.set(m, coins.find((c) => c.mint === m));
-    render();
-  });
-  $lock.addEventListener('click', async () => {
-    if (picked.size !== TEAM) return;
-    if (!auth()) { const ok = await askName(); if (!ok) return; }
-    $lock.disabled = true; $lock.textContent = 'Locking…';
-    try {
-      const e = await api('/draft', { method: 'POST', body: { mints: [...picked.keys()] }, signed: true });
-      toast('Team locked 🔒 — good luck');
-      location.hash = `#/team/${e.id}`;
-    } catch (err) {
-      toast(err.message);
-      if (/left the draft/.test(err.message)) await loadPool();
-      render();
-    }
-  });
-
-  const loadPool = async () => {
-    try {
-      const p = await api('/pool');
-      coins = p.coins || [];
-      for (const m of [...picked.keys()]) if (!coins.some((c) => c.mint === m)) picked.delete(m);
-      const f = document.getElementById('fresh'); if (f && p.refreshed) f.textContent = `updated ${ago(p.refreshed)} ago`;
-    } catch (e) { toast('Couldn’t load coins — retrying'); }
-    render();
+    filter = b.dataset.f;
+    $('filters').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+    renderMarkets(false);
   };
-  await loadPool();
-  timer = setInterval(loadPool, 90000);
+  $('mkts').onclick = (e) => {
+    const b = e.target.closest('[data-m]'); if (!b) return;
+    togglePick(b.dataset.m);
+  };
+  if (!S.pool.length) await loadPool();
+  await loadMe();
+  renderMarkets(false); renderSlip();
+  loop = setInterval(async () => { await loadPool(); renderMarkets(true); renderSlip(); }, 30000);
+}
+
+function sortedPool() {
+  const c = [...S.pool];
+  if (filter === 'new') c.sort((a, b) => b.created - a.created);
+  if (filter === 'up') c.sort((a, b) => b.chg1h - a.chg1h);
+  if (filter === 'down') c.sort((a, b) => a.chg1h - b.chg1h);
+  if (filter === 'mcap') c.sort((a, b) => b.mcap - a.mcap);
+  return c;
+}
+
+function renderMarkets(flash) {
+  const el = $('mkts'); if (!el) return;
+  const upd = $('upd'); if (upd && S.refreshed) upd.textContent = `prices ${age(S.refreshed)} old`;
+  const rows = sortedPool();
+  if (!rows.length) { el.innerHTML = '<p class="empty">No coins pass the filters right now. New launches are checked every 5 minutes.</p>'; return; }
+  el.innerHTML = rows.map((c) => {
+    const on = S.slip.has(c.mint), prev = S.prevChg.get(c.mint);
+    const fl = flash && prev != null && prev !== c.chg1h ? (c.chg1h > prev ? 'flash-up' : 'flash-down') : '';
+    return `<div class="mkt">
+      ${img(c.image, c.symbol)}
+      <div style="min-width:0"><div class="mkt__sym">$${esc(c.symbol)}</div><div class="mkt__sub">${esc(c.name)} · ${age(c.created)} old · liq ${usd(c.liq)}</div></div>
+      <div class="mkt__stat">${usd(c.mcap)}<small>mcap</small></div>
+      <button class="odds ${on ? 'on' : ''} ${fl}" data-m="${esc(c.mint)}" aria-pressed="${on}" aria-label="${on ? 'Remove' : 'Add'} $${esc(c.symbol)}">
+        <span class="${on ? '' : cls(c.chg1h)}">${pct(c.chg1h)}</span><small>${on ? 'on slip ✓' : '1h · add'}</small></button>
+    </div>`;
+  }).join('');
+}
+
+function togglePick(mint) {
+  if (S.me?.today) { toast('You already locked today’s slip'); return; }
+  if (S.slip.has(mint)) S.slip.delete(mint);
+  else if (S.slip.size >= TEAM) { toast(`Your slip is full — remove one first`); buzz(30); return; }
+  else { S.slip.set(mint, S.pool.find((c) => c.mint === mint)); buzz(); }
+  saveSlip(); renderMarkets(false); renderSlip();
+}
+
+// ---------------------------------------------------------------- the slip drawer
+function renderSlip() {
+  const onMarkets = (location.hash || '#/board').startsWith('#/board') || location.hash === '';
+  if (!onMarkets) { $slip.hidden = true; return; }
+  if (S.me?.today) {
+    $slip.hidden = false; $slip.classList.remove('open');
+    $slip.innerHTML = `<div class="slip__in"><a class="cta cta--ghost" href="#/team/${S.me.today.id}">Today’s slip is locked · ${pct(S.me.today.score)} · view ticket</a></div>`;
+    return;
+  }
+  const picks = [...S.slip.values()], n = picks.length;
+  $slip.hidden = n === 0 && !S.slipOpen;
+  $slip.classList.toggle('open', S.slipOpen && n > 0);
+  $slip.innerHTML = `<div class="slip__in">
+    <button class="slip__head" id="slipHead" aria-expanded="${S.slipOpen}"><span class="slip__title">Your slip</span><span class="slip__count">${n}/${TEAM}</span>
+      <span class="slip__dots">${Array.from({ length: TEAM }, (_, i) => `<i class="${i < n ? 'full' : ''}"></i>`).join('')}</span></button>
+    <div class="slip__list">${picks.map((c) => `<div class="sl">${img(c.image, c.symbol)}<span><b>$${esc(c.symbol)}</b></span><span class="num ${cls(c.chg1h)}">${pct(c.chg1h)} 1h</span><button data-rm="${esc(c.mint)}" aria-label="Remove $${esc(c.symbol)}">×</button></div>`).join('')}</div>
+    <button class="cta" id="lockBtn" ${n === TEAM ? '' : 'disabled'}>${n === TEAM ? 'Lock in slip' : `Add ${TEAM - n} more`}</button></div>`;
+  $('slipHead').onclick = () => { S.slipOpen = !S.slipOpen; renderSlip(); };
+  $slip.querySelectorAll('[data-rm]').forEach((b) => (b.onclick = () => togglePick(b.dataset.rm)));
+  $('lockBtn').onclick = lockSlip;
+}
+
+async function lockSlip() {
+  if (S.slip.size !== TEAM) return;
+  if (!auth()) { const ok = await askName(); if (!ok) return; }
+  const btn = $('lockBtn'); btn.disabled = true; btn.textContent = 'Locking prices…';
+  try {
+    const e = await api('/draft', { method: 'POST', body: { mints: [...S.slip.keys()] }, signed: true });
+    S.slip.clear(); saveSlip(); S.slipOpen = false; S.justLocked = e.id; buzz(25);
+    location.hash = `#/team/${e.id}`;
+  } catch (err) {
+    toast(err.message);
+    if (/left the draft/.test(err.message)) await loadPool();
+    renderMarkets(false); renderSlip();
+  }
 }
 
 function askName() {
   return new Promise((resolve) => {
     const m = document.createElement('div');
     m.className = 'modal';
-    m.innerHTML = `<form class="sheet"><h3>Pick a nickname</h3><p>Shown on the leaderboard. No wallet, no email.</p>
-      <input class="field" name="n" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="trench_king" required>
-      <div class="err"></div><div class="row"><button class="btn" type="submit" style="flex:1">Let’s go</button><button class="btn btn--ghost" type="button" data-x>Cancel</button></div></form>`;
+    m.innerHTML = `<form class="sheet"><h3>Choose a nickname</h3><p>It’s how you show up in the standings. No wallet, no email.</p>
+      <input class="field" name="n" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="trench_king" required aria-label="Nickname">
+      <div class="err" id="nmErr"></div><button class="cta" type="submit">Save and lock slip</button><button class="cta cta--ghost" type="button" data-x>Cancel</button></form>`;
     document.body.appendChild(m);
-    const f = m.querySelector('form'), inp = f.n, er = m.querySelector('.err');
-    setTimeout(() => inp.focus(), 50);
+    const f = m.querySelector('form');
+    setTimeout(() => f.n.focus(), 50);
     const close = (v) => { m.remove(); resolve(v); };
     m.querySelector('[data-x]').onclick = () => close(false);
     m.addEventListener('click', (e) => { if (e.target === m) close(false); });
     f.onsubmit = async (e) => {
-      e.preventDefault();
-      er.textContent = '';
-      try { const j = await api('/join', { method: 'POST', body: { name: inp.value.trim() } }); store.set(j); $who.textContent = `@${j.name}`; close(true); }
-      catch (err) { er.textContent = err.message; }
+      e.preventDefault(); $('nmErr').textContent = '';
+      try { const j = await api('/join', { method: 'POST', body: { name: f.n.value.trim() } }); ls.set('dp.auth', j); authMem = j; close(true); }
+      catch (err) { $('nmErr').textContent = err.message; }
     };
   });
 }
 
-// ---------------------------------------------------------------- team (public, shareable)
-async function teamView(id) {
-  $view.innerHTML = '<div class="skel" style="height:220px;margin-top:16px"></div>';
+// ---------------------------------------------------------------- standings
+async function standingsView() {
+  renderSlip();
+  $view.innerHTML = `<div class="lede"><div><h1>Standings</h1><p id="cnt">Today’s slips, ranked by live score.</p></div></div><ol class="stand" id="stand">${'<li class="skel"></li>'.repeat(5)}</ol>`;
   const load = async () => {
-    let t;
-    try { t = await api(`/entry?id=${encodeURIComponent(id)}`); } catch (e) { $view.innerHTML = `<p class="empty">${esc(e.message)}</p><a class="btn" href="#/">Home</a>`; return; }
-    const mine = auth()?.name === t.name;
-    $view.innerHTML = `<section class="card"><h2>${esc(t.name)}’s team · ${esc(t.day)}</h2>
-      <div class="team__score num ${cls(t.score)}">${pct(t.score)}</div>
-      <div class="team__meta">${t.final ? 'Final score' : left(t.ends)}</div>
-      ${picksHTML(t.picks)}
-      <div class="row" style="margin-top:14px">
-        ${mine ? '<button class="btn" id="share" style="flex:1">Share on X</button><button class="btn btn--ghost" id="card">Save image</button>' : '<a class="btn" href="#/draft" style="flex:1">Draft your own team</a>'}
-      </div></section>
-      <a class="btn btn--ghost btn--wide" href="#/" style="margin-top:12px">Today’s board</a>`;
-    if (mine) {
-      document.getElementById('share').onclick = () => shareX(t);
-      document.getElementById('card').onclick = () => saveCard(t);
-    }
+    const b = await api('/board').catch(() => null);
+    if (!b || !$('stand')) return;
+    $('cnt').textContent = b.count ? `${b.count} slip${b.count === 1 ? '' : 's'} today, ranked by live score.` : 'No slips yet today.';
+    const me = auth()?.name;
+    if (!b.top.length) { $('stand').innerHTML = '<li class="empty">Nobody has locked a slip today. <a href="#/board">Be first</a>.</li>'; return; }
+    $('stand').innerHTML = b.top.map((t, i) => {
+      const was = S.prevRank.get(t.id), mv = was == null || was === i ? '' : was > i ? '<span class="up">▲</span>' : '<span class="down">▼</span>';
+      return `<li class="${t.name === me ? 'me' : ''}"><a href="#/team/${t.id}"><span class="pos">${i + 1}</span><span class="mv">${mv}</span>
+        <span><span class="nm">${esc(t.name)}</span><span class="ics">${t.picks.map((p) => img(p.image, p.symbol)).join('')}</span></span>
+        <span class="sc ${cls(t.score)}">${pct(t.score)}</span></a></li>`;
+    }).join('');
+    S.prevRank = new Map(b.top.map((t, i) => [t.id, i]));
   };
   await load();
-  timer = setInterval(load, 60000);
+  loop = setInterval(load, 30000);
+}
+
+// ---------------------------------------------------------------- my slips
+async function meView() {
+  renderSlip();
+  if (!auth()) { $view.innerHTML = `<p class="empty">You haven’t played yet.</p><a class="cta" href="#/board">Build today’s slip</a>`; return; }
+  $view.innerHTML = '<div class="skel" style="height:240px"></div>';
+  await loadMe();
+  const me = S.me;
+  if (!me) { $view.innerHTML = '<p class="empty">Couldn’t load your slips. Pull to refresh.</p>'; return; }
+  const list = me.history || [];
+  $view.innerHTML = `<div class="lede"><div><h1>${esc(me.name)}</h1><p>${list.length} slip${list.length === 1 ? '' : 's'} played</p></div></div>
+    ${me.today ? '' : '<a class="cta" href="#/board" style="margin-bottom:12px">Build today’s slip</a>'}
+    <ol class="stand">${list.map((e) => `<li><a href="#/team/${e.id}"><span class="pos" style="font-size:15px">${esc(e.day.slice(5))}</span><span></span>
+      <span><span class="nm">${e.final ? 'Final' : 'Live'}</span><span class="ics">${e.picks.map((p) => img(p.image, p.symbol)).join('')}</span></span>
+      <span class="sc ${cls(e.score)}">${pct(e.score)}</span></a></li>`).join('')}</ol>`;
+}
+
+// ---------------------------------------------------------------- ticket (one locked slip; public, shareable)
+async function ticketView(id) {
+  renderSlip();
+  $view.innerHTML = '<div class="skel" style="height:320px"></div>';
+  const fresh = S.justLocked === id; S.justLocked = null;
+  const load = async (first) => {
+    let t;
+    try { t = await api(`/entry?id=${encodeURIComponent(id)}`); } catch (e) { $view.innerHTML = `<p class="empty">${esc(e.message)}</p><a class="cta" href="#/board">Back to markets</a>`; return; }
+    const mine = auth()?.name === t.name;
+    const left = t.ends - Date.now();
+    $view.innerHTML = `<article class="ticket">
+      <div class="ticket__top"><div><div class="ticket__who">${esc(t.name)}</div><div class="ticket__when">Slip for ${esc(t.day)} · ${t.final ? 'settled' : `settles in ${hms(left)}`}</div></div>
+        <span class="stamp ${t.final ? 'final' : ''} ${first && fresh ? 'in' : ''}">${t.final ? 'Final' : 'Locked'}</span></div>
+      <div class="ticket__score ${cls(t.score)}">${pct(t.score)}</div>
+      <div class="ticket__rank" id="tRank"></div>
+      <div class="perf"></div>
+      <div class="pks">${t.picks.map((p) => `<a class="pk ${p.dead ? 'dead' : ''}" href="${esc(p.url || '#')}" target="_blank" rel="noopener">${img(p.image, p.symbol)}
+        <span><b>$${esc(p.symbol || '?')}</b><small>${p.dead ? 'rugged — counts −100%' : esc(p.name || '')}</small></span><span class="num ${cls(p.pct)}">${pct(p.pct)}</span></a>`).join('')}</div>
+    </article>
+    ${mine ? '<div class="row2"><button class="cta" id="shareX">Post to X</button><button class="cta cta--ghost" id="saveImg">Save image</button></div>'
+      : '<a class="cta" href="#/board">Build your own slip</a>'}
+    <a class="cta cta--ghost" href="#/standings">See standings</a>`;
+    if (mine) {
+      $('shareX').onclick = () => shareX(t);
+      $('saveImg').onclick = () => saveCard(t);
+      await loadMe();
+      if (S.me?.rank && S.me.today?.id === t.id) $('tRank').innerHTML = `Currently <b>#${S.me.rank}</b> today`;
+    }
+  };
+  await load(true);
+  loop = setInterval(() => load(false), 30000);
 }
 
 function shareX(t) {
   const url = `${location.origin}/#/team/${t.id}`;
-  const text = `My DRAFTPUMP team is ${pct(t.score)} ${t.score >= 0 ? '🔥' : '💀'}\n\n${t.picks.map((p) => `$${p.symbol} ${pct(p.pct)}`).join('\n')}\n\nThink you can draft better?`;
+  const text = `My DRAFTPUMP slip is ${pct(t.score)} ${t.score >= 0 ? '🔥' : '💀'}\n\n${t.picks.map((p) => `$${p.symbol} ${pct(p.pct)}`).join('\n')}\n\nThink you can draft better?`;
   window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'noopener');
 }
 
-// share card: 1200×630 PNG drawn on a canvas (text only: coin logos from other sites would block the export)
+// share image: a 1200×630 ticket drawn on a canvas (text only: coin logos from other sites would block the export)
 async function saveCard(t) {
   await document.fonts?.ready;
   const c = document.createElement('canvas'); c.width = 1200; c.height = 630;
   const g = c.getContext('2d');
-  g.fillStyle = '#0b0d10'; g.fillRect(0, 0, 1200, 630);
-  g.fillStyle = '#c6ff3d'; g.globalAlpha = .08; for (let i = 0; i < 12; i++) g.fillRect(i * 110, 0, 2, 630); g.globalAlpha = 1;
-  g.font = '800 44px "Bricolage Grotesque", sans-serif'; g.fillStyle = '#eef2f6'; g.fillText('DRAFT', 60, 92);
-  const w = g.measureText('DRAFT').width; g.fillStyle = '#c6ff3d'; g.fillText('PUMP', 60 + w, 92);
-  g.fillStyle = '#8b95a3'; g.font = '500 30px "Bricolage Grotesque", sans-serif'; g.fillText(`@${t.name} · ${t.day}`, 60, 150);
-  g.font = '700 150px "JetBrains Mono", monospace'; g.fillStyle = t.score >= 0 ? '#3ddc84' : '#ff5a5f'; g.fillText(pct(t.score), 52, 330);
-  g.font = '700 30px "JetBrains Mono", monospace';
+  g.fillStyle = '#0d1726'; g.fillRect(0, 0, 1200, 630);
+  g.fillStyle = '#132136'; g.beginPath(); g.roundRect(40, 40, 1120, 550, 28); g.fill();
+  g.font = '800 54px "Barlow Condensed", sans-serif'; g.fillStyle = '#e9eef6'; g.fillText('DRAFT', 80, 120);
+  g.fillStyle = '#f5b83d'; g.fillText('PUMP', 80 + g.measureText('DRAFT').width, 120);
+  g.font = '700 32px "Barlow Condensed", sans-serif'; g.fillStyle = '#8fa3c0'; g.fillText(`${t.name.toUpperCase()} · SLIP ${t.day}`, 80, 170);
+  g.save(); g.translate(990, 120); g.rotate(-0.14); g.strokeStyle = t.final ? '#8fa3c0' : '#f5b83d'; g.lineWidth = 5; g.strokeRect(-90, -38, 180, 64);
+  g.fillStyle = g.strokeStyle; g.font = '800 40px "Barlow Condensed", sans-serif'; g.textAlign = 'center'; g.fillText(t.final ? 'FINAL' : 'LOCKED', 0, 10); g.restore();
+  g.font = '800 170px "Barlow Condensed", sans-serif'; g.fillStyle = t.score >= 0 ? '#2bd67b' : '#ff4d5e'; g.fillText(pct(t.score), 74, 345);
+  g.setLineDash([12, 10]); g.strokeStyle = '#24395a'; g.lineWidth = 3; g.beginPath(); g.moveTo(40, 385); g.lineTo(1160, 385); g.stroke(); g.setLineDash([]);
+  g.font = '800 38px "Barlow Condensed", sans-serif';
   t.picks.forEach((p, i) => {
-    const x = 60 + (i % 3) * 370, y = 420 + Math.floor(i / 3) * 70;
-    g.fillStyle = '#1a1e25'; g.beginPath(); g.roundRect(x - 14, y - 40, 350, 56, 14); g.fill();
-    g.fillStyle = '#eef2f6'; g.fillText(`$${String(p.symbol).slice(0, 9)}`, x, y);
-    g.fillStyle = p.pct >= 0 ? '#3ddc84' : '#ff5a5f'; const s = pct(p.pct); g.fillText(s, x + 320 - g.measureText(s).width, y);
+    const x = 80 + (i % 3) * 360, y = 450 + Math.floor(i / 3) * 70;
+    g.fillStyle = '#e9eef6'; g.fillText(`$${String(p.symbol).slice(0, 9)}`, x, y);
+    g.fillStyle = p.pct >= 0 ? '#2bd67b' : '#ff4d5e'; const s = pct(p.pct); g.fillText(s, x + 310 - g.measureText(s).width, y);
   });
-  g.fillStyle = '#8b95a3'; g.font = '500 24px "Bricolage Grotesque", sans-serif'; g.fillText(location.host + ' · fantasy memecoins', 60, 600);
+  g.fillStyle = '#8fa3c0'; g.font = '600 26px "Barlow", sans-serif'; g.fillText(`${location.host} · fantasy memecoins`, 80, 570);
   c.toBlob(async (blob) => {
     const file = new File([blob], `draftpump-${t.id}.png`, { type: 'image/png' });
-    if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], title: 'My DRAFTPUMP team' }); return; } catch { /* cancelled */ } }
+    if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], title: 'My DRAFTPUMP slip' }); return; } catch { /* cancelled */ } }
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   }, 'image/png');
 }
 
+loadPool().then(() => { if ((location.hash || '#/board').startsWith('#/board')) renderMarkets(false); });
 route();

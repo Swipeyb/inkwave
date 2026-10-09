@@ -4,25 +4,32 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>DRAFTPUMP — fantasy memecoins</title>
-<meta name="description" content="Fantasy memecoins. Draft 5 fresh Solana launches, the biggest 24h pump wins the day. Free, no wallet needed.">
+<meta name="description" content="Fantasy memecoins. Build a 5-coin slip from today's fresh Solana launches; the biggest 24h pump tops the board. Free, no wallet.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="DRAFTPUMP — fantasy memecoins">
-<meta property="og:description" content="Draft 5 fresh launches. Biggest 24h pump wins the day. Free, no wallet.">
+<meta property="og:description" content="Build a 5-coin slip from today's fresh launches. Biggest 24h pump wins the day. Free, no wallet.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0b0d10">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0d10'/%3E%3Cpath d='M14 44 L28 30 L36 38 L50 20' stroke='%23c6ff3d' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#0d1726">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d1726'/%3E%3Cpath d='M14 44 L28 30 L36 38 L50 20' stroke='%23f5b83d' stroke-width='7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="top">
-  <a class="logo" href="#/"><span class="logo__mark" aria-hidden="true"></span>DRAFT<b>PUMP</b></a>
-  <span class="who" id="who"></span>
+<header class="bar">
+  <a class="logo" href="#/board" aria-label="DRAFTPUMP home"><span class="logo__mark" aria-hidden="true"></span><span>DRAFT</span><span class="logo__pump">PUMP</span></a>
+  <div class="clock" id="clock" title="Today's round closes at midnight UTC"><span class="live"><i></i>Live</span><b class="num" id="clockT">--:--:--</b></div>
 </header>
+<div class="tape" id="tape" aria-label="Biggest movers in the draft list"><div class="tape__in" id="tapeIn"></div></div>
+<nav class="tabs" id="tabs" aria-label="Sections">
+  <a href="#/board" data-t="board">Markets</a>
+  <a href="#/standings" data-t="standings">Standings</a>
+  <a href="#/me" data-t="me">My slips</a>
+</nav>
 <main id="view" aria-live="polite"></main>
-<footer class="foot">Not financial advice. Drafting a coin here doesn’t buy anything. Prices: DexScreener.</footer>
+<aside class="slip" id="slip" aria-label="Your slip"></aside>
+<footer class="foot">Free to play. Not financial advice. Picking a coin here doesn’t buy it. Prices from DexScreener.</footer>
 <div class="toast" id="toast" role="status"></div>
 <script type="module" src="app.js"></script>
 </body>
