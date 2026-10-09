@@ -1,8 +1,8 @@
-# Deploys DRAFTPUMP (site + API, one Cloudflare Worker) on every push to main.
+# Deploys DRAFTPUMP (site + API, one Cloudflare Worker) on every push to main (own repo) or to the draftpump branch.
 # Needs repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (Settings → Secrets and variables → Actions).
 name: Deploy DRAFTPUMP
 on:
-  push: { branches: [main] }
+  push: { branches: [main, draftpump] }
   workflow_dispatch:
 concurrency: { group: deploy, cancel-in-progress: false }
 jobs:

@@ -6,7 +6,7 @@ import { bestPairs, eligible, rankPool, pickScore, teamScore, draftError, cleanN
 const H = 3600 * 1000;
 const now = Date.UTC(2026, 9, 9, 12);
 let n = 0;
-const mint = () => ('Mint' + String(++n).padStart(4, '0') + 'x'.repeat(30)).slice(0, 40).replace(/[0OIl]/g, '9');
+const mint = () => ('Mint' + String(++n).padStart(4, '0').replace(/\d/g, (d) => 'ABCDEFGHJK'[d]) + 'x'.repeat(30)).slice(0, 40);
 function pair(m, o = {}) {
   return { chainId: 'solana', dexId: 'pumpswap', url: 'u', baseToken: { address: m, name: 'Coin ' + m.slice(4, 8), symbol: 'C' + m.slice(4, 8) },
     priceUsd: String(o.price ?? 0.001), liquidity: { usd: o.liq ?? 20000 }, marketCap: o.mcap ?? 100000, volume: { h1: o.vol1h ?? 10000, h24: 50000 },
@@ -30,10 +30,10 @@ test('eligibility: age window, liquidity, volume', () => {
 });
 
 test('pool ranks by trading activity and caps the size', () => {
-  const coins = Array.from({ length: 60 }, (_, i) => ({ mint: 'm' + i, price: 1, liq: 10000, vol1h: 4000 + i * 100, created: now - H }));
+  const coins = Array.from({ length: 80 }, (_, i) => ({ mint: 'm' + i, price: 1, liq: 10000, vol1h: 4000 + i * 100, created: now - H }));
   const pool = rankPool(coins, now);
-  assert.equal(pool.length, 40);
-  assert.equal(pool[0].mint, 'm59');
+  assert.equal(pool.length, 60);
+  assert.equal(pool[0].mint, 'm79');
 });
 
 test('scoring: clamps, dead coins, averages', () => {
@@ -56,10 +56,16 @@ test('draft validation and nicknames', () => {
   assert.ok(!nameAllowed('xHitlerx'));
 });
 
-// ---- the League Durable Object end to end, on Node's built-in SQLite and a fake market ----
-function fakeStorage() {
-  const db = new DatabaseSync(':memory:');
-  return { sql: { exec(q, ...b) { const st = db.prepare(q); const isRead = /^\s*SELECT/i.test(q); const rows = isRead ? st.all(...b) : (st.run(...b), []); return { toArray: () => rows }; } } };
+// ---- League + draft rooms end to end, on Node's built-in SQLite and a fake market ----
+function fakeCtx() {
+  const db = new DatabaseSync(':memory:'), kv = new Map();
+  return {
+    storage: {
+      sql: { exec(q, ...b) { const st = db.prepare(q); const rows = /^\s*SELECT/i.test(q) ? st.all(...b) : (st.run(...b), []); return { toArray: () => rows }; } },
+      async get(k) { return kv.has(k) ? structuredClone(kv.get(k)) : undefined; }, async put(k, v) { kv.set(k, structuredClone(v)); },
+      alarm: null, async setAlarm(t) { this.alarm = t; },
+    },
+  };
 }
 function fakeMarket(coins) {
   return async (url) => {
@@ -72,37 +78,70 @@ function fakeMarket(coins) {
   };
 }
 
-test('league: refresh → join → draft → live score → final', async () => {
+test('rooms: queue → lobby → 5-round draft (snipes) → live prices → final points on the board', async () => {
   await import('./cf-shim.mjs');
-  const { League } = await import('../src/index.js');
+  const { League, Room } = await import('../src/index.js');
+  const { roundOrder, resolveRound } = await import('../src/core.js');
   const prices = new Map(), coins = new Map();
-  const mints = Array.from({ length: 12 }, () => { const m = mint(); prices.set(m, 0.001); coins.set(m, () => pair(m, { price: prices.get(m), created: Date.now() - 2 * H })); return m; });
-  const lg = new League({ storage: fakeStorage() }, {});
-  lg.fetchFn = fakeMarket(coins);
-  const r = await lg.refresh();
-  assert.equal(r.pool, 12);
-  const pool = lg.pool();
-  assert.equal(pool.coins.length, 12);
+  const mints = Array.from({ length: 70 }, () => { const m = mint(); prices.set(m, 0.001); coins.set(m, () => pair(m, { price: prices.get(m), created: Date.now() - 2 * H })); return m; });
+  const fetchFn = fakeMarket(coins);
+  let clock = Date.now();
+  const rooms = new Map(), env = {};
+  env.ROOM = { idFromName: (n) => n, get: (n) => { if (!rooms.has(n)) { const r = new Room(fakeCtx(), env); r.fetchFn = fetchFn; r.now = () => clock; rooms.set(n, r); } return rooms.get(n); } };
+  const lg = new League(fakeCtx(), env); lg.fetchFn = fetchFn;
+  env.LEAGUE = { idFromName: () => 'main', get: () => lg };
 
-  const me = await lg.join('trench_king', '1.2.3.4');
-  await assert.rejects(lg.join('Trench_King', '1.2.3.5'), /taken/);
-  await assert.rejects(lg.draft({ id: me.id, secret: 'wrong' }, mints.slice(0, 5)), /Sign in/);
-  const team = mints.slice(0, TEAM_SIZE);
-  const e = await lg.draft(me, team);
-  assert.equal(e.picks.length, 5);
-  await assert.rejects(lg.draft(me, mints.slice(5, 10)), /already drafted/);
+  assert.equal((await lg.refresh()).pool, 60);
+  const a = await lg.join('alpha_1'), b = await lg.join('bravo_2'), c = await lg.join('charlie_3');
+  await assert.rejects(lg.join('sneaky_bot'), /reserved/);
+  const ra = (await lg.queue(a, 'sprint', clock)).room, rb = (await lg.queue(b, 'sprint', clock)).room, rc = (await lg.queue(c, 'sprint', clock)).room;
+  assert.equal(ra, rb); assert.equal(rb, rc);              // all three in the same room
+  const room = env.ROOM.get(ra);
+  let v = await room.view(a.id);
+  assert.equal(v.phase, 'lobby'); assert.equal(v.seats.length, 3);
 
-  prices.set(team[0], 0.003);   // +200 %
-  prices.set(team[1], 0.0005);  // -50 %
-  await lg.refresh();
-  const m1 = await lg.me(me);
-  assert.equal(m1.today.score, 30);   // (200 - 50 + 0 + 0 + 0) / 5
-  assert.equal(m1.rank, 1);
-  const b = lg.board(m1.today.day);
-  assert.equal(b.top[0].name, 'trench_king');
-  assert.equal(b.top[0].picks.length, 5);
+  clock += 31000; await room.alarm();                      // lobby timer → draft with 5 bots
+  v = await room.view(a.id);
+  assert.equal(v.phase, 'draft'); assert.equal(v.seats.length, 8); assert.equal(v.seats.filter((s) => s.bot).length, 5);
 
-  // 24 h later the team is final and stops changing
-  await lg.refresh(Date.now() + 25 * H);
-  assert.equal(lg.entry(e.id).final, 1);
+  // round 1: A and B both want the top coin; whoever has priority gets it, the other is sniped and auto-picks
+  const top = v.pool[0].mint;
+  const seatOf = (pid) => v.seats.findIndex((s) => s.me);
+  const sA = v.seats.findIndex((s) => s.me);
+  const vb = await room.view(b.id), sB = vb.seats.findIndex((s) => s.me);
+  await room.pick(a.id, top); await room.pick(b.id, top);
+  v = await room.pick(c.id, v.pool[5].mint);              // last person in → round resolves at once
+  assert.equal(v.round, 1);
+  const first = roundOrder(8, 0).find((s) => s === sA || s === sB);
+  const winner = first === sA ? 'alpha_1' : 'bravo_2';
+  const holder = v.seats.find((s) => s.lineup[0]?.mint === top);
+  assert.ok(holder && (holder.name === winner || holder.bot), `top coin went to ${holder?.name}`);   // a bot with even higher priority may want it too
+  assert.ok(v.events.some((e) => e.k === 'sniped'), 'a snipe was announced');
+  await assert.rejects(room.pick(a.id, top), /Already drafted/);
+
+  for (let r = 1; r < 5; r++) { clock += 26000; await room.alarm(); }   // nobody picks: the clock auto-picks for people
+  v = await room.view(a.id);
+  assert.equal(v.phase, 'live');
+  assert.ok(v.seats.every((s) => s.lineup.length === 5));
+  assert.equal(new Set(v.seats.flatMap((s) => s.lineup.map((x) => x.mint))).size, 40);   // no coin twice in a room
+
+  // A's coins double → A wins the room
+  for (const x of v.seats.find((s) => s.me).lineup) prices.set(x.mint, 0.002);
+  clock += 3600e3 + 1000; await room.alarm();
+  v = await room.view(a.id);
+  assert.equal(v.phase, 'final');
+  assert.equal(v.seats.find((s) => s.me).place, 1);
+  const board = lg.board(new Date(clock).toISOString().slice(0, 10));
+  assert.equal(board.top[0].name, 'alpha_1'); assert.equal(board.top[0].points, 100);
+  const me = await lg.me(a);
+  assert.equal(me.rooms[0].points, 100);
+});
+
+test('resolveRound: priority order, snipes, auto-picks', async () => {
+  const { resolveRound } = await import('../src/core.js');
+  const taken = new Map();
+  const res = resolveRound(3, 0, ['x', 'x', null], ['x', 'y', 'z'], taken);
+  assert.deepEqual(res.map((r) => [r.seat, r.mint, r.sniped, r.auto]), [[0, 'x', false, false], [1, 'y', true, false], [2, 'z', false, true]]);
+  const res2 = resolveRound(3, 1, ['q', null, null], ['x', 'y', 'z', 'q', 'w', 'v'], taken);   // reversed order in round 2
+  assert.deepEqual(res2.map((r) => [r.seat, r.mint]), [[0, 'q'], [2, 'w'], [1, 'v']]);   // seat 0 asked for q, so idle seats with priority can't take it
 });

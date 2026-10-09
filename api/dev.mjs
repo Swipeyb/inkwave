@@ -2,13 +2,20 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
-const { League } = await import('./src/index.js');
+const { League, Room } = await import('./src/index.js');
 const worker = (await import('./src/index.js')).default;
-const db = new DatabaseSync(':memory:');
-const storage = { sql: { exec(q, ...b) { const st = db.prepare(q); const rows = /^\s*SELECT/i.test(q) ? st.all(...b) : (st.run(...b), []); return { toArray: () => rows }; } } };
-const lg = new League({ storage }, {});
-const H = 3600e3, names = ['WIFHAT', 'GOOBER', 'PEPEK', 'MOONCAT', 'BONKER', 'TRUMPET', 'FROGGO', 'SHIBAI', 'NEIRO2', 'SIGMA', 'CHAD', 'GIGA', 'BRAINROT', 'DUCKY', 'POPCORN', 'ZOOM', 'RIZZ', 'YAPPER'];
-const coins = names.map((s, i) => ({ mint: ('Mnt' + s + 'abcdefghjkmnpqrstuvwxyz123456789').slice(0, 40).replace(/[0OIl]/g, 'x'), s, p: 0.0001 * (1 + i), created: Date.now() - (0.5 + i * 0.9) * H }));
+function ctx() {
+  const db = new DatabaseSync(':memory:'), kv = new Map();
+  return { storage: { sql: { exec(q, ...b) { const st = db.prepare(q); const rows = /^\s*SELECT/i.test(q) ? st.all(...b) : (st.run(...b), []); return { toArray: () => rows }; } },
+    async get(k) { return kv.has(k) ? structuredClone(kv.get(k)) : undefined; }, async put(k, v) { kv.set(k, structuredClone(v)); }, alarm: null, async setAlarm(t) { this.alarm = t; } } };
+}
+const env = {}, rooms = new Map();
+env.ROOM = { idFromName: (n) => n, get: (n) => { if (!rooms.has(n)) { const r = new Room(ctx(), env); r.fetchFn = (...a) => lg.fetchFn(...a); r.ctxRef = r.ctx; rooms.set(n, r); } return rooms.get(n); } };
+const lg = new League(ctx(), env);
+env.LEAGUE = { idFromName: () => 'main', get: () => lg };
+setInterval(() => { for (const r of rooms.values()) { const t = r.ctx.storage.alarm; if (t && Date.now() >= t) { r.ctx.storage.alarm = null; r.alarm(); } } }, 250);
+const H = 3600e3, names = ['ALPHA2', 'BETA', 'GAMMA', 'DELTA', 'EPSY', 'ZETA', 'ETA', 'THETA', 'KAPPA', 'LAMBDA', 'MU', 'NU', 'XI', 'PI', 'RHO', 'SIGMA2', 'TAU', 'PHI', 'CHI', 'PSI', 'MEGA', 'WAGMI', 'NGMI', 'HODL', 'FOMO', 'PUMPY', 'DUMPY', 'BAGZ', 'JEET', 'CHADX', 'BASED', 'COPE', 'SEETHE', 'MALD', 'RIZZY', 'GYATT', 'SKIBI', 'OHIO', 'SIGMA3', 'ALPHA3', 'BETA2', 'LUNA', 'TERRA', 'SOLLY', 'WIFHAT', 'GOOBER', 'PEPEK', 'MOONCAT', 'BONKER', 'TRUMPET', 'FROGGO', 'SHIBAI', 'NEIRO2', 'SIGMA', 'CHAD', 'GIGA', 'BRAINROT', 'DUCKY', 'POPCORN', 'ZOOM', 'RIZZ', 'YAPPER'];
+const coins = names.map((s, i) => ({ mint: ('Mnt' + s + 'abcdefghjkmnpqrstuvwxyz123456789').slice(0, 40).replace(/[0OIl]/g, 'x'), s, p: 0.0001 * (1 + i), created: Date.now() - (0.5 + (i % 24) * 0.9) * H }));
 lg.fetchFn = async (url) => {
   const u = String(url); let body = [];
   if (u.includes('token-profiles') || u.includes('token-boosts')) body = coins.map((c) => ({ chainId: 'solana', tokenAddress: c.mint }));
@@ -20,11 +27,8 @@ lg.fetchFn = async (url) => {
   return { ok: true, status: 200, json: async () => body };
 };
 await lg.refresh();
-for (const n of ['degen_dan', 'sol_sister', 'apeking']) { const p = await lg.join(n); await lg.draft(p, coins.slice(Math.floor(Math.random() * 10), 50).slice(0, 5).map((c) => c.mint)); }
-await lg.refresh();
 setInterval(() => lg.refresh(), 15000);
 globalThis.caches = { default: { match: async () => null, put: async () => {} } };
-const env = { LEAGUE: { idFromName: () => 'main', get: () => lg } };
 const types = { html: 'text/html', js: 'text/javascript', css: 'text/css' };
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
