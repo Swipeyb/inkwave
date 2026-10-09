@@ -171,8 +171,8 @@ export class League extends DurableObject {
   board(day) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) day = dayKey();
     const top = this.rows(`SELECT pl.name, SUM(r.points) AS points, COUNT(*) AS games, SUM(CASE WHEN r.place = 1 THEN 1 ELSE 0 END) AS wins, MAX(r.score) AS best
-      FROM results r JOIN players pl ON pl.id = r.player WHERE r.day = ? AND pl.lname NOT LIKE 'smoke\_%' ESCAPE '\' GROUP BY r.player ORDER BY points DESC, wins DESC, best DESC LIMIT 100`, day);
-    const best = this.rows(`SELECT pl.name, r.score, r.room, r.mode, r.picks FROM results r JOIN players pl ON pl.id = r.player WHERE r.day = ? AND pl.lname NOT LIKE 'smoke\_%' ESCAPE '\' ORDER BY r.score DESC LIMIT 5`, day)
+      FROM results r JOIN players pl ON pl.id = r.player WHERE r.day = ? AND substr(pl.lname, 1, 6) != 'smoke_' GROUP BY r.player ORDER BY points DESC, wins DESC, best DESC LIMIT 100`, day);
+    const best = this.rows(`SELECT pl.name, r.score, r.room, r.mode, r.picks FROM results r JOIN players pl ON pl.id = r.player WHERE r.day = ? AND substr(pl.lname, 1, 6) != 'smoke_' ORDER BY r.score DESC LIMIT 5`, day)
       .map((r) => ({ ...r, picks: JSON.parse(r.picks || '[]') }));
     return { day, top, best, players: top.length };
   }
