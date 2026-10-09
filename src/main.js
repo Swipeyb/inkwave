@@ -97,9 +97,12 @@ class Game {
     this.input.onKey = (e, repeat) => this._onKey(e, repeat);
     this.input.onUnlock = () => this._onPointerUnlock();
     // after a focus steal while the map was held, the next click on the game takes the mouse back (no pause detour)
+    // Any click on the game during a match takes the mouse (browsers only grant the lock on a click: a match that starts
+    // on its own — Quick Play's countdown, or a joiner who never clicked Start — would otherwise leave aiming dead).
     this.R.renderer.domElement.addEventListener('mousedown', () => {
-      if (this._relock && G.mode === 'match' && this.match && !this.match.paused && !this.menus?.current) { this._relock = false; this.input.requestLock(); }
+      if (G.mode === 'match' && this.match && !this.match.attract && !this.match.paused && !this.menus?.current && !this.input.locked) { this._relock = false; this.input.requestLock(); }
     });
+    this._clickToAim();
 
     // modules built by other authors
     const [charMod, fxMod, envMod, audioMod, musicMod] = await Promise.all([
@@ -463,6 +466,28 @@ class Game {
     if (this.menus && this.menus.current) return this.menus.handleKey(e) || false;
     return false;
   }
+  // "CLICK TO AIM" over a live match whenever the mouse isn't captured (keyboard + mouse players only)
+  _clickToAim() {
+    const el = document.createElement('div');
+    el.className = 'iw-clickaim';
+    el.innerHTML = '<b>CLICK TO AIM</b><span>Your mouse controls the camera once you click the game</span>';
+    el.hidden = true;
+    const st = document.createElement('style');
+    st.textContent = `.iw-clickaim { position: fixed; left: 50%; top: 58%; transform: translate(-50%, -50%); z-index: 30; pointer-events: none;
+      display: grid; gap: 4px; justify-items: center; padding: 14px 22px; border-radius: 16px; background: rgba(20, 16, 32, .82); color: #fff;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .16), 0 10px 30px rgba(0, 0, 0, .4); font: 500 13px/1.3 Rubik, system-ui, sans-serif; text-align: center; }
+      .iw-clickaim b { font: 400 22px/1 'Titan One', Rubik, sans-serif; letter-spacing: .06em; color: var(--a-light, #8cf5cf); }
+      .iw-clickaim[hidden] { display: none; }`;
+    document.head.appendChild(st);
+    document.body.appendChild(el);
+    setInterval(() => {
+      const m = this.match;
+      el.hidden = !(G.mode === 'match' && m && !m.attract && !m.paused && !this.menus?.current && !this.input.locked
+        && (m.state === 'playing' || m.state === 'intro') && this.input.lastDevice !== 'pad' && this._ptrFine !== false);
+    }, 200);
+    try { this._ptrFine = matchMedia('(pointer: fine)').matches; } catch { /* assume a mouse */ }
+  }
+
   _onPointerUnlock() {
     // only a live round pauses on focus loss; intro / time's up / judge / results release the mouse on purpose.
     // Holding the map is never a reason to pause (some browsers/embeds steal focus on TAB): relock on the next click.
