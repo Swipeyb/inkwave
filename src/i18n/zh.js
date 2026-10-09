@@ -334,7 +334,7 @@ export const ZH_PHRASES = {
   'Create or join': '创建或加入', 'CREATE A ROOM': '创建房间', 'JOIN A ROOM': '加入房间', 'JOIN': '加入',
   'GOT A CODE?': '有房间码？', 'PASTE': '粘贴', 'COPY': '复制', 'COPIED': '已复制',
   'Room codes are 5 letters & numbers': '房间码是 5 位字母和数字',
-  'Private rooms · 4 v 4 · up to 8 gooblins': '私人房间 · 4 v 4 · 最多 8 名黏液仔',
+  'Quick Play or private rooms · 4 v 4 · up to 8 gooblins': '快速匹配或私人房间 · 4 v 4 · 最多 8 名黏液仔',
   'Ready up & ink!': '准备开涂！',
   'Pick the stage, share the code, start when everyone’s ready.': '选好场地、分享房间码，全员准备完毕后开始。',
   'Share the code': '分享房间码',

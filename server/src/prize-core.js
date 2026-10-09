@@ -27,6 +27,9 @@ export function prizeConfig(env = {}) {
   const mint = env.TOKEN_MINT && parsePubkey(env.TOKEN_MINT) ? String(env.TOKEN_MINT).trim() : null;
   let minPct = clamp(num(env.PRIZE_MIN_PCT, 1), 0, 100), maxPct = clamp(num(env.PRIZE_MAX_PCT, 5), 0, 100);
   if (maxPct < minPct) [minPct, maxPct] = [maxPct, minPct];
+  // PRIZE_PCT: a fixed share of the pool every match (overrides the MIN/MAX range)
+  const fixed = num(env.PRIZE_PCT, null);
+  if (fixed !== null) minPct = maxPct = clamp(fixed, 0, 100);
   const cfg = {
     enabled: !!(rpcUrl && treasury),
     rpcUrl, treasury, mint,
@@ -80,13 +83,21 @@ export function prizeLamports(poolLamports, cfg, u) {
 }
 
 /**
- * Is this match a prize round at all? `humans` = human players (connected sockets) at match start, `bots` irrelevant:
- * a match against bots only has 1 human, offline matches never reach the relay.
+ * Is this match a prize round at all? `humans` = human players (connected sockets) at match start, `wallets` = how
+ * many of them have a verified wallet (bots are irrelevant: offline matches never reach the relay). A match needs
+ * MIN_HUMAN_PLAYERS humans, and as many verified wallets, to carry a prize.
  */
-export function roundBlock(cfg, humansAtStart) {
+export function roundBlock(cfg, humansAtStart, walletsAtStart = humansAtStart) {
   if (!cfg.enabled) return 'prizes disabled';
   if (humansAtStart < cfg.minHumans) return `needs ${cfg.minHumans}+ human players`;
+  if (walletsAtStart < cfg.minHumans) return `needs ${cfg.minHumans}+ players with a verified wallet`;
   return null;
+}
+
+/** What the next match would pay at this pool balance: the low and high end of the draw (equal with PRIZE_PCT). */
+export function prizeEstimate(poolLamports, cfg) {
+  const lo = prizeLamports(poolLamports, cfg, 0).lamports, hi = prizeLamports(poolLamports, cfg, 1).lamports;
+  return { minSol: lo / LAMPORTS_PER_SOL, maxSol: hi / LAMPORTS_PER_SOL };
 }
 
 /**

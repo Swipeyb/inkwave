@@ -2,6 +2,11 @@
 //
 //   GET /room/<CODE>?name=<name>&create=1&v=<proto>   (WebSocket upgrade) → the Room object for that code
 //   GET /health                                          → "ok"
+//   GET /quick                                           → {"code"} the public Quick Play room to join next
+//
+// Quick Play rooms use 6-character codes starting with "QP" (private codes are 5 characters, so the two never clash).
+// Anyone may join a QP room while it isn't mid-match; the first one in becomes its host. The Matchmaker Durable Object
+// hands out the fullest open QP room, or a fresh code when every room is full or playing.
 //
 // A Room is a dumb, fast fan-out: game payloads are forwarded as raw strings (never parsed here). The room only
 // tracks membership (id, name, join order), elects the host (the oldest member), and refuses joins that can't work
@@ -40,6 +45,8 @@ const MSG_MAX = 65536, RATE = 90, BURST_STRIKES = 4;
 // pings (throttled to ≥ 1/min after five minutes), so the lobby allowance is generous.
 const SILENT_MATCH = 20000, SILENT_LOBBY = 150000, SWEEP = 4000;   // a heavy transition on a slow machine can freeze a tab for seconds
 const CODE = /^[A-Z0-9]{4,8}$/;
+export const QUICK_CODE = /^QP[A-Z0-9]{4}$/;
+const QUICK_CHARS = 'BCEFGHJKLMNPRTUVXYZ23456789';
 
 export default {
   async fetch(req, env) {
@@ -50,6 +57,12 @@ export default {
       if (!env.PRIZES || !prizeConfig(env).enabled) return json(url.pathname === '/prize' ? { enabled: false } : []);
       const ledger = env.PRIZES.get(env.PRIZES.idFromName('ledger'));
       return json(url.pathname === '/prize' ? await ledger.status() : await ledger.recent(+(url.searchParams.get('n') || 50)));
+    }
+    if (url.pathname === '/quick') {
+      const origin = req.headers.get('Origin') || '';
+      if (!ORIGIN_OK(origin)) return new Response('forbidden', { status: 403 });
+      const r = await env.MATCHMAKER.get(env.MATCHMAKER.idFromName('main')).quick();
+      return new Response(JSON.stringify(r), { headers: { 'content-type': 'application/json', 'access-control-allow-origin': origin, vary: 'Origin', 'cache-control': 'no-store' } });
     }
     const m = url.pathname.match(/^\/room\/([A-Za-z0-9]+)$/);
     if (!m) return new Response('SPLURT relay', { status: 404 });
@@ -79,9 +92,16 @@ export class Room extends DurableObject {
   }
   host() { const ms = this.members(); return ms.length ? ms[0].a.id : null; }
 
+  // Matchmaker → room: how many players, and is a match running? (Durable Object RPC: never reachable from outside)
+  status() {
+    const ms = this.members();
+    return { humans: ms.length, locked: this.locked && ms.length > 0 };
+  }
+
   async fetch(req) {
     const url = new URL(req.url);
     this.code = url.pathname.split('/').pop().toUpperCase();
+    const quick = QUICK_CODE.test(this.code);
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
@@ -91,8 +111,8 @@ export class Room extends DurableObject {
     const ms = this.members().filter((m) => m.ws !== server);
     const create = url.searchParams.get('create') === '1';
     if (+(url.searchParams.get('v') || 0) !== PROTO) return fail('ERR_STALE', 'Please refresh the page — the game was updated');
-    if (create && ms.length) return fail('ERR_CODE_TAKEN', 'Room code taken');
-    if (!create && !ms.length) return fail('ERR_NOT_FOUND', 'Room not found');
+    if (!quick && create && ms.length) return fail('ERR_CODE_TAKEN', 'Room code taken');
+    if (!quick && !create && !ms.length) return fail('ERR_NOT_FOUND', 'Room not found');
     if (ms.length >= MAX) return fail('ERR_FULL', 'Room is full');
     if (this.locked && ms.length) return fail('ERR_IN_PROGRESS', 'Match in progress');
     if (!ms.length) this.locked = false;
@@ -102,7 +122,7 @@ export class Room extends DurableObject {
     const a = { id, name, seq: this.seq++, at: Date.now(), code: this.code };
     server.serializeAttachment(a);
     const all = [...ms.map((m) => m.a), a];
-    server.send(JSON.stringify({ t: 'welcome', id, host: all[0].id, members: all.map(({ id, name }) => ({ id, name })) }));
+    server.send(JSON.stringify({ t: 'welcome', id, host: all[0].id, members: all.map(({ id, name }) => ({ id, name })), quick: quick || undefined }));
     const j = JSON.stringify({ t: 'join', m: { id, name } });
     for (const m of ms) try { m.ws.send(j); } catch { /* closing */ }
     if (!(await this.ctx.storage.getAlarm())) await this.ctx.storage.setAlarm(Date.now() + SWEEP);
@@ -197,10 +217,10 @@ export class Room extends DurableObject {
     const humans = this.members().map((m) => ({ id: m.a.id, name: m.a.name, wallet: m.a.wallet || null }));
     const id = crypto.randomUUID();
     let c;
-    try { c = await ledger.commit(id, this.code || this.members()[0]?.a.code, humans.length); } catch (e) { console.error('[prize] commit', e); return; }
+    try { c = await ledger.commit(id, this.code || this.members()[0]?.a.code, humans.length, humans.filter((h) => h.wallet).length); } catch (e) { console.error('[prize] commit', e); return; }
     if (c.skip) { this._toAll({ t: 'prize', a: 'skip', reason: c.skip }); return; }
     this.round = { id, humans, reports: new Map(), hash: c.hash, settled: false };
-    this._toAll({ t: 'prize', a: 'commit', round: id, hash: c.hash, poolSol: c.poolSol });
+    this._toAll({ t: 'prize', a: 'commit', round: id, hash: c.hash, poolSol: c.poolSol, prizeSol: c.prizeSol });
   }
 
   async _prizeReport(me, o) {
@@ -241,6 +261,40 @@ export class Room extends DurableObject {
     // a player leaving mid-round no longer needs to report: settle if everyone left has
     const r = this.round;
     if (r && !r.settled && r.reports.size && r.humans.filter((h) => this.members().some((m) => m.a.id === h.id)).every((h) => r.reports.has(h.id))) this._prizeSettle().catch((e) => console.error('[prize] settle', e));
+  }
+}
+
+// Quick Play matchmaking: one Durable Object for the whole relay. Keeps a short list of public rooms and sends each new
+// player to the fullest one that has space and isn't mid-match (counting players already on their way in, so a burst
+// of clicks doesn't overfill a room), or to a fresh code.
+export class Matchmaker extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.rooms = [];   // [{ code, at, coming: [ms] }]
+  }
+  async quick() {
+    const now = Date.now();
+    let best = null, bestN = -1;
+    const keep = [];
+    for (const r of this.rooms.slice(-24)) {
+      r.coming = r.coming.filter((t) => now - t < 20000);
+      let st;
+      try { st = await this.env.ROOMS.get(this.env.ROOMS.idFromName(r.code)).status(); } catch { continue; }
+      if (!st.humans && !r.coming.length && now - r.at > 30000) continue;   // empty and nobody on the way: forget it
+      keep.push(r);
+      const n = Math.max(st.humans, r.coming.length);   // (sent here in the last 20 s ≈ joined or still connecting)
+      if (st.locked || n >= MAX) continue;
+      if (n > bestN) { best = r; bestN = n; }
+    }
+    this.rooms = keep;
+    if (!best) {
+      let code;
+      do { code = 'QP' + Array.from({ length: 4 }, () => QUICK_CHARS[(Math.random() * QUICK_CHARS.length) | 0]).join(''); } while (this.rooms.some((r) => r.code === code));
+      best = { code, at: now, coming: [] };
+      this.rooms.push(best);
+    }
+    best.coming.push(now);
+    return { code: best.code };
   }
 }
 

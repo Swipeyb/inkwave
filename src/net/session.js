@@ -7,7 +7,7 @@
 import { G, emit } from '../core/ctx.js';
 import { MAPS, WEAPONS, WEAPON_ORDER, SUBS, SUB_ORDER, SPECIALS, SPECIAL_ORDER, MATCH, ZONES, BOT_NAMES, TEAM_PALETTES, mapNoBots, mapBossOk, bossFallbackMap, noBotsStartBlock } from '../config.js';
 import { randomStyle } from '../game/character-style.js';
-import { Transport } from './transport.js';
+import { Transport, relayURL } from './transport.js';
 import { NetMatch } from './netmatch.js';
 import { ERR, netError, codeFromText } from './errors.js';
 
@@ -15,6 +15,9 @@ import { ERR, netError, codeFromText } from './errors.js';
 // only mean a room code (28⁵ ≈ 17 M codes)
 const CODE_CHARS = 'BCEFGHJKLMNPQRTUVXYZ23456789';
 const TEAM = 4;
+// Quick Play (public rooms from the relay's matchmaker): the match starts QUICK_WAIT seconds after a second player
+// arrives, or QUICK_FULL seconds after the room fills; empty slots are bots
+export const QUICK_WAIT = 30, QUICK_FULL = 5;
 // a loadout's sub / special: a known id, or null (= the weapon's own)
 const subOf = (id) => (SUBS[id] ? id : null), specialOf = (id) => (SPECIALS[id] ? id : null);
 
@@ -82,6 +85,22 @@ export class NetSession {
     throw lastErr;
   }
 
+  // Quick Play: ask the relay's matchmaker for the next open public room and join it (anyone can; first one in hosts)
+  async quickPlay(name) {
+    let lastErr = null;
+    for (let tries = 0; tries < 3; tries++) {   // a room can start or fill between the matchmaker's answer and our join
+      let code;
+      try {
+        const r = await fetch(relayURL().replace(/^ws/, 'http') + '/quick', { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        code = (await r.json()).code;
+      } catch { lastErr = netError(ERR.CONNECT, 'Could not connect'); break; }
+      try { await this._connect(code, name, false); return code; } catch (e) { lastErr = e; if (e.code !== ERR.IN_PROGRESS && e.code !== ERR.FULL) break; }
+    }
+    this._fail(lastErr);
+    throw lastErr;
+  }
+
   async join(code, name) {
     code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (code.length < 4) { const e = netError(ERR.NOT_FOUND, 'Room not found'); this._fail(e); throw e; }
@@ -99,12 +118,15 @@ export class NetSession {
     const me = this._profile();
     const welcome = await tr.connect(code, name || me.name, create);
     this.code = code;
+    this.quick = !!welcome.quick;
+    this._quickDeadline = null;
     this.myId = welcome.id;
     this.hostId = welcome.host;
     this._members.clear();
     for (const m of welcome.members) this._members.set(m.id, m.name);
     this.lobby = this._blankLobby();
     this._botsPref = this.isHost ? true : null;   // a new room fills with bots unless its stage forbids them
+    if (this.quick) this._quickSettings();
     if (this.isHost) {
       this.lobby.players = [this._newPlayer(this.myId, name || me.name, { weapon: me.weapon, sub: me.sub, special: me.special, style: me.style })];
       this._fixTeams();
@@ -119,7 +141,7 @@ export class NetSession {
     this.match?.dispose(); this.match = null;
     this.tr?.close(); this.tr = null;
     const was = this.state;
-    this.code = null; this.myId = null; this.hostId = null;
+    this.code = null; this.myId = null; this.hostId = null; this.quick = false; this._quickDeadline = null;
     this._members.clear();
     this.lobby = this._blankLobby();
     this._startCfg = null;
@@ -200,7 +222,8 @@ export class NetSession {
   }
   _wireLobby() {
     const l = this.lobby;
-    return { map: l.map, time: l.time, duration: l.duration, bots: l.bots, difficulty: l.difficulty, palette: l.palette, mode: l.mode, players: l.players.map(({ id, name, team, weapon, sub, special, style, ready, ping }) => ({ id, name, team, weapon, sub, special, style, ready, ping })) };
+    const startIn = this._quickDeadline ? Math.max(0, (this._quickDeadline - performance.now()) / 1000) : null;
+    return { map: l.map, time: l.time, duration: l.duration, bots: l.bots, difficulty: l.difficulty, palette: l.palette, mode: l.mode, quick: !!this.quick, startIn, players: l.players.map(({ id, name, team, weapon, sub, special, style, ready, ping }) => ({ id, name, team, weapon, sub, special, style, ready, ping })) };
   }
   // local view: mark you + host
   _pushLobby() {
@@ -390,6 +413,7 @@ export class NetSession {
           this.lobby.map = l.map; this.lobby.time = l.time; this.lobby.duration = l.duration; this.lobby.bots = l.bots; this.lobby.difficulty = l.difficulty;
           if (Number.isInteger(l.palette)) this.lobby.palette = l.palette;
           this.lobby.mode = l.mode === 'boss' || l.mode === 'zones' ? l.mode : 'turf';
+          if (this.quick) this._quickDeadline = typeof l.startIn === 'number' ? performance.now() + l.startIn * 1000 : null;
           const prev = new Map(this.lobby.players.map((p) => [p.id, p]));
           this.lobby.players = l.players.map((p) => ({ ...p, host: p.id === this.hostId }));
           for (const p of this.lobby.players) if (!prev.has(p.id)) this._emit('join', { player: p });
@@ -405,8 +429,31 @@ export class NetSession {
     }
   }
 
+  // ------------------------------------------------------------------ Quick Play
+  // public rooms: Turf Riot on a random stage that allows bots (they fill the empty slots), 3:00
+  _quickSettings() {
+    const l = this.lobby, ok = MAPS.filter((m) => !mapNoBots(m.id));
+    l.map = (ok[(Math.random() * ok.length) | 0] || MAPS[0]).id;
+    l.time = Math.random() < 0.5 ? 'day' : 'dusk';
+    l.mode = 'turf'; l.bots = true; this._botsPref = true;
+    l.duration = MATCH.defaultDuration;
+  }
+  /** Seconds until a Quick Play room starts (null while it waits for a second player). */
+  quickStartIn() { return this.quick && this._quickDeadline ? Math.max(0, (this._quickDeadline - performance.now()) / 1000) : null; }
+  // host: start the clock when a 2nd player is in, shorten it when the room fills, stop it if they all leave again
+  _quickTick() {
+    const n = this.lobby.players.length, now = performance.now();
+    let d = this._quickDeadline;
+    if (n < 2) d = null;
+    else if (n >= TEAM * 2) d = Math.min(d ?? Infinity, now + QUICK_FULL * 1000);
+    else if (d == null) d = now + QUICK_WAIT * 1000;
+    if (d !== this._quickDeadline) { this._quickDeadline = d; this._broadcastLobby(); }
+    if (d != null && now >= d) { this._quickDeadline = null; if (!this.start()) this._broadcastLobby(); }
+  }
+
   // ------------------------------------------------------------------ per frame
   update(dt) {
+    if (this.quick && this.isHost && this.state === 'lobby' && this.tr) this._quickTick();
     if (this.tr && this.state === 'lobby') {
       this._pingT = (this._pingT || 0) - dt;
       if (this._pingT <= 0) {

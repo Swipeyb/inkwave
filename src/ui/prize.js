@@ -121,7 +121,7 @@ class PrizeUI {
 
   // ---- rounds ----
   _prizeMsg(o) {
-    if (o.a === 'commit') this._showBanner(`<b>Prize round</b> — ${sol(o.poolSol)} SOL in the pool<small>commit ${esc(o.hash)}</small>`, 6000);
+    if (o.a === 'commit') this._showBanner(`<b>Prize round</b> — ${o.prizeSol != null ? `${sol(o.prizeSol)} SOL to win` : `${sol(o.poolSol)} SOL in the pool`}<small>commit ${esc(o.hash)}</small>`, 6000);
     else if (o.a === 'skip') this._showBanner(`No prize this round: ${esc(o.reason)}`, 5000);
     else if (o.a === 'reveal') {
       const tag = o.status === 'dry-run' ? ' <span class="iw-prize__tag">DRY RUN</span>' : '';
@@ -153,9 +153,12 @@ class PrizeUI {
     const wallet = this.wallet
       ? `<div class="iw-prize__wallet">◎ ${esc(shortAddr(this.wallet))} ✓ verified</div>`
       : `<button class="iw-prize__btn" data-act="connect" ${this.busy ? 'disabled' : ''}>${this.busy ? 'Check your wallet…' : solanaProvider() ? 'Connect wallet to win' : 'Get a Solana wallet'}</button>`;
-    this.el.innerHTML = `<div class="iw-prize__k">$SPLURT prize pool${tag}</div>
-      <div class="iw-prize__pool">◎ ${sol(i.poolSol)} SOL</div>
-      <div class="iw-prize__note">Each online match: ${esc(i.minPct)}–${esc(i.maxPct)}% of the pool (max ${esc(i.maxSol)} SOL) to a random player on the winning team. ${esc(i.minHumans)}+ players.</div>
+    const pct = i.minPct === i.maxPct ? `${esc(i.minPct)}%` : `${esc(i.minPct)}–${esc(i.maxPct)}%`;
+    const est = i.prizeMaxSol == null ? '' : !i.prizeMaxSol ? 'Pool too small for a prize right now'
+      : i.prizeMinSol === i.prizeMaxSol ? `◎ ${sol(i.prizeMaxSol)} SOL` : `◎ ${sol(i.prizeMinSol)}–${sol(i.prizeMaxSol)} SOL`;
+    this.el.innerHTML = `<div class="iw-prize__k">Prize this match${tag}</div>
+      <div class="iw-prize__pool">${est || `◎ ${sol(i.poolSol)} SOL pool`}</div>
+      <div class="iw-prize__note">${pct} of the ◎ ${sol(i.poolSol)} SOL pool (max ${esc(i.maxSol)} SOL) to a random player on the winning team. Needs ${esc(i.minHumans)}+ players with a connected wallet.</div>
       ${hold}${wallet}${this.err ? `<div class="iw-prize__err">${esc(this.err)}</div>` : ''}`;
   }
 }

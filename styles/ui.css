@@ -2809,3 +2809,9 @@ circle.iw-ico-cut { fill: var(--cut, #fff); }
 .iw-mode__zone { display: block; width: calc(var(--u) * 8); height: calc(var(--u) * 8); color: #fff; filter: drop-shadow(0 calc(var(--u) * .35) 0 var(--k)); }
 .iw-mode__zone svg { width: 100%; height: 100%; }
 .iw-mode--zones.is-focus .iw-mode__zone { animation: iw-mode-bob 1.2s ease-in-out infinite .25s; }
+
+/* ---- Quick Play card (online hub): the create card's shape in the A ink, a touch shorter so three cards fit ---- */
+.iw-hubcard--quick { min-height: calc(var(--u) * 9.6); color: var(--a-ink); }
+.iw-hubcard--quick .iw-hubcard__bg { background: var(--tex-stripes), var(--tex-squids-k), linear-gradient(165deg, var(--a-light) -40%, var(--a) 42%, var(--a-dark) 110%); }
+.iw-hubcard--quick .iw-hubcard__title { color: #fff; }
+.iw-online .iw-hub__body { gap: calc(var(--u) * 1.2); }

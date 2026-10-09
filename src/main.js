@@ -159,6 +159,7 @@ class Game {
     G.net?.on?.('lobby', ({ lobby }) => this._roomPalette(lobby));
     // optional Solana prize pool card + results line (inert unless the relay has it configured — docs/PRIZE_POOL.md)
     try { (await import('./ui/prize.js')).installPrize(); } catch (e) { console.warn('[inkwave] prize', e); }
+    try { (await import('./ui/quickplay.js')).installQuickPlay(); } catch (e) { console.warn('[inkwave] quick play', e); }
     await progress(0.7, 'Tuning the tentacles…');
 
     this._setPalette(this._pickPalette());

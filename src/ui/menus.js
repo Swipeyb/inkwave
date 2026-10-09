@@ -2052,6 +2052,21 @@ export class Menus {
     const st = { mode: 'idle', code: ['', '', '', '', ''], pick: [0, 0, 0, 0, 0], caret: 0, busy: false, token: 0, input: 'kbm', alive: true, errT: 0 };
     this._net(); // bind early (and install the mock) so state events reach us
 
+    // ---- QUICK PLAY: straight into the next public room (the relay's matchmaker picks it)
+    const quickStatus = h('span', { class: 'iw-hubcard__status' });
+    const quick = h('button', { class: 'iw-hubcard iw-hubcard--create iw-hubcard--quick iw-in iw-in--left', style: { '--tilt': '1.2deg' } },
+      h('span', { class: 'iw-hubcard__bg' }, h('span', { class: 'iw-hubcard__ink' })),
+      h('span', { class: 'iw-hubcard__blob', html: splatSVG({ seed: 53, cls: 'iw-fa', r: 58, arms: 9, drops: 2 }) }),
+      h('span', { class: 'iw-hubcard__icon' }, h('i', { html: GLYPHS.bolt }), h('b', { class: 'iw-hubcard__spin', html: SQUID })),
+      h('span', { class: 'iw-hubcard__text' },
+        h('span', { class: 'iw-hubcard__kicker iw-tape' }, h('i', { html: GLYPHS.users }), 'PUBLIC MATCH'),
+        h('span', { class: 'iw-hubcard__title' }, 'QUICK PLAY'),
+        h('span', { class: 'iw-hubcard__sub' }, 'Jump into the next open room. Starts on its own, bots fill empty spots.'),
+        quickStatus),
+      h('span', { class: 'iw-hubcard__go' }, h('b', null, 'GO!'), this._hint('Enter', 'A')));
+    quick.dataset.cur = 'own';
+    this._fx(quick, { tilt: 5 });
+
     // ---- CREATE: a loud striped sticker in the ONLINE ink (the main menu's ONLINE button is --b too)
     const createStatus = h('span', { class: 'iw-hubcard__status' });
     const create = h('button', { class: 'iw-hubcard iw-hubcard--create iw-in iw-in--left', style: { '--tilt': '-1.6deg' } },
@@ -2059,7 +2074,7 @@ export class Menus {
       h('span', { class: 'iw-hubcard__blob', html: splatSVG({ seed: 71, cls: 'iw-fa', r: 58, arms: 9, drops: 2 }) }),
       h('span', { class: 'iw-hubcard__icon' }, h('i', { html: GLYPHS.flag }), h('b', { class: 'iw-hubcard__spin', html: SQUID })),
       h('span', { class: 'iw-hubcard__text' },
-        h('span', { class: 'iw-hubcard__kicker iw-tape' }, h('i', { html: GLYPHS.crown }), 'YOU HOST'),
+        h('span', { class: 'iw-hubcard__kicker iw-tape' }, h('i', { html: GLYPHS.crown }), 'PRIVATE · YOU HOST'),
         h('span', { class: 'iw-hubcard__title' }, 'CREATE A ROOM'),
         h('span', { class: 'iw-hubcard__sub' }, 'Pick the stage, share the code, start when everyone’s ready.'),
         createStatus),
@@ -2106,7 +2121,8 @@ export class Menus {
       [['1', 'Create or join', GLYPHS.flag], ['2', 'Share the code', GLYPHS.copy], ['3', 'Ready up & ink!', GLYPHS.check]].map(([n, t, ic], i) =>
         h('div', { class: 'iw-hubstep', style: { '--tilt': `${[-2, 1.5, -1][i]}deg` } }, h('b', { html: splatSVG({ seed: 30 + i * 7, cls: 'iw-fa', r: 56, arms: 8, drops: 2 }) }, h('span', null, n)), h('i', { html: ic }), h('span', null, t))));
 
-    const body = h('div', { class: 'iw-hub__body' }, create, join, steps);
+    void steps;   // (the how-it-works strip made way for Quick Play)
+    const body = h('div', { class: 'iw-hub__body' }, quick, create, join);
 
     // ---- you: your splashtag (the name on it is editable) + weapon + look (the kid stands on the pedestal to the right)
     const nameRow = this._nameRow();
@@ -2149,7 +2165,7 @@ export class Menus {
     promptsBusy.classList.add('is-busy');
     const el = h('div', { class: 'iw-screen iw-online' },
       h('div', { class: 'iw-scrim-left' }),
-      this._header('ONLINE', { sub: 'Private rooms · 4 v 4 · up to 8 gooblins' }),
+      this._header('ONLINE', { sub: 'Quick Play or private rooms · 4 v 4 · up to 8 gooblins' }),
       body, me, promptsIdle, promptsEntry, promptsBusy);
 
     // ---- code entry
@@ -2331,6 +2347,35 @@ export class Menus {
       }
     };
     this._bind(create, { id: 'create', accept: () => { if (st.mode !== 'idle' && !st.busy) setMode('idle'); doCreate(); } });
+    const doQuick = async () => {
+      if (st.busy) return;
+      const net = this._net();
+      quick.classList.remove('is-err');
+      if (!net || !net.quickPlay) { quickStatus.textContent = t('Can’t reach the servers right now'); quick.classList.add('is-err'); this._sfx('ui_error'); return; }
+      st.busy = true;
+      const tok = ++st.token;
+      quick.classList.add('is-busy');
+      quickStatus.textContent = t('Finding a match');
+      el.classList.add('is-connecting');
+      try {
+        await net.quickPlay(this._profile().name);
+        if (tok !== st.token || !st.alive) return;
+        st.busy = false;
+        this._sfx('splat_big');
+        this.show('lobby', { wipe: true });
+      } catch (e) {
+        if (tok !== st.token || !st.alive) return;
+        st.busy = false;
+        quick.classList.remove('is-busy');
+        el.classList.remove('is-connecting');
+        quick.classList.add('is-err');
+        const E = joinErrOf(e && (e.code || e.message));
+        quickStatus.textContent = t(E ? E.short : 'Couldn’t find a match');
+        restartAnim(quick, 'is-shake');
+        this._sfx('ui_error');
+      }
+    };
+    this._bind(quick, { id: 'quick', accept: () => { if (st.mode !== 'idle' && !st.busy) setMode('idle'); doQuick(); } });
     this._bind(join, {
       id: 'join', accept: (src) => {
         if (st.mode === 'connecting') return;
@@ -2354,15 +2399,16 @@ export class Menus {
 
     // explicit focus graph: cards on the left, you on the right
     const graph = new Map();
-    graph.set(create, { down: join, up: null, right: () => nameRow });
+    graph.set(quick, { down: create, up: null, right: () => nameRow });
+    graph.set(create, { down: join, up: quick, right: () => nameRow });
     graph.set(join, { up: create, down: null, right: () => wChip });
     graph.set(wChip, { left: join, right: lChip, up: () => nameRow, down: null });
     graph.set(lChip, { left: wChip, right: null, up: () => nameRow, down: null });
-    graph.set(nameRow, { down: wChip, left: create, up: null, right: null });
+    graph.set(nameRow, { down: wChip, left: quick, up: null, right: null });
 
     return {
       el,
-      initial: create,
+      initial: quick,
       afterMount: () => {
         if (sc && sc.showHub) safeCall(() => sc.showHub(this._style(), (G.teamColors && G.teamColors[0]) || this._accent()[0], this._loadout().weapon));
       },

@@ -67,6 +67,15 @@ Pool = 12 SOL of $SPLURT creator fees, defaults (1–5 %, max 1 SOL, 0.05 SOL re
 pct = 1 + 0.55·4 = 3.2 % → prize 0.384 SOL to one verified winner on the winning team who holds ≥ `MIN_TOKEN_HOLDING`
 $SPLURT and hasn't won in the last hour.
 
+## Quick Play
+
+The online hub's **Quick Play** button asks the relay (`GET /quick`) for the next public room: the `Matchmaker`
+Durable Object returns the fullest public room that has space and isn't mid-match, or a fresh code. Public room codes
+are 6 characters starting with `QP` (private codes stay 5 characters and work as before). The first player in hosts;
+30 s after a second player arrives the host's game starts the match (5 s once all 8 slots are taken), and bots fill
+the empty slots. After the results the room stays open and the next countdown starts on its own. The lobby's prize
+card shows what this match pays (`prizeMinSol`/`prizeMaxSol` from `GET /prize`).
+
 ## Configuration (relay env)
 
 See `.env.example`. Off unless both `SOLANA_RPC_URL` and `TREASURY_PUBLIC_KEY` are set.
@@ -78,10 +87,11 @@ See `.env.example`. Off unless both `SOLANA_RPC_URL` and `TREASURY_PUBLIC_KEY` a
 | `TREASURY_SECRET_KEY` | — | **secret**: keypair JSON array or base58. Only needed for live. `wrangler secret put` only. |
 | `PAYOUT_MODE` | `dry-run` | anything other than exactly `live` is dry-run |
 | `TOKEN_MINT` | — | the $SPLURT mint address (for the holding check / shown in the UI) |
-| `PRIZE_MIN_PCT` / `PRIZE_MAX_PCT` | 1 / 5 | prize range, % of the pool |
+| `PRIZE_PCT` | — | fixed prize per match, % of the pool (overrides the range below) |
+| `PRIZE_MIN_PCT` / `PRIZE_MAX_PCT` | 1 / 5 | prize range, % of the pool (when `PRIZE_PCT` is empty) |
 | `PRIZE_MAX_SOL` | 1 | cap per round |
 | `PRIZE_RESERVE_SOL` | 0.05 | never paid out |
-| `MIN_HUMAN_PLAYERS` | 2 | humans at match start for a prize round |
+| `MIN_HUMAN_PLAYERS` | 2 | humans **with a verified wallet** at match start for a prize round |
 | `MIN_TOKEN_HOLDING` | 0 | $SPLURT a winner must hold (e.g. `100000` = 100k $SPLURT) |
 | `PRIZE_COOLDOWN_SEC` | 3600 | a wallet can win once per this many seconds |
 

@@ -1,7 +1,7 @@
 // The prize ledger: one instance for the whole relay (the `Prizes` Durable Object in index.js), so commits, cooldowns,
 // pool reads and payouts are serialised across every room and the treasury is never double-spent. Storage / fetch /
 // clock are injected, so server/test/ledger.test.mjs runs it in plain Node with a fake RPC.
-import { prizeConfig, publicConfig, newSeedHex, commitOf, roundBlock, eligibleCandidates, drawRound } from './prize-core.js';
+import { prizeConfig, publicConfig, newSeedHex, commitOf, roundBlock, eligibleCandidates, drawRound, prizeEstimate } from './prize-core.js';
 import { getBalanceLamports, getTokenHolding, parseSecretKey, importSigner, sendTransfer, parsePubkey, LAMPORTS_PER_SOL, b58encode } from './solana.js';
 
 const POOL_TTL = 30000, LOG_KEEP = 500;
@@ -33,7 +33,12 @@ export class PrizeLedger {
   async status() {
     const out = { ...publicConfig(this.cfg), poolSol: null };
     if (!this.cfg.enabled) return out;
-    try { out.poolSol = (await this.pool()) / LAMPORTS_PER_SOL; } catch (e) { out.poolError = String(e.message || e); }
+    try {
+      const lamports = await this.pool();
+      out.poolSol = lamports / LAMPORTS_PER_SOL;
+      const est = prizeEstimate(lamports, this.cfg);
+      out.prizeMinSol = est.minSol; out.prizeMaxSol = est.maxSol;   // what the next match would pay (lobby card)
+    } catch (e) { out.poolError = String(e.message || e); }
     return out;
   }
 
@@ -43,14 +48,16 @@ export class PrizeLedger {
   }
 
   /** Match start: draw and store a seed, publish only its hash. */
-  async commit(round, room, humansAtStart) {
-    const block = roundBlock(this.cfg, humansAtStart);
+  async commit(round, room, humansAtStart, walletsAtStart = humansAtStart) {
+    const block = roundBlock(this.cfg, humansAtStart, walletsAtStart);
     if (block) return { round, skip: block };
     const seed = newSeedHex(), hash = await commitOf(seed);
     await this.storage.put('commit:' + round, { seed, hash, room, humansAtStart, at: this.now() });
     let poolSol = null;
     try { poolSol = (await this.pool()) / LAMPORTS_PER_SOL; } catch { /* shown as unknown */ }
-    return { round, hash, poolSol };
+    let prizeSol = null;
+    if (poolSol != null) { const e = prizeEstimate(poolSol * LAMPORTS_PER_SOL, this.cfg); prizeSol = e.minSol === e.maxSol ? e.minSol : null; }
+    return { round, hash, poolSol, prizeSol };
   }
 
   /**
