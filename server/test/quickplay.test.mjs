@@ -85,3 +85,29 @@ test('a prize needs a verified wallet on each team', async () => {
   assert.equal(bothSidesBlock(players, ['C', 'D']), 'needs a wallet holder on each team');   // both wallets lost
   assert.equal(bothSidesBlock(players, ['A', 'C']), null);                                     // one each side
 });
+
+test('holder rooms get their own QH codes, separate from open Quick Play', async () => {
+  const { HOLDER_CODE } = await import('../src/index.js');
+  const rooms = new Map();
+  const mm = new Matchmaker({}, fakeEnv(rooms));
+  const open = (await mm.quick('QP')).code, held = (await mm.quick('QH')).code;
+  assert.match(open, /^QP/); assert.match(held, HOLDER_CODE); assert.match(held, QUICK_CODE);
+  assert.equal((await mm.quick('QH')).code, held);   // holders fill the holder room
+  assert.equal((await mm.quick('QP')).code, open);   // and never land in it from open Quick Play
+});
+
+test('ledger.holds: no mint → everyone passes; with a mint the on-chain amount decides', async () => {
+  const { PrizeLedger } = await import('../src/ledger.js');
+  const storage = { get: async () => null, put: async () => {}, list: async () => new Map(), delete: async () => {} };
+  const base2 = { SOLANA_RPC_URL: 'http://rpc', TREASURY_PUBLIC_KEY: '11111111111111111111111111111112' };
+  assert.equal((await new PrizeLedger({ env: base2, storage }).holds('w')).ok, true);
+  const rpcWith = (amount) => async (_u, init) => {
+    const { method, params } = JSON.parse(init.body);
+    if (method !== 'getTokenAccountsByOwner') throw new Error(method);
+    if (params[1].programId !== 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { value: [] } }));
+    return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { value: [{ account: { data: { parsed: { info: { mint: 'So11111111111111111111111111111111111111112', tokenAmount: { amount: String(amount * 1e6), decimals: 6, uiAmount: amount, uiAmountString: String(amount) } } } } } }] } }));
+  };
+  const env = { ...base2, TOKEN_MINT: 'So11111111111111111111111111111111111111112', MIN_TOKEN_HOLDING: '100000' };
+  assert.equal((await new PrizeLedger({ env, storage, fetchFn: rpcWith(150000) }).holds('w')).ok, true);
+  assert.equal((await new PrizeLedger({ env, storage, fetchFn: rpcWith(99999) }).holds('w')).ok, false);
+});

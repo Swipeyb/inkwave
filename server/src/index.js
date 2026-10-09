@@ -2,7 +2,11 @@
 //
 //   GET /room/<CODE>?name=<name>&create=1&v=<proto>   (WebSocket upgrade) → the Room object for that code
 //   GET /health                                          → "ok"
-//   GET /quick                                           → {"code"} the public Quick Play room to join next
+//   GET /quick[?mode=holders]                            → {"code"} the public Quick Play room to join next
+//
+// Holders-only rooms ("QH" codes) take a signed wallet proof on the join URL (&wallet=&msg=&sig=, message
+//   "SPLURT holder match\nroom: <code>\nwallet: <address>\ntime: <ms>") and, when TOKEN_MINT + MIN_TOKEN_HOLDING are
+//   set, an on-chain holding check: every player in them is a verified holder.
 //
 // Quick Play rooms use 6-character codes starting with "QP" (private codes are 5 characters, so the two never clash).
 // Anyone may join a QP room while it isn't mid-match; the first one in becomes its host. The Matchmaker Durable Object
@@ -45,7 +49,9 @@ const MSG_MAX = 65536, RATE = 90, BURST_STRIKES = 4;
 // pings (throttled to ≥ 1/min after five minutes), so the lobby allowance is generous.
 const SILENT_MATCH = 20000, SILENT_LOBBY = 150000, SWEEP = 4000;   // a heavy transition on a slow machine can freeze a tab for seconds
 const CODE = /^[A-Z0-9]{4,8}$/;
-export const QUICK_CODE = /^QP[A-Z0-9]{4}$/;
+export const QUICK_CODE = /^Q[PH][A-Z0-9]{4}$/;     // QP = open Quick Play, QH = holders only
+export const HOLDER_CODE = /^QH[A-Z0-9]{4}$/;
+export const holderMessage = (code, wallet, time) => `SPLURT holder match\nroom: ${code}\nwallet: ${wallet}\ntime: ${time}`;
 const QUICK_CHARS = 'BCEFGHJKLMNPRTUVXYZ23456789';
 
 export default {
@@ -61,7 +67,7 @@ export default {
     if (url.pathname === '/quick') {
       const origin = req.headers.get('Origin') || '';
       if (!ORIGIN_OK(origin)) return new Response('forbidden', { status: 403 });
-      const r = await env.MATCHMAKER.get(env.MATCHMAKER.idFromName('main')).quick();
+      const r = await env.MATCHMAKER.get(env.MATCHMAKER.idFromName('main')).quick(url.searchParams.get('mode') === 'holders' ? 'QH' : 'QP');
       return new Response(JSON.stringify(r), { headers: { 'content-type': 'application/json', 'access-control-allow-origin': origin, vary: 'Origin', 'cache-control': 'no-store' } });
     }
     const m = url.pathname.match(/^\/room\/([A-Za-z0-9]+)$/);
@@ -116,13 +122,30 @@ export class Room extends DurableObject {
     if (ms.length >= MAX) return fail('ERR_FULL', 'Room is full');
     if (this.locked && ms.length) return fail('ERR_IN_PROGRESS', 'Match in progress');
     if (!ms.length) this.locked = false;
+    // holders-only room: the wallet must be proven (signature over this room's code) and, if configured, hold the coin
+    let wallet = null;
+    if (HOLDER_CODE.test(this.code)) {
+      const pk = String(url.searchParams.get('wallet') || ''), key = parsePubkey(pk), msg = String(url.searchParams.get('msg') || '');
+      const m = msg.match(/^SPLURT holder match\nroom: ([A-Z0-9]+)\nwallet: (\S+)\ntime: (\d+)$/);
+      if (!key || !m || m[1] !== this.code || m[2] !== pk || Math.abs(Date.now() - +m[3]) > 5 * 60000) return fail('ERR_HOLDER_SIG', 'Wallet check failed — try again');
+      let sig; try { sig = b64decode(String(url.searchParams.get('sig') || '')); } catch { sig = new Uint8Array(0); }
+      if (!(await verifyEd25519(key, msg, sig))) return fail('ERR_HOLDER_SIG', 'Wallet check failed — try again');
+      if (ms.some((x) => x.a.wallet === pk)) return fail('ERR_WALLET_DUP', 'That wallet is already in this room');
+      const ledger = this._ledger();
+      if (ledger) {
+        let h;
+        try { h = await ledger.holds(pk); } catch (e) { h = { ok: false, error: String(e.message || e) }; }
+        if (!h.ok) return fail('ERR_NOT_HOLDER', h.error ? 'Could not check your $SPLURT — try again' : `Hold at least ${Number(h.need).toLocaleString('en-US')} $SPLURT to join holder matches`);
+      }
+      wallet = pk;
+    }
     const name = (url.searchParams.get('name') || 'Player').replace(/[^\p{L}\p{N} ._\-!?']/gu, '').slice(0, 16) || 'Player';
     let id;
     do { id = Math.random().toString(36).slice(2, 6).toUpperCase(); } while (ms.some((m) => m.a.id === id));
-    const a = { id, name, seq: this.seq++, at: Date.now(), code: this.code };
+    const a = { id, name, seq: this.seq++, at: Date.now(), code: this.code, wallet: wallet || undefined };
     server.serializeAttachment(a);
     const all = [...ms.map((m) => m.a), a];
-    server.send(JSON.stringify({ t: 'welcome', id, host: all[0].id, members: all.map(({ id, name }) => ({ id, name })), quick: quick || undefined }));
+    server.send(JSON.stringify({ t: 'welcome', id, host: all[0].id, members: all.map(({ id, name }) => ({ id, name })), quick: quick || undefined, holders: HOLDER_CODE.test(this.code) || undefined, wallet: wallet || undefined }));
     const j = JSON.stringify({ t: 'join', m: { id, name } });
     for (const m of ms) try { m.ws.send(j); } catch { /* closing */ }
     if (!(await this.ctx.storage.getAlarm())) await this.ctx.storage.setAlarm(Date.now() + SWEEP);
@@ -195,6 +218,7 @@ export class Room extends DurableObject {
       return this._send(ws, { t: 'wallet', a: 'nonce', msg: me.walletMsg });
     }
     if (o.a !== 'prove') return;
+    if (HOLDER_CODE.test(this.code || me.code)) return this._send(ws, { t: 'wallet', a: 'err', e: 'Your wallet was checked when you joined this holder match' });
     if (this.locked) return this._send(ws, { t: 'wallet', a: 'err', e: 'Wait for the match to end' });
     const pk = String(o.pk || ''), key = parsePubkey(pk);
     if (!me.walletMsg || !key) return this._send(ws, { t: 'wallet', a: 'err', e: 'Bad wallet proof' });
@@ -272,11 +296,13 @@ export class Matchmaker extends DurableObject {
     super(ctx, env);
     this.rooms = [];   // [{ code, at, coming: [ms] }]
   }
-  async quick() {
+  async quick(prefix = 'QP') {
+    prefix = prefix === 'QH' ? 'QH' : 'QP';
     const now = Date.now();
     let best = null, bestN = -1;
     const keep = [];
-    for (const r of this.rooms.slice(-24)) {
+    for (const r of this.rooms.slice(-48)) {
+      if (!r.code.startsWith(prefix)) { keep.push(r); continue; }
       r.coming = r.coming.filter((t) => now - t < 20000);
       let st;
       try { st = await this.env.ROOMS.get(this.env.ROOMS.idFromName(r.code)).status(); } catch { continue; }
@@ -289,7 +315,7 @@ export class Matchmaker extends DurableObject {
     this.rooms = keep;
     if (!best) {
       let code;
-      do { code = 'QP' + Array.from({ length: 4 }, () => QUICK_CHARS[(Math.random() * QUICK_CHARS.length) | 0]).join(''); } while (this.rooms.some((r) => r.code === code));
+      do { code = prefix + Array.from({ length: 4 }, () => QUICK_CHARS[(Math.random() * QUICK_CHARS.length) | 0]).join(''); } while (this.rooms.some((r) => r.code === code));
       best = { code, at: now, coming: [] };
       this.rooms.push(best);
     }
@@ -305,6 +331,7 @@ export class Prizes extends DurableObject {
     this.ledger = new PrizeLedger({ env, storage: ctx.storage });
   }
   status() { return this.ledger.status(); }
+  holds(wallet) { return this.ledger.holds(wallet); }
   recent(n) { return this.ledger.recent(n); }
   commit(round, room, humans) { return this.ledger.commit(round, room, humans); }
   settle(input) { return this.ledger.settle(input); }

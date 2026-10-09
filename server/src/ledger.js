@@ -43,6 +43,15 @@ export class PrizeLedger {
     return out;
   }
 
+  /** Holders-only rooms: does this wallet hold at least MIN_TOKEN_HOLDING of TOKEN_MINT? (No mint set: everyone passes.) */
+  async holds(wallet) {
+    const cfg = this.cfg;
+    if (!cfg.mint || !(cfg.minHolding > 0)) return { ok: true, checked: false };
+    let amount = 0;
+    try { amount = await getTokenHolding(cfg.rpcUrl, wallet, cfg.mint, this.fetchFn); } catch (e) { return { ok: false, error: 'could not check the holding: ' + (e.message || e) }; }
+    return { ok: amount >= cfg.minHolding, amount, need: cfg.minHolding, checked: true };
+  }
+
   async recent(limit = 50) {
     const m = await this.storage.list({ prefix: 'log:', reverse: true, limit: Math.min(200, limit) });
     return [...m.values()];

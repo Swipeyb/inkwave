@@ -75,6 +75,7 @@ class PrizeUI {
   _state(state) {
     const room = state === 'lobby' || state === 'starting';
     if (state === 'offline' || state === 'error' || state === 'connecting') { this.wallet = null; this.err = ''; }
+    if (room && this.net.verifiedWallet) this.wallet = this.net.verifiedWallet;   // holder match: checked on join
     if (room) { this._fetch(); if (!this._pollT) this._pollT = setInterval(() => this._fetch(), POLL); }
     else { clearInterval(this._pollT); this._pollT = null; }
     if (state === 'offline' || state === 'error') this._hideBanner();
@@ -165,6 +166,22 @@ class PrizeUI {
       ${hold}${wallet}${this.err ? `<div class="iw-prize__err">${esc(this.err)}</div>` : ''}`;
   }
 }
+
+/** For holder matches (session.quickPlay): connect the wallet, then sign the room's join message. */
+export const holderWallet = {
+  async connect() {
+    const p = solanaProvider();
+    if (!p) { const e = new Error('No Solana wallet in this browser'); e.code = 'ERR_NO_WALLET'; throw e; }
+    const res = await p.connect();
+    const pk = (res?.publicKey || p.publicKey)?.toString();
+    if (!pk) throw new Error('No wallet address');
+    return pk;
+  },
+  async sign(msg) {
+    const r = await solanaProvider().signMessage(new TextEncoder().encode(msg), 'utf8');
+    return toB64(r?.signature || r);
+  },
+};
 
 export function installPrize() {
   if (!G.net?.on || typeof document === 'undefined') return null;

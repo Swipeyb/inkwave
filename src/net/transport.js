@@ -42,11 +42,11 @@ export class Transport {
   }
 
   /** Resolves with the welcome frame, rejects with an Error carrying a `code` (src/net/errors.js). */
-  connect(code, name, create) {
+  connect(code, name, create, extra = null) {
     return new Promise((resolve, reject) => {
       let settled = false;
       const done = (fn, v) => { if (!settled) { settled = true; clearTimeout(timer); fn(v); } };
-      const url = `${relayURL()}/room/${encodeURIComponent(code)}?name=${encodeURIComponent(name)}&v=${PROTO}${create ? '&create=1' : ''}`;
+      const url = `${relayURL()}/room/${encodeURIComponent(code)}?name=${encodeURIComponent(name)}&v=${PROTO}${create ? '&create=1' : ''}${extra ? '&' + new URLSearchParams(extra) : ''}`;
       let ws;
       try { ws = new WebSocket(url); } catch { reject(netError(ERR.CONNECT, 'Could not connect')); return; }
       this.ws = ws;

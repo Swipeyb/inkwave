@@ -76,6 +76,17 @@ are 6 characters starting with `QP` (private codes stay 5 characters and work as
 the empty slots. After the results the room stays open and the next countdown starts on its own. The lobby's prize
 card shows what this match pays (`prizeMinSol`/`prizeMaxSol` from `GET /prize`).
 
+### Holder matches and split prizes
+
+Quick Play asks **Everyone** or **Holders only**. Holders-only rooms (`QH` codes, `GET /quick?mode=holders`) only let
+a player in after their wallet signs `SPLURT holder match / room / wallet / time` and, when `TOKEN_MINT` +
+`MIN_TOKEN_HOLDING` are set, the relay checks the on-chain holding — so every player there is a verified holder and
+every match with players on both sides is a prize match. In open rooms a prize needs a wallet holder on each team.
+
+By default (`PRIZE_SPLIT=all`) the prize is split equally between every eligible holder on the winning team and paid in
+one transaction; `PRIZE_SPLIT=one` pays a single holder picked by the seed. If a share would be under 0.001 SOL the
+whole prize goes to the seed's pick instead.
+
 ## Configuration (relay env)
 
 See `.env.example`. Off unless both `SOLANA_RPC_URL` and `TREASURY_PUBLIC_KEY` are set.
@@ -93,6 +104,7 @@ See `.env.example`. Off unless both `SOLANA_RPC_URL` and `TREASURY_PUBLIC_KEY` a
 | `PRIZE_RESERVE_SOL` | 0.05 | never paid out |
 | `MIN_HUMAN_PLAYERS` | 2 | humans **with a verified wallet** at match start for a prize round; at the end there must be a wallet holder on **each** team (no farming with two wallets on one side) |
 | `MIN_TOKEN_HOLDING` | 0 | $SPLURT a winner must hold (e.g. `100000` = 100k $SPLURT) |
+| `PRIZE_SPLIT` | all | `all` = split between every holder on the winning team, `one` = one random holder |
 | `PRIZE_COOLDOWN_SEC` | 3600 | a wallet can win once per this many seconds |
 
 ## Running it

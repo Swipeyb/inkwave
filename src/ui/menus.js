@@ -27,6 +27,7 @@ import { bossEmblem, BOSS_GLYPH, BOSS_NAME, BOSS_EPITHET } from './boss-art.js';
 import { WhatsNew } from './news.js';
 import { t, LANGUAGES } from '../i18n/strings.js';
 import { ERR, codeFromText } from '../net/errors.js';
+import { holderWallet } from './prize.js';
 
 const SCREENS = ['loading', 'title', 'main', 'loadout', 'locker', 'settings', 'howto', 'credits', 'pause', 'results', 'online', 'lobby'];
 // Transitions that get the full-screen ink wipe (the rest use staggered pop-ins).
@@ -57,6 +58,10 @@ const JOIN_ERR = {
   [ERR.TEAM_FULL]: { title: 'TEAM IS FULL', text: 'That team already has four players. Pick the other one, or wait for a spot.', short: 'That team is full.', icon: 'users' },
   [ERR.CONNECT]: { title: 'CAN\u2019T CONNECT', text: 'The SPLURT servers didn\u2019t answer. Check your connection, then try again.', short: 'The SPLURT servers didn\u2019t answer.', icon: 'signal' },
   [ERR.CODE_TAKEN]: { title: 'TRY AGAIN', text: 'That room code was just taken. Give it another go.', short: 'That room code was just taken.', icon: 'reset' },
+  [ERR.NOT_HOLDER]: { title: 'HOLDERS ONLY', text: 'Holder matches are for $SPLURT holders. Grab some, or hop into open Quick Play.', short: 'Holder matches need $SPLURT in your wallet.', icon: 'lock' },
+  [ERR.HOLDER_SIG]: { title: 'WALLET CHECK', text: 'The wallet signature didn’t go through. Approve it in your wallet to join a holder match.', short: 'Approve the wallet signature to join.', icon: 'key' },
+  [ERR.WALLET_DUP]: { title: 'ALREADY IN', text: 'That wallet is already in this match.', short: 'That wallet is already in this match.', icon: 'users' },
+  [ERR.NO_WALLET]: { title: 'GET A WALLET', text: 'Holder matches need a Solana wallet like Phantom in this browser.', short: 'Install Phantom to join holder matches.', icon: 'key' },
   [ERR.LOST]: { title: 'CONNECTION LOST', text: 'The link to the room dropped. Check your connection and join again.', short: 'The link to the room dropped.', icon: 'signal' },
   [ERR.STALE]: { title: 'PLEASE REFRESH', text: 'The game was updated since this page loaded. Refresh to play online again.', short: 'Refresh the page to play online.', icon: 'reset' },
   [ERR.MATCH_START]: { title: 'COULDN\u2019T START', text: 'The match never got going. Back to the lobby — try again.', short: 'The match never got going.', icon: 'close' },
@@ -2061,7 +2066,7 @@ export class Menus {
       h('span', { class: 'iw-hubcard__text' },
         h('span', { class: 'iw-hubcard__kicker iw-tape' }, h('i', { html: GLYPHS.users }), 'PUBLIC MATCH'),
         h('span', { class: 'iw-hubcard__title' }, 'QUICK PLAY'),
-        h('span', { class: 'iw-hubcard__sub' }, 'Jump into the next open room. Starts on its own, bots fill empty spots.'),
+        h('span', { class: 'iw-hubcard__sub' }, 'Jump into the next open room, or a holders-only prize match. Starts on its own.'),
         quickStatus),
       h('span', { class: 'iw-hubcard__go' }, h('b', null, 'GO!'), this._hint('Enter', 'A')));
     quick.dataset.cur = 'own';
@@ -2347,7 +2352,7 @@ export class Menus {
       }
     };
     this._bind(create, { id: 'create', accept: () => { if (st.mode !== 'idle' && !st.busy) setMode('idle'); doCreate(); } });
-    const doQuick = async () => {
+    const doQuick = async (holders = false) => {
       if (st.busy) return;
       const net = this._net();
       quick.classList.remove('is-err');
@@ -2355,10 +2360,10 @@ export class Menus {
       st.busy = true;
       const tok = ++st.token;
       quick.classList.add('is-busy');
-      quickStatus.textContent = t('Finding a match');
+      quickStatus.textContent = t(holders ? 'Check your wallet' : 'Finding a match');
       el.classList.add('is-connecting');
       try {
-        await net.quickPlay(this._profile().name);
+        await net.quickPlay(this._profile().name, holders ? { holders: holderWallet } : {});
         if (tok !== st.token || !st.alive) return;
         st.busy = false;
         this._sfx('splat_big');
@@ -2375,7 +2380,21 @@ export class Menus {
         this._sfx('ui_error');
       }
     };
-    this._bind(quick, { id: 'quick', accept: () => { if (st.mode !== 'idle' && !st.busy) setMode('idle'); doQuick(); } });
+    // Quick Play: open to everyone, or holders-only (every player proved they hold $SPLURT)
+    const pickQuick = () => {
+      if (st.busy) return;
+      if (st.mode !== 'idle') setMode('idle');
+      this._openModal({
+        title: 'QUICK PLAY',
+        text: t('Everyone: open lobbies — a prize is on when there’s a wallet holder on each team. Holders only: every player holds $SPLURT (sign with your wallet to get in), so every match is a prize match.'),
+        buttons: [
+          { label: 'EVERYONE', cls: 'iw-btn--primary', sound: 'ui_confirm', accept: () => { this._closeModal(true); doQuick(false); } },
+          { label: 'HOLDERS ONLY', sound: 'ui_confirm', accept: () => { this._closeModal(true); doQuick(true); } },
+          { label: 'BACK', accept: () => this._closeModal() },
+        ],
+      });
+    };
+    this._bind(quick, { id: 'quick', accept: pickQuick });
     this._bind(join, {
       id: 'join', accept: (src) => {
         if (st.mode === 'connecting') return;
