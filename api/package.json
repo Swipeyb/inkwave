@@ -1,0 +1,1 @@
+{ "name": "draftpump-api", "private": true, "type": "module", "scripts": { "test": "node --test --no-warnings test/*.test.mjs" } }

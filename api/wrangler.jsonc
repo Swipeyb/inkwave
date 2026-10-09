@@ -1,0 +1,11 @@
+{
+  // DRAFTPUMP: site + API in one Worker (https://draftpump.<your-subdomain>.workers.dev after the first deploy)
+  "name": "draftpump",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+  "assets": { "directory": "../site", "run_worker_first": ["/api/*"] },
+  "durable_objects": { "bindings": [{ "name": "LEAGUE", "class_name": "League" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["League"] }],
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "observability": { "enabled": true }
+}
