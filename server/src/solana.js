@@ -144,6 +144,23 @@ export async function getTokenHolding(url, owner, mint, fetchFn) {
   return total;
 }
 
+/**
+ * Wait for a sent transaction to land. Returns 'confirmed' | 'failed' (with .err) | 'unknown' (still not seen when
+ * the wait ran out: it may land later — check it on an explorer). Polls getSignatureStatuses.
+ */
+export async function confirmSignature(url, signature, fetchFn, { tries = 12, delayMs = 1500, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
+  for (let i = 0; i < tries; i++) {
+    let st = null;
+    try { st = (await rpc(url, 'getSignatureStatuses', [[signature], { searchTransactionHistory: false }], fetchFn))?.value?.[0]; } catch { /* retry */ }
+    if (st) {
+      if (st.err) return { status: 'failed', err: st.err };
+      if (st.confirmationStatus === 'confirmed' || st.confirmationStatus === 'finalized') return { status: 'confirmed' };
+    }
+    await sleep(delayMs);
+  }
+  return { status: 'unknown' };
+}
+
 /** Pay several wallets in one transaction (the split prize). */
 export async function sendTransfers(url, signer, payments, fetchFn) {
   const bh = await rpc(url, 'getLatestBlockhash', [{ commitment: 'confirmed' }], fetchFn);

@@ -2,13 +2,14 @@
 // pool reads and payouts are serialised across every room and the treasury is never double-spent. Storage / fetch /
 // clock are injected, so server/test/ledger.test.mjs runs it in plain Node with a fake RPC.
 import { prizeConfig, publicConfig, newSeedHex, commitOf, roundBlock, eligibleCandidates, drawRound, prizeEstimate, bothSidesBlock, effectiveMinHolding } from './prize-core.js';
-import { getBalanceLamports, getTokenHolding, parseSecretKey, importSigner, sendTransfer, sendTransfers, parsePubkey, LAMPORTS_PER_SOL, b58encode } from './solana.js';
+import { getBalanceLamports, getTokenHolding, parseSecretKey, importSigner, sendTransfer, sendTransfers, confirmSignature, parsePubkey, LAMPORTS_PER_SOL, b58encode } from './solana.js';
 import { MIN_PRIZE_LAMPORTS } from './prize-core.js';
 
 const POOL_TTL = 30000, LOG_KEEP = 500;
 
 export class PrizeLedger {
-  constructor({ env = {}, storage, fetchFn = (...a) => fetch(...a), now = () => Date.now(), log = (o) => console.log(JSON.stringify(o)) }) {
+  constructor({ env = {}, storage, fetchFn = (...a) => fetch(...a), now = () => Date.now(), log = (o) => console.log(JSON.stringify(o)), confirmOpts = {} }) {
+    this.confirmOpts = confirmOpts;
     this.env = env;
     this.cfg = prizeConfig(env);
     this.storage = storage;
@@ -146,8 +147,12 @@ export class PrizeLedger {
               const sent = payees.length === 1
                 ? await sendTransfer(cfg.rpcUrl, signer, parsePubkey(payees[0].wallet), each, this.fetchFn)
                 : await sendTransfers(cfg.rpcUrl, signer, payees.map((p) => ({ to: parsePubkey(p.wallet), lamports: each })), this.fetchFn);
-              rec.status = 'paid'; rec.tx = sent.signature;
+              rec.tx = sent.signature;
               this._pool = null;
+              // only call it paid once the chain confirms it; a rejected transfer pays nothing (and sets no cooldown)
+              const c = await confirmSignature(cfg.rpcUrl, sent.signature, this.fetchFn, this.confirmOpts);
+              if (c.status === 'failed') { rec.status = 'failed'; rec.reason = 'payout rejected on-chain: ' + JSON.stringify(c.err); }
+              else rec.status = c.status === 'confirmed' ? 'paid' : 'sent';   // 'sent' = not confirmed yet: check the tx on an explorer
             } catch (e) { rec.status = 'failed'; rec.reason = 'payout failed: ' + (e.message || e); }
           } else rec.status = 'dry-run';
           if (rec.status !== 'failed') for (const p of payees) await this.storage.put('cd:' + p.wallet, now);

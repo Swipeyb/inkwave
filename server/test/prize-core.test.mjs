@@ -18,6 +18,7 @@ test('config: off without RPC + treasury, dry-run unless exactly "live", sane de
   assert.equal(prizeConfig({ ...base, PAYOUT_MODE: 'LIVE' }).mode, 'dry-run');
   assert.equal(prizeConfig({ ...base, PAYOUT_MODE: 'live', TREASURY_SECRET_KEY: 'k' }).mode, 'live');
   assert.ok(prizeConfig({ ...base, PAYOUT_MODE: 'live' }).problems.some((p) => /SECRET/.test(p)));
+  assert.equal(prizeConfig({ ...base, PAYOUT_MODE: 'live' }).mode, 'dry-run');   // live needs the key; until then, dry-run
   assert.deepEqual([c.minPct, c.maxPct, c.maxLamports, c.reserveLamports, c.minHumans], [1, 5, 1e9, 5e7, 2]);
   const s = prizeConfig({ ...base, PRIZE_MIN_PCT: '10', PRIZE_MAX_PCT: '3', MIN_HUMAN_PLAYERS: '0' });
   assert.deepEqual([s.minPct, s.maxPct, s.minHumans], [3, 10, 1]);

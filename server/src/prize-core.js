@@ -35,7 +35,10 @@ export function prizeConfig(env = {}) {
   const cfg = {
     enabled: !!(rpcUrl && treasury),
     rpcUrl, treasury, mint,
-    mode: String(env.PAYOUT_MODE || '').trim() === 'live' ? 'live' : 'dry-run',
+    // live only when PAYOUT_MODE is exactly "live" AND the treasury key is present: without the key it stays dry-run
+    // (instead of failing every payout), so flipping the var before the secret is in place is harmless
+    mode: String(env.PAYOUT_MODE || '').trim() === 'live' && env.TREASURY_SECRET_KEY ? 'live' : 'dry-run',
+    liveRequested: String(env.PAYOUT_MODE || '').trim() === 'live',
     hasSecret: !!env.TREASURY_SECRET_KEY,
     minPct, maxPct,
     maxLamports: Math.floor(Math.max(0, num(env.PRIZE_MAX_SOL, 1)) * LAMPORTS_PER_SOL),
@@ -54,7 +57,7 @@ export function prizeConfig(env = {}) {
   if ((env.TREASURY_PUBLIC_KEY || env.SOLANA_RPC_URL) && !cfg.enabled) cfg.problems.push('SOLANA_RPC_URL and a valid TREASURY_PUBLIC_KEY are both required');
   if (env.TOKEN_MINT && !mint) cfg.problems.push('TOKEN_MINT is not a valid base58 public key');
   if (cfg.minHolding > 0 && !mint) cfg.problems.push('MIN_TOKEN_HOLDING is set but TOKEN_MINT is missing: the holding check is skipped');
-  if (cfg.mode === 'live' && !cfg.hasSecret) cfg.problems.push('PAYOUT_MODE=live without TREASURY_SECRET_KEY: payouts will fail');
+  if (cfg.liveRequested && !cfg.hasSecret) cfg.problems.push('PAYOUT_MODE=live without TREASURY_SECRET_KEY: staying in dry-run until the secret is set');
   return cfg;
 }
 

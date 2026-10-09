@@ -135,7 +135,7 @@ class PrizeUI {
       const me = ws.some((w) => w.wallet === this.wallet);
       const who = ws.length > 1 ? `split ${ws.length} ways (${sol(o.eachSol)} SOL each)${me ? ' — YOU won a share' : ''}`
         : ws[0] ? `→ ${me ? 'YOU' : esc(ws[0].name)} <span style="font-family:ui-monospace,monospace">${esc(shortAddr(ws[0].wallet))}</span>` : '';
-      const head = ws.length && (o.status === 'paid' || o.status === 'dry-run')
+      const head = ws.length && (o.status === 'paid' || o.status === 'sent' || o.status === 'dry-run')
         ? `<b>${sol(o.prizeSol)} SOL</b> prize ${who}${tag}`
         : o.status === 'failed' ? `Prize payout failed — it will be checked by hand${tag}`
           : `No prize this round: ${esc(o.reason || 'no eligible winner')}${tag}`;

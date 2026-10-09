@@ -27,6 +27,7 @@ function fakeRpc(state) {
     if (method === 'getTokenAccountsByOwner') return ok({ value: (state.holdings[params[0]] && params[1].programId.startsWith('Tokenkeg')) ? [{ account: { data: { parsed: { info: { mint: state.mint, tokenAmount: { uiAmountString: String(state.holdings[params[0]]) } } } } } }] : [] });
     if (method === 'getLatestBlockhash') return ok({ value: { blockhash: b58encode(new Uint8Array(32).fill(7)), lastValidBlockHeight: 99 } });
     if (method === 'sendTransaction') { state.sent.push(params[0]); return ok('SIG' + state.sent.length); }
+    if (method === 'getSignatureStatuses') return ok({ value: [state.txFails ? { err: { InstructionError: [0, 'Custom'] } } : { confirmationStatus: 'confirmed', err: null }] });
     throw new Error('unexpected ' + method);
   };
 }
@@ -145,4 +146,16 @@ test('PRIZE_SPLIT=one pays a single random holder; live split pays everyone in o
   const p = await live.settle({ round: 'l', players, winners: ['A', 'B', 'C'] });
   assert.equal(p.status, 'paid');
   assert.equal(state.calls.filter((c) => c === 'sendTransaction').length, 1);   // one transaction for both shares
+});
+
+test('live: a transfer the chain rejects is recorded as failed, with no cooldown', async () => {
+  const t = await treasury();
+  const state = { balance: 10e9, calls: [], sent: [], holdings: {}, mint: null, txFails: true };
+  const store = new MemStorage();
+  const L = new PrizeLedger({ env: { SOLANA_RPC_URL: 'http://rpc', TREASURY_PUBLIC_KEY: t.pub, TREASURY_SECRET_KEY: t.secret, PAYOUT_MODE: 'live' }, storage: store, fetchFn: fakeRpc(state), log: () => {}, confirmOpts: { sleep: async () => {} } });
+  await L.commit('f', 'R', 3);
+  const r = await L.settle({ round: 'f', players, winners: ['A', 'B', 'C'] });
+  assert.equal(r.status, 'failed');
+  assert.match(r.reason, /rejected on-chain/);
+  assert.equal(await store.get('cd:' + W[0]), undefined);
 });

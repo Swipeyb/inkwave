@@ -33,9 +33,15 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Test
         run: npm run -s check && npm test
-      - name: Safety — payouts must stay dry-run
+      - name: Safety — no keys in the repo, payouts capped
         run: |
-          grep -Eq '"PAYOUT_MODE"[[:space:]]*:[[:space:]]*"dry-run"' server/wrangler.jsonc || { echo "::error::server/wrangler.jsonc must keep PAYOUT_MODE=dry-run"; exit 1; }
+          # a treasury key must only ever be a Cloudflare secret
+          if grep -rEn 'TREASURY_SECRET_KEY"?[[:space:]]*[:=][[:space:]]*"?[1-9A-HJ-NP-Za-km-z\[]{20,}' --include='*.js' --include='*.jsonc' --include='*.json' --include='*.toml' --exclude-dir=node_modules --exclude-dir=test . ; then echo "::error::a TREASURY_SECRET_KEY value is committed"; exit 1; fi
+          # while match results are host-decided (step 5 pending), live payouts are capped at 0.1 SOL per match
+          if grep -Eq '"PAYOUT_MODE"[[:space:]]*:[[:space:]]*"live"' server/wrangler.jsonc; then
+            max=$(grep -Eo '"PRIZE_MAX_SOL"[[:space:]]*:[[:space:]]*"[0-9.]+"' server/wrangler.jsonc | grep -Eo '[0-9.]+"$' | tr -d '"')
+            awk -v m="$max" 'BEGIN { exit !(m != "" && m+0 <= 0.1) }' || { echo "::error::PRIZE_MAX_SOL must be <= 0.1 while PAYOUT_MODE is live (got $max)"; exit 1; }
+          fi
       - name: Deploy server
         working-directory: server
         run: npx --yes wrangler@4 deploy
