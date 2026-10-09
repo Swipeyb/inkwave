@@ -69,6 +69,8 @@ $SPLURT and hasn't won in the last hour.
 
 ## Quick Play
 
+Prizes only run in Quick Play rooms (`QP` / `QH` codes). Private rooms made with Create a Room never start a prize round and show no prize card.
+
 The online hub's **Quick Play** button asks the relay (`GET /quick`) for the next public room: the `Matchmaker`
 Durable Object returns the fullest public room that has space and isn't mid-match, or a fresh code. Public room codes
 are 6 characters starting with `QP` (private codes stay 5 characters and work as before). The first player in hosts;

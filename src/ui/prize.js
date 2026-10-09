@@ -156,7 +156,8 @@ class PrizeUI {
 
   render() {
     const i = this.info, st = this.net.state, hub = this._onHub();
-    const show = !!i?.enabled && (st === 'lobby' || st === 'starting' || hub);
+    // prizes are Quick Play only: private rooms (Create a Room) show no prize card
+    const show = !!i?.enabled && (((st === 'lobby' || st === 'starting') && this.net.quick) || hub);
     this.el.hidden = !show;
     if (!show) return;
     const tag = i.mode !== 'live' ? '<span class="iw-prize__tag">DRY RUN</span>' : '';

@@ -336,7 +336,7 @@ export const ZH_PHRASES = {
   'Room codes are 5 letters & numbers': '房间码是 5 位字母和数字',
   'Quick Play or private rooms · 4 v 4 · up to 8 gooblins': '快速匹配或私人房间 · 4 v 4 · 最多 8 名黏液仔',
   'Ready up & ink!': '准备开涂！',
-  'Pick the stage, share the code, start when everyone’s ready.': '选好场地、分享房间码，全员准备完毕后开始。',
+  'Play with friends — pick the stage, share the code. No prizes.': '选好场地、分享房间码，全员准备完毕后开始。',
   'Share the code': '分享房间码',
   'YOU HOST': '你是房主',
   'HEADING BACK': '正在返回',

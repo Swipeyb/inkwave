@@ -2106,7 +2106,7 @@ export class Menus {
       h('span', { class: 'iw-hubcard__text' },
         h('span', { class: 'iw-hubcard__kicker iw-tape' }, h('i', { html: GLYPHS.crown }), 'PRIVATE · YOU HOST'),
         h('span', { class: 'iw-hubcard__title' }, 'CREATE A ROOM'),
-        h('span', { class: 'iw-hubcard__sub' }, 'Pick the stage, share the code, start when everyone’s ready.'),
+        h('span', { class: 'iw-hubcard__sub' }, 'Play with friends — pick the stage, share the code. No prizes.'),
         createStatus),
       h('span', { class: 'iw-hubcard__go' }, h('b', null, 'GO!'), this._hint('Enter', 'A')),
       h('span', { class: 'iw-hubcard__drips', html: dripsSVG([[46, 1.1], [120, 1.7], [168, 0.8], [300, 1.3], [352, 0.9]], 'iw-fhv') }));

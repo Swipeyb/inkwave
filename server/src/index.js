@@ -245,6 +245,7 @@ export class Room extends DurableObject {
     this.round = null;
     const ledger = this._ledger();
     if (!ledger) return;
+    if (!QUICK_CODE.test(this.code || this.members()[0]?.a.code || '')) return;   // private rooms (Create a Room) never carry a prize
     const humans = this.members().map((m) => ({ id: m.a.id, name: m.a.name, wallet: m.a.wallet || null }));
     const id = crypto.randomUUID();
     let c;
