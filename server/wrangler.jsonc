@@ -8,7 +8,18 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }, { "tag": "v2", "new_sqlite_classes": ["Prizes"] }, { "tag": "v3", "new_sqlite_classes": ["Matchmaker"] }],
   // Optional Solana prize pool (docs/PRIZE_POOL.md). Off unless SOLANA_RPC_URL and TREASURY_PUBLIC_KEY are set.
   // Non-secret settings can go in "vars"; TREASURY_SECRET_KEY only ever via `wrangler secret put` (or .dev.vars locally).
-  "vars": { "PAYOUT_MODE": "dry-run" },
+  "vars": {
+    // TREASURY_PUBLIC_KEY (prize wallet public address) and TOKEN_MINT ($SPLURT mint) get added here once known:
+    // prizes switch on as soon as TREASURY_PUBLIC_KEY is set. (Left out until then so a dashboard value is never blanked.)
+    "PAYOUT_MODE": "dry-run",                                   // HARD RULE: stays dry-run until legal review (deploy refuses otherwise)
+    "SOLANA_RPC_URL": "https://api.mainnet-beta.solana.com",    // public mainnet RPC (fine for dry-run reads; use Helius/QuickNode before live)
+    "PRIZE_PCT": "3",                                           // each match pays 3% of the pool...
+    "PRIZE_MAX_SOL": "1",                                       // ...never more than 1 SOL a match...
+    "PRIZE_RESERVE_SOL": "0.05",                                // ...and never touches the last 0.05 SOL
+    "MIN_HUMAN_PLAYERS": "2",                                   // 2+ players with a verified wallet for a prize match
+    "MIN_TOKEN_HOLDING": "0",                                   // $SPLURT a winner must hold (needs TOKEN_MINT)
+    "PRIZE_COOLDOWN_SEC": "600"                                 // a wallet can win once every 10 minutes
+  },
   // Deploys keep any other vars you set in the Cloudflare dashboard (RPC URL, treasury public key, prize settings).
   "keep_vars": true,
   // Public relay endpoint for playsplurt.online (Cloudflare creates the DNS record + cert for a custom domain).
