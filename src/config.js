@@ -505,9 +505,10 @@ export const ZONES = {
 
 export const DIFFICULTY = {
   // aimOmega / aimTurn: bot aim spring stiffness (rad/s) and turn-rate cap (rad/s) — see bots.js
-  easy:   { id: 'easy',   name: 'Chill',  reaction: 0.55, aimError: 0.11, fireDiscipline: 0.55, awareness: 16, aimOmega: 9,  aimTurn: 7 },
-  normal: { id: 'normal', name: 'Fresh',  reaction: 0.32, aimError: 0.06, fireDiscipline: 0.8,  awareness: 21, aimOmega: 13, aimTurn: 10 },
-  hard:   { id: 'hard',   name: 'Fierce', reaction: 0.17, aimError: 0.03, fireDiscipline: 0.95, awareness: 26, aimOmega: 18, aimTurn: 14 },
+  // leadMin: worst lead on a moving target (1 = perfect); moveMiss: extra aim wobble against a strafing target
+  easy:   { id: 'easy',   name: 'Chill',  reaction: 0.7,  aimError: 0.16, fireDiscipline: 0.5,  awareness: 15, aimOmega: 7,  aimTurn: 5.5, leadMin: 0.3, moveMiss: 1.4 },
+  normal: { id: 'normal', name: 'Fresh',  reaction: 0.45, aimError: 0.1,  fireDiscipline: 0.75, awareness: 19, aimOmega: 10, aimTurn: 8,   leadMin: 0.5, moveMiss: 1.1 },
+  hard:   { id: 'hard',   name: 'Fierce', reaction: 0.22, aimError: 0.045, fireDiscipline: 0.95, awareness: 25, aimOmega: 16, aimTurn: 12, leadMin: 0.75, moveMiss: 0.7 },
 };
 
 // Every stage can be played by day or at dusk: `times` maps the time of day to an environment theme (`theme` is the

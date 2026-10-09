@@ -452,6 +452,7 @@ export class NetSession {
     l.map = (ok[(Math.random() * ok.length) | 0] || MAPS[0]).id;
     l.time = Math.random() < 0.5 ? 'day' : 'dusk';
     l.mode = 'turf'; l.bots = true; this._botsPref = true;
+    l.difficulty = 'easy';   // public rooms: relaxed bots (players new to the game land here)
     l.duration = MATCH.defaultDuration;
   }
   /** Seconds until a Quick Play room starts (null while it waits for a second player; see QUICK_SOLO). */
