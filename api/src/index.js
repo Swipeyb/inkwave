@@ -6,7 +6,7 @@ import { TEAM_SIZE, SEATS, ROUNDS, ROUND_SEC, LOBBY_SEC, MODES, POINTS, rankPool
   resolveRound, botWish, placings, RULES } from './core.js';
 import { discover, quotes } from './market.js';
 
-const ORIGINS = [/^https:\/\/([a-z0-9-]+\.)?draftpump\.[a-z0-9-]+\.workers\.dev$/, /^https:\/\/(www\.)?draftpump\.[a-z]+$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
+const ORIGINS = [/^https:\/\/draftpump\.playsplurt\.online$/, /^https:\/\/([a-z0-9-]+\.)?draftpump\.[a-z0-9-]+\.workers\.dev$/, /^https:\/\/(www\.)?draftpump\.[a-z]+$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 const originOk = (o, self) => !o || o === self || ORIGINS.some((re) => re.test(o));
 const BOT_NAMES = ['degen_bot', 'ape_bot', 'jeet_bot', 'chad_bot', 'bagholder_bot', 'sniper_bot', 'paperhands_bot', 'whale_bot', 'rug_bot', 'moon_bot', 'trench_bot', 'fomo_bot'];
 
