@@ -1,7 +1,8 @@
 // Shared tuning + content definitions. Every module reads from here; nothing here imports anything.
 
 // $SPLURT on Solana (pump.fun). Shown on the title + online screens with copy / buy buttons.
-export const COIN = { ticker: '$SPLURT', ca: 'Bsrj42q3WkFATBNvSjCaXn8gXyWuXD5XD9CWSdzHpump', buyUrl: 'https://pump.fun/coin/Bsrj42q3WkFATBNvSjCaXn8gXyWuXD5XD9CWSdzHpump' };
+// ca: '' shows "SOON" (no copy / buy) until launch; paste the mint here and in server/wrangler.jsonc TOKEN_MINT
+export const COIN = { ticker: '$SPLURT', ca: '', buyUrl: '' };
 export const GAME_TITLE = 'SPLURT';
 export const GAME_SUBTITLE = 'Turf Riot';
 export const VERSION = '1.0.0';

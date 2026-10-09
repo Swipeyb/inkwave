@@ -900,6 +900,10 @@ export class Menus {
 
   // $SPLURT contract address chip: full CA (selectable), COPY and BUY. Clicks never reach the screen underneath.
   _caChip(cls = '') {
+    if (!COIN.ca) {   // before launch: just "SOON"
+      const el = h('div', { class: `iw-ca iw-ca--soon iw-in ${cls}` }, h('span', { class: 'iw-ca__k' }, `${COIN.ticker} CA`), h('b', { class: 'iw-ca__soon' }, 'SOON'));
+      return el;
+    }
     const copyBtn = h('button', { class: 'iw-ca__btn', type: 'button' }, 'COPY');
     const buy = h('a', { class: 'iw-ca__btn iw-ca__btn--buy', href: COIN.buyUrl, target: '_blank', rel: 'noopener' }, 'BUY');
     const el = h('div', { class: `iw-ca iw-in ${cls}` },

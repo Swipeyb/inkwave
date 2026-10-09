@@ -16,7 +16,7 @@
     "PRIZE_MAX_SOL": "0.1",                                     // ...never more than 0.1 SOL a match (raise after server-checked results, step 5)...
     "PRIZE_RESERVE_SOL": "0.05",                                // ...and never touches the last 0.05 SOL
     "MIN_HUMAN_PLAYERS": "2",                                   // 2+ players with a verified wallet for a prize match
-    "TOKEN_MINT": "Bsrj42q3WkFATBNvSjCaXn8gXyWuXD5XD9CWSdzHpump",   // $SPLURT (pump.fun)
+    "TOKEN_MINT": "",                                           // $SPLURT mint goes here at launch (empty: /prize doesn't reveal the CA early)
     "MIN_HOLDING_USD": "5",                                     // hold ≈ $5 of $SPLURT (token count follows the live price)
     "MIN_TOKEN_HOLDING": "1000000",                             // ...but never more than 1M tokens (also the fallback if no price)
     "PRIZE_COOLDOWN_SEC": "600"                                 // a wallet can win once every 10 minutes
