@@ -30,7 +30,7 @@ export function installOnline() {
     if (document.hidden) return;
     try {
       const r = await fetch(relayURL().replace(/^ws/, 'http') + '/online?id=' + id, { cache: 'no-store' });
-      if (r.ok) count = (await r.json()).online;
+      if (r.ok) { count = (await r.json()).online; G.onlineCount = count; }
     } catch { /* relay unreachable: keep the last number */ }
   };
   ping();

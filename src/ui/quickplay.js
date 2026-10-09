@@ -32,7 +32,8 @@ class QuickStrip {
     const s = n.quickStartIn?.();
     const sec = s == null ? 0 : Math.ceil(s);
     const when = s == null ? 'waiting for 1 more player' : s < 0.5 ? 'starting…' : `starting in <span class="iw-quick__t">${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}</span>`;
-    const html = `<i class="iw-quick__dot"></i><b>${n.holders ? 'HOLDER MATCH' : 'QUICK PLAY'}</b><span>${players}/${max} players</span><span>·</span><span>${when}</span>`;
+    const bots = s != null && players < max ? '<span>·</span><span>bots fill empty slots</span>' : '';
+    const html = `<i class="iw-quick__dot"></i><b>${n.holders ? 'HOLDER MATCH' : 'QUICK PLAY'}</b><span>${players}/${max} players</span><span>·</span><span>${when}</span>${bots}`;
     if (html !== this._last) { this.el.innerHTML = html; this._last = html; }
   }
 }

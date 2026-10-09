@@ -18,6 +18,9 @@ const TEAM = 4;
 // Quick Play (public rooms from the relay's matchmaker): the match starts QUICK_WAIT seconds after a second player
 // arrives, or QUICK_FULL seconds after the room fills; empty slots are bots
 export const QUICK_WAIT = 30, QUICK_FULL = 5;
+// While the game is quiet (fewer than BOT_FILL_BELOW people online, per the relay's /online count in src/ui/online.js),
+// a lone player isn't left waiting: the match starts QUICK_SOLO seconds after they join and bots fill every empty slot.
+export const QUICK_SOLO = 12, BOT_FILL_BELOW = 20;
 // a loadout's sub / special: a known id, or null (= the weapon's own)
 const subOf = (id) => (SUBS[id] ? id : null), specialOf = (id) => (SPECIALS[id] ? id : null);
 
@@ -451,13 +454,14 @@ export class NetSession {
     l.mode = 'turf'; l.bots = true; this._botsPref = true;
     l.duration = MATCH.defaultDuration;
   }
-  /** Seconds until a Quick Play room starts (null while it waits for a second player). */
+  /** Seconds until a Quick Play room starts (null while it waits for a second player; see QUICK_SOLO). */
   quickStartIn() { return this.quick && this._quickDeadline ? Math.max(0, (this._quickDeadline - performance.now()) / 1000) : null; }
   // host: start the clock when a 2nd player is in, shorten it when the room fills, stop it if they all leave again
   _quickTick() {
     const n = this.lobby.players.length, now = performance.now();
     let d = this._quickDeadline;
-    if (n < 2) d = null;
+    const quiet = !(G.onlineCount >= BOT_FILL_BELOW);   // unknown count → treat as quiet
+    if (n < 2) d = quiet && n >= 1 ? (d ?? now + QUICK_SOLO * 1000) : null;
     else if (n >= TEAM * 2) d = Math.min(d ?? Infinity, now + QUICK_FULL * 1000);
     else if (d == null) d = now + QUICK_WAIT * 1000;
     if (d !== this._quickDeadline) { this._quickDeadline = d; this._broadcastLobby(); }
