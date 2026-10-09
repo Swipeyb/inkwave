@@ -1322,6 +1322,24 @@ function buildHat(B, hat, ctx, D = null) {
       placeBasis(innerEar, right, up, c.clone().addScaledVector(fwd, E.r * 0.3).addScaledVector(up, E.h * 0.06));
       B.add(innerEar, { ex: GEAR.fabric, color: new THREE.Color(...hat.inner), bone: 'head' });
     }
+    if (hat.name === 'shiba') {
+      // kigurumi dog face on the hood's front: cream muzzle patch, button nose, two little eyes above it
+      const ma = 0, me = hat.rim(0) + 0.2;
+      const mc = at(ma, me, offIn(ma, me) + T + 0.004, new V3(), n);
+      const muzzle = superEllipsoid(0.034, 0.022, 0.014, 0.9, 1, far ? 10 : 16, far ? 6 : 10);
+      placeBasis(muzzle, new V3(1, 0, 0), new V3(0, 1, 0).addScaledVector(n, -n.y).normalize().lengthSq() > 0 ? new V3(0, 1, 0) : new V3(0, 1, 0), mc);
+      B.add(muzzle, { ex: GEAR.fabric, color: new THREE.Color(...hat.inner), bone: 'head' });
+      const nose = superEllipsoid(0.011, 0.008, 0.007, 1, 1, far ? 8 : 12, far ? 4 : 8);
+      nose.translate(mc.x, mc.y + 0.008, mc.z + 0.013);
+      B.add(nose, { ex: GEAR.plastic, color: new THREE.Color(0.06, 0.05, 0.05), bone: 'head' });
+      for (const sgn of [-1, 1]) {
+        const ea = sgn * 0.3, ee = me + 0.13;
+        const ec = at(ea, ee, offIn(ea, ee) + T + 0.003, new V3());
+        const eye = superEllipsoid(0.0085, 0.0095, 0.005, 1, 1, far ? 8 : 12, far ? 4 : 8);
+        eye.translate(ec.x, ec.y, ec.z);
+        B.add(eye, { ex: GEAR.plastic, color: new THREE.Color(0.06, 0.05, 0.05), bone: 'head' });
+      }
+    }
   } else if (hat.name === 'bucket') {
     // brim: a stitched ring sloping down and out from the rim, top + rolled edge + underside (wraps round)
     const rowsR = [], vR = [];
