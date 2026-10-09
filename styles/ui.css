@@ -2840,3 +2840,12 @@ circle.iw-ico-cut { fill: var(--cut, #fff); }
 .iw-lobby.is-quick .iw-btn--lobstart, .iw-lobby.is-quick .iw-btn--ready, .iw-lobby.is-quick .iw-rc__share { display: none !important; }
 .iw-ca--soon { padding: 8px 16px; }
 .iw-ca__soon { font: 400 14px/1 'Titan One', Rubik, sans-serif; letter-spacing: .12em; color: #ffd27a; }
+
+/* ---- short screens (phones, small laptop windows): long menu columns scroll instead of running off the screen ---- */
+.iw-locker__body, .iw-loadout__body { bottom: calc(var(--u) * 1.2 + var(--sab)); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none; touch-action: pan-y; pointer-events: auto;
+  padding: calc(var(--u) * 1) calc(var(--u) * 1.4) calc(var(--u) * 5); margin: calc(var(--u) * -1) 0 0 calc(var(--u) * -1.4); }
+.iw-ldr__card { max-height: calc(100% - var(--u) * 13.4 - var(--sab) - var(--u) * 2); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none; touch-action: pan-y; }
+.iw-locker__body::-webkit-scrollbar, .iw-loadout__body::-webkit-scrollbar, .iw-ldr__card::-webkit-scrollbar { display: none; }
+.iw-locker__body > *, .iw-loadout__body > *, .iw-ldr__card > * { flex-shrink: 0; }
