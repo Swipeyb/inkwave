@@ -512,7 +512,7 @@ export class Character {
    * @param {{color?: THREE.Color|string, weapon?: string, style?: {hair?: number, skin?: number, outfit?: number, eyes?: number}, name?: string, isLocal?: boolean}} opts
    */
   constructor(opts = {}) {
-    this.name = opts.name || 'Squidkid';
+    this.name = opts.name || 'Gooblin';
     this.isLocal = !!opts.isLocal;
     const st = opts.style || {};
     const seed = hashStr(this.name);

@@ -47,7 +47,7 @@ const TWIN_KICK_T = { duration: 130, easing: 'cubic-bezier(.2,.8,.3,1)' };
 const MITT_KICK = [[{ transform: 'translateX(4px) scale(1.35)' }, { transform: 'none' }], [{ transform: 'translateX(-4px) scale(1.35)' }, { transform: 'none' }]];
 const MITT_KICK_T = { duration: 150, easing: 'cubic-bezier(.2,.8,.3,1)' };
 const TAU = Math.PI * 2;
-const STREAKS = { 2: 'DOUBLE SPLAT!', 3: 'TRIPLE SPLAT!', 4: 'QUAD SPLAT!' };
+const STREAKS = { 2: 'DOUBLE SPLURT!', 3: 'TRIPLE SPLURT!', 4: 'QUAD SPLURT!' };
 const kindOf = (w) => (WEAPONS[w] && WEAPONS[w].kind) || w || 'shooter';
 // super-jump map slots: 3 teammates, base, then up to 6 team jump beacons (keys 1–9, 0)
 const NB = 10;
@@ -491,7 +491,7 @@ export class HUD {
         h('div', { class: 'iw-spl__splat', html: splatSVG({ seed: 64, cls: 'iw-fby', r: 62, arms: 11, drops: 5, viewBox: 240 }) }),
         kw,
         h('div', { class: 'iw-spl__text' },
-          h('div', { class: 'iw-spl__by' }, by ? 'SPLATTED BY' : 'SPLATTED!'),
+          h('div', { class: 'iw-spl__by' }, by ? 'SPLURTED BY' : 'SPLURTED!'),
           by ? h('div', { class: 'iw-spl__name iw-display' }, String(by)) : null,
           why && why.name ? h('div', { class: `iw-spl__wn iw-spl__wn--${why.kind}` }, why.tag ? h('i', { class: 'iw-spl__wk' }, why.tag) : null, why.name) : null),
         ring),
@@ -709,12 +709,12 @@ export class HUD {
       // callouts, most important first
       let call = null, sub = null;
       const enemies = this._actors().filter((a) => a.team !== me.team);
-      if (enemies.length >= 4 && enemies.every((a) => !a.alive)) { call = 'WIPEOUT!'; sub = 'The whole team is splatted'; }
+      if (enemies.length >= 4 && enemies.every((a) => !a.alive)) { call = 'WIPEOUT!'; sub = 'The whole team is splurted'; }
       else if (multi >= 2) call = STREAKS[Math.min(4, multi)];
-      else if (!K.first) { call = 'FIRST SPLAT!'; }
+      else if (!K.first) { call = 'FIRST SPLURT!'; }
       else if (K.lastKiller && victim === K.lastKiller) { call = 'REVENGE!'; K.lastKiller = null; }
       else if (vStreak >= 3) { call = 'SHUTDOWN!'; sub = t("Ended {name}'s streak", { name: t(victim.name) }); }
-      else if (K.streak >= 3 && K.streak % 2 === 1) { call = t('SPLAT STREAK ×{n}', { n: K.streak }); }
+      else if (K.streak >= 3 && K.streak % 2 === 1) { call = t('SPLURT STREAK ×{n}', { n: K.streak }); }
       K.first = true;
       if (call) this._callout(call, sub, multi >= 3 || call === 'WIPEOUT!');
       return;
@@ -732,8 +732,8 @@ export class HUD {
       h('span', { class: 'iw-kcard__splat', html: splatSVG({ seed: 30 + ((Math.random() * 40) | 0), cls: 'iw-fself', r: 56, arms: 9, drops: 4 }) }),
       h('span', { class: 'iw-kcard__w', html: weaponIcon(kindOf(victim.weaponId)) }),
       h('span', { class: 'iw-kcard__txt' },
-        h('small', null, kind === 'assist' ? 'ASSIST' : 'SPLATTED'),
-        h('b', null, victim.name || 'Squidkid')));
+        h('small', null, kind === 'assist' ? 'ASSIST' : 'SPLURTED'),
+        h('b', null, victim.name || 'Gooblin')));
     colorVars(card, 'v', col);
     this.kcards.prepend(card);
     const cards = [...this.kcards.children].filter((c) => !c._out);

@@ -183,7 +183,7 @@ export class PlayerController {
   // is the planned target still there? (teammate alive, beacon standing)
   _queueGone(q) {
     if (!q) return null;
-    if (q.kind === 'ally') return q.target && q.target.alive ? null : `${q.name} was splatted`;
+    if (q.kind === 'ally') return q.target && q.target.alive ? null : `${q.name} was splurted`;
     if (q.kind === 'beacon') return q.target && q.target.state === 'beacon' ? null : 'The jump beacon is gone';
     return null;
   }

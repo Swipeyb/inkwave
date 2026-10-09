@@ -165,7 +165,7 @@ function drawShipping(g, y0, font) {
     const ox = k * 1024;
     g.font = font(110); g.textBaseline = 'middle';
     g.fillStyle = 'rgba(251,245,232,0.92)';
-    g.fillText('KRAKEN', ox + 140, 110);
+    g.fillText('GLOOP', ox + 140, 110);
     g.font = font(44); g.fillText('LINES  ~  SEA FREIGHT', ox + 150, 190);
     // tentacle wave
     g.strokeStyle = 'rgba(251,245,232,0.92)'; g.lineWidth = 16; g.lineCap = 'round';

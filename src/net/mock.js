@@ -19,7 +19,7 @@ import * as LOOK from '../game/character-style.js';
 import { ERR, netError, codeFromText } from './errors.js';
 
 const q = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
-const NAMES = ['Mako', 'Tentakool', 'inkjet', 'Wavebreaker', 'Tidal Tia', 'Blot', 'Pixel', 'Kraken Kai', 'sploosh', 'Lulu',
+const NAMES = ['Mako', 'Tentakool', 'inkjet', 'Wavebreaker', 'Tidal Tia', 'Blot', 'Pixel', 'Gloop Kai', 'sploosh', 'Lulu',
   'Squee', 'Dashi', 'Juniper', 'Rin', 'Otto', 'Beanie', 'Glub', 'Zippy', 'Nibbles', 'Coraline', 'Seafoam', 'Momo'];
 const EMOTES = ['booyah', 'wave', 'dance', 'flex'];
 const CODE_ABC = 'BCEFGHJKLMNPQRTUVXYZ23456789'; // no O/0, I/1, W/A/S/D (as session.js)

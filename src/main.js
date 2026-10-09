@@ -133,7 +133,7 @@ class Game {
     // sky-fill balance (scene.environmentIntensity, hemisphere) + per-theme exposure are the environment theme's job
     // (Environment.setTheme), so a stage/time looks the same booted into or switched to mid-session
     G.renderer.toneMappingExposure = 0.94;
-    await progress(0.55, 'Teaching squids to swim…');
+    await progress(0.55, 'Teaching gooblins to swim…');
     G.projectiles = new Projectiles(scene);
     G.subs = new SubSystem(scene);
     G.specials = new SpecialSystem(scene);
@@ -523,7 +523,7 @@ class Game {
       const local = this.match.local;
       if (attacker?.isLocal) {
         G.audio?.play('splat_enemy', { volume: 0.9 });
-        this.hud?.feed({ text: { id: 'You splatted {name}!', params: { name: t(victim.name) } }, color: G.teamHex[local.team], kind: 'kill' });
+        this.hud?.feed({ text: { id: 'You splurted {name}!', params: { name: t(victim.name) } }, color: G.teamHex[local.team], kind: 'kill' });
       } else if (victim.isLocal) {
         G.audio?.play('splatted_self');
         G.audio?.duck?.(0.45, 2.2);
@@ -535,9 +535,9 @@ class Game {
         this.rig.lookAt.copy(victim.pos);
       } else if (victim.team === local?.team) {
         G.audio?.play('ally_splatted', { volume: 0.5 });
-        this.hud?.feed({ text: attacker ? { id: '{name} was splatted by {by}', params: { name: t(victim.name), by: t(attacker.name) } } : { id: '{name} was splatted', params: { name: t(victim.name) } }, color: G.teamHex[victim.enemyTeam], kind: 'death' });
+        this.hud?.feed({ text: attacker ? { id: '{name} was splurted by {by}', params: { name: t(victim.name), by: t(attacker.name) } } : { id: '{name} was splurted', params: { name: t(victim.name) } }, color: G.teamHex[victim.enemyTeam], kind: 'death' });
       } else if (attacker && attacker.team === local?.team) {
-        this.hud?.feed({ text: { id: '{name} splatted {victim}', params: { name: t(attacker.name), victim: t(victim.name) } }, color: G.teamHex[attacker.team], kind: 'ally' });
+        this.hud?.feed({ text: { id: '{name} splurted {victim}', params: { name: t(attacker.name), victim: t(victim.name) } }, color: G.teamHex[attacker.team], kind: 'ally' });
       }
     });
     on('respawn', ({ actor }) => {
@@ -1026,7 +1026,7 @@ class Game {
       const ZX = PROGRESSION.zones || { turfScale: 0.6, xpPerZoneTurfPoint: 1, xpKnockout: 300 };
       const zoneTurf = Math.round(local.stats.zoneTurf || 0);
       xpParts = [[won ? 'WIN BONUS' : 'MATCH', won ? PROGRESSION.xpWin : PROGRESSION.xpLose], ['TURF', Math.round(turf * PROGRESSION.xpPerTurfPoint * ZX.turfScale)],
-        ['ZONE INK', Math.round(zoneTurf * ZX.xpPerZoneTurfPoint)], ['SPLATS', Math.round(local.stats.splats * PROGRESSION.xpPerSplat)], ['KNOCKOUT', won && zr.reason === 'knockout' ? ZX.xpKnockout : 0]].filter(([, v], i) => i < 2 || v > 0);
+        ['ZONE INK', Math.round(zoneTurf * ZX.xpPerZoneTurfPoint)], ['SPLURTS', Math.round(local.stats.splats * PROGRESSION.xpPerSplat)], ['KNOCKOUT', won && zr.reason === 'knockout' ? ZX.xpKnockout : 0]].filter(([, v], i) => i < 2 || v > 0);
       gained = xpParts.reduce((a, [, v]) => a + v, 0);
     }
     const before = { level: p.level, xp: p.xp, toNext: PROGRESSION.xpForLevel(p.level) };

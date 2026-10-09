@@ -1429,7 +1429,7 @@ export function register(D, H) {
       for (const sx of [-1, 1]) for (const tz of [4.4, 2.2, -2.2, -3.4]) tyre(B, sx * 1.0, 0.5, tz, 0.5, 0.3);
       pbox(B, 'paint', '#3a3f47', 1.2, 0.35, 12.4, 0, 1.2, -1.2);
       B.pop();
-      containerBody(B, 16.4, 1.35, -7.7, 40, '#3f8580', { bottom: true, logo: 'KRAKEN', logoC: K.white });
+      containerBody(B, 16.4, 1.35, -7.7, 40, '#3f8580', { bottom: true, logo: 'GLOOP', logoC: K.white });
     },
   };
 

@@ -460,7 +460,7 @@ export function registerMarinaVessels(D, H) {
       //     the -X half, draft marks at both ends. Text faces -Z (ry = PI) and runs toward -X for a viewer at -Z.
       text(B, 'HALYARD', 0.46, C.white, 9.6, -0.08, FZ, { ry: PI, weight: 0.16 });
       text(B, 'SPLURT', 0.19, C.white, 9.6, -0.5, FZ, { ry: PI, weight: 0.17, spacing: 0.45 });
-      const kl = textGeo('KRAKEN LINES', 0.52, { weight: 0.17, depth: 0.014 });
+      const kl = textGeo('GLOOP LINES', 0.52, { weight: 0.17, depth: 0.014 });
       const klW = kl.userData.width, klX = -8.7;
       B.add('paint', kl, C.white, klX, -0.34, FZ, { ry: PI });
       B.push(klX + klW / 2 + 0.72, -0.08, FZ, PI);                     // roundel reads before the lettering

@@ -44,9 +44,9 @@ const EMOTES = [
   { id: 'dance', label: 'DANCE', icon: 'note', key: '3', dir: 'down' },
   { id: 'flex', label: 'FLEX', icon: 'flex', key: '4', dir: 'left' },
 ];
-// splashtag title line ("Fresh Squidkid"): adjective + subject, picked from the player's name so everyone sees the same
+// splashtag title line ("Fresh Gooblin"): adjective + subject, picked from the player's name so everyone sees the same
 const TITLE_ADJ = ['Fresh', 'Inky', 'Turf', 'Splashy', 'Rad', 'Sneaky', 'Deep-Sea', 'Glossy', 'Tidal', 'Zesty', 'Mighty', 'Soggy', 'Speedy', 'Salty', 'Bubbly', 'Snazzy', 'Drippy', 'Sunny'];
-const TITLE_NOUN = ['Squidkid', 'Goo Goblin', 'Turf Boss', 'Wave Rider', 'Splatter', 'Tentacle', 'Drip Lord', 'Sprayer', 'Rookie', 'Legend', 'Deck Hand', 'Sea Pickle', 'Kelp Fan', 'Ink Slinger', 'Plaza Star', 'Harbor Kid'];
+const TITLE_NOUN = ['Gooblin', 'Goo Goblin', 'Turf Boss', 'Wave Rider', 'Splurter', 'Tentacle', 'Drip Lord', 'Sprayer', 'Rookie', 'Legend', 'Deck Hand', 'Sea Pickle', 'Kelp Fan', 'Ink Slinger', 'Plaza Star', 'Harbor Kid'];
 // Room failures, keyed by the *error code* (src/net/errors.js) rather than by the English message: the wording is
 // free to be translated without any comparison or lookup depending on it. Every field is an i18n message id:
 // `title` + `text` fill the join panel, `short` is the one-line toast.
@@ -77,10 +77,10 @@ const TIPS = [
   'Hold [SHIFT] to dive into your ink — you are nearly invisible while swimming.',
   'Enemy ink slows you down and chips away at your health. Paint over it!',
   'Swim up any wall you have inked to reach high ground.',
-  'In Turf Riot only turf counts when time runs out. Splats just buy you space.',
+  'In Turf Riot only turf counts when time runs out. Splurts just buy you space.',
   'Your special gauge fills as you ink. Press [F] when it glows!',
   'A Goo Bomb costs most of your tank — throw it where it claims the most turf.',
-  'Chargers splat in one fully-charged shot. Keep moving and use cover.',
+  'Chargers splurt in one fully-charged shot. Keep moving and use cover.',
   'Rollers paint huge stripes. Flick the roller to splash foes at range.',
   'Low on ink? Dive in, refill, then push again.',
   'Hold [TAB] to open the big map and spot unpainted turf.',
@@ -159,10 +159,10 @@ const BOSS_DIFF_INFO = {
 };
 const BOSS_DURATIONS = [180, 240, 300];
 const STAT_LABELS = [['range', 'Range'], ['damage', 'Damage'], ['rate', 'Fire rate'], ['mobility', 'Mobility'], ['paint', 'Ink coverage']];
-const KIND_LABEL = { shooter: 'Shooter', roller: 'Roller', charger: 'Charger', blaster: 'Blaster', dualies: 'Dualies', slosher: 'Slosher', splatling: 'Splatling', bucket: 'Bucket', spinner: 'Spinner', twins: 'Pistols', brush: 'Brush' };
+const KIND_LABEL = { shooter: 'Shooter', roller: 'Roller', charger: 'Charger', blaster: 'Blaster', dualies: 'Dualies', slosher: 'Slosher', splatling: 'Gatling', bucket: 'Bucket', spinner: 'Spinner', twins: 'Pistols', brush: 'Brush' };
 const STAT_ICONS = { range: GLYPHS.target, damage: GLYPHS.bolt, rate: GLYPHS.clock, mobility: GLYPHS.feather, paint: GLYPHS.drop };
 const LOCKER_TABS = [
-  { id: 'kids', label: 'SQUIDKIDS', icon: 'users', sections: ['_presets'] },
+  { id: 'kids', label: 'GOOBLINS', icon: 'users', sections: ['_presets'] },
   { id: 'hair', label: 'HAIR', icon: 'hair', sections: ['hair', 'hat'] },
   { id: 'face', label: 'FACE', icon: 'eye', sections: ['eyes', 'brows', 'skin'] },
   { id: 'outfit', label: 'OUTFIT', icon: 'shirt', sections: ['outfit'] },
@@ -170,10 +170,10 @@ const LOCKER_TABS = [
 const MENU_DESC = {
   online: 'Online rooms for up to 8 players — create one or join with a room code',
   loadout: 'Choose your weapon, sub and special',
-  locker: 'Choose your squidkid — tentacles, headgear, eyes, skin and outfit',
+  locker: 'Choose your gooblin — tentacles, headgear, eyes, skin and outfit',
   settings: 'Controls, video, audio and gameplay options',
   howto: 'The rules in 30 seconds, plus every control',
-  credits: 'The squidkids and code behind SPLURT',
+  credits: 'The gooblins and code behind SPLURT',
 };
 
 const pctFmt = (v) => Math.round(v * 100) + '%';
@@ -904,7 +904,7 @@ export class Menus {
       { id: 'online', label: 'PLAY ONLINE', sub: 'Create or join a room', icon: GLYPHS.online, cls: 'iw-btn--menu iw-btn--xl iw-btn--primary iw-btn--online', accept: () => this._go('online'), sound: 'ui_confirm',
         badge: h('span', { class: 'iw-btn__live' }, h('i'), 'LIVE') },
       { id: 'loadout', label: 'LOADOUT', icon: weaponIcon(W.kind || lo.weapon), cls: 'iw-btn--menu', accept: () => this._go('loadout') },
-      { id: 'locker', label: 'LOCKER', icon: GLYPHS.hanger, cls: 'iw-btn--menu', accept: () => this._go('locker') },
+      { id: 'locker', label: 'WARDROBE', icon: GLYPHS.hanger, cls: 'iw-btn--menu', accept: () => this._go('locker') },
       { id: 'settings', label: 'SETTINGS', icon: GLYPHS.gear, cls: 'iw-btn--menu', accept: () => this._go('settings') },
       { id: 'howto', label: 'HOW TO PLAY', icon: GLYPHS.question, cls: 'iw-btn--menu', accept: () => this._go('howto') },
       { id: 'credits', label: 'CREDITS', icon: GLYPHS.star, cls: 'iw-btn--menu', accept: () => this._go('credits') },
@@ -1105,7 +1105,7 @@ export class Menus {
 
     const el = h('div', { class: 'iw-screen iw-locker' },
       h('div', { class: 'iw-scrim-left' }),
-      this._header('LOCKER', { sub: 'Choose your squidkid, then make it yours' }),
+      this._header('WARDROBE', { sub: 'Choose your gooblin, then make it yours' }),
       body, tag, spinHint,
       this._prompts([['Enter', 'A', 'Wear'], [['Q', 'E'], null, 'Tabs'], ['R', null, 'Shuffle'], ['Esc', 'B', 'Done']]));
     el.querySelector('.iw-prompts').children[1].querySelector('.iw-padg').innerHTML = padGlyph('LB') + padGlyph('RB');
@@ -1143,7 +1143,7 @@ export class Menus {
       tiles = [];
       const tab = tabs[tabIdx];
       for (const k of tab.sections) {
-        const sec = k === '_presets' ? { key: '_presets', title: 'CHOOSE YOUR SQUIDKID', count: presets.length, art: 'portrait', kind: 'bust', cause: 'preset' } : slots[k];
+        const sec = k === '_presets' ? { key: '_presets', title: 'CHOOSE YOUR GOOBLIN', count: presets.length, art: 'portrait', kind: 'bust', cause: 'preset' } : slots[k];
         const grid = h('div', { class: `iw-lgrid iw-lgrid--${sec.art === 'portrait' ? sec.kind : 'swatch'}`, style: { '--cols': cols(sec) } });
         for (let i = 0; i < sec.count; i++) { const t = makeTile(sec, i, tiles.length); tiles.push(t); grid.appendChild(t); }
         gridWrap.appendChild(h('section', { class: 'iw-lsec', style: { '--dir': dirSign } },
@@ -1181,7 +1181,7 @@ export class Menus {
     };
     const showInfo = (tl) => {
       const sec = tl._sec, i = tl._i;
-      infoSub.textContent = t(sec.key === '_presets' ? 'SQUIDKID' : sec.title);
+      infoSub.textContent = t(sec.key === '_presets' ? 'GOOBLIN' : sec.title);
       infoName.textContent = t(optName(sec, i));
       infoText.textContent = sec.key === '_presets' ? t(presets[i].blurb || '') : t('{n} of {m}', { n: i + 1, m: sec.count });
       info.classList.toggle('is-on', isOn(tl));
@@ -1423,8 +1423,8 @@ export class Menus {
     // ---- your squidkid (→ locker)
     const lookAv = h('span', { class: 'iw-lchip__av' }, h('span', { class: 'iw-lchip__blob', html: splatSVG({ seed: 17, cls: 'iw-fa', r: 62, arms: 8, drops: 0 }) }), h('span', { class: 'iw-lchip__squid', html: SQUID }));
     const lookChip = inPractice ? null : h('button', { class: 'iw-wchip iw-lchip iw-lchip--sm iw-in iw-in--down' }, lookAv,
-      h('span', { class: 'iw-wchip__text' }, h('small', null, 'SQUIDKID'), h('b', null, prof.name)),
-      h('span', { class: 'iw-wchip__edit' }, h('i', { html: GLYPHS.hanger }), 'LOCKER'));
+      h('span', { class: 'iw-wchip__text' }, h('small', null, 'GOOBLIN'), h('b', null, prof.name)),
+      h('span', { class: 'iw-wchip__edit' }, h('i', { html: GLYPHS.hanger }), 'WARDROBE'));
     if (lookChip) {
       this._fx(lookChip);
       this._bind(lookChip, { id: 'look', accept: () => { this._sfx('ui_click'); this._go('locker'); } });
@@ -1433,7 +1433,7 @@ export class Menus {
     const grid = h('div', { class: 'iw-wgrid' + (compact ? ' is-compact' : ''), style: { '--cols': cols } }, cards);
     const el = h('div', { class: 'iw-screen iw-loadout' },
       h('div', { class: 'iw-scrim-left' }),
-      this._header('LOADOUT', { sub: inPractice ? 'Swap weapons and subs mid-practice — changes apply straight away' : 'Pick your weapon, sub and special — your squidkid shows it off on the right' }),
+      this._header('LOADOUT', { sub: inPractice ? 'Swap weapons and subs mid-practice — changes apply straight away' : 'Pick your weapon, sub and special — your gooblin shows it off on the right' }),
       h('div', { class: 'iw-loadout__body' },
         h('div', { class: 'iw-seclabel iw-in' }, h('i', { html: WEAPON_ICONS.shooter }), 'WEAPON', h('span', { class: 'iw-seclabel__count' }, `${order.indexOf(equipped) + 1} / ${n}`)),
         grid,
@@ -1852,7 +1852,7 @@ export class Menus {
       ['Move', null, K('W', 'A', 'S', 'D'), padGlyph('LS')],
       ['Aim', null, K('MOUSE'), padGlyph('RS')],
       ['Fire', null, K('LMB'), padGlyph('RT')],
-      ['Swim · squid form', 'hold', K('SHIFT'), padGlyph('LT')],
+      ['Swim · goo form', 'hold', K('SHIFT'), padGlyph('LT')],
       ['Jump', null, K('SPACE'), padGlyph('A')],
       ['Aim bomb · release to throw', 'hold', K('RMB', 'or', 'E'), padGlyph('RB')],
       ['Special', null, K('F', 'or', 'Q'), padGlyph('Y')],
@@ -1860,19 +1860,19 @@ export class Menus {
       ['Map', 'hold', K('TAB'), padGlyph('View')],
       ['Pause', null, K('ESC'), padGlyph('Start')],
     ];
-    const list = compact ? rows.filter((r) => ['Move', 'Fire', 'Swim · squid form', 'Jump', 'Aim bomb · release to throw', 'Special'].includes(r[0])) : rows;
+    const list = compact ? rows.filter((r) => ['Move', 'Fire', 'Swim · goo form', 'Jump', 'Aim bomb · release to throw', 'Special'].includes(r[0])) : rows;
     return h('div', { class: 'iw-ctl' + (compact ? ' iw-ctl--compact' : '') }, list.map(([act, hold, kb, pad]) =>
       h('div', { class: 'iw-ctl__row' },
-        h('span', { class: 'iw-ctl__act' }, compact ? act.replace(' · release to throw', '').replace(' · squid form', '') : act, hold ? h('em', null, hold) : null),
+        h('span', { class: 'iw-ctl__act' }, compact ? act.replace(' · release to throw', '').replace(' · goo form', '') : act, hold ? h('em', null, hold) : null),
         h('span', { class: 'iw-ctl__keys', html: mode === 'pad' ? pad : kb }))));
   }
 
   _scr_howto() {
     const rules = [
       ['turf', 'Ink the turf', 'Paint the ground in your team’s color. When time runs out, the team with the most turf wins.'],
-      ['swim', 'Swim to refill', 'Dive into your own ink as a squid to move fast, hide and refill your ink tank.'],
+      ['swim', 'Swim to refill', 'Dive into your own ink in goo form to move fast, hide and refill your ink tank.'],
       ['enemy', 'Avoid enemy ink', 'Enemy ink slows you down and hurts. Paint over it to take the ground back.'],
-      ['climb', 'Climb inked walls', 'Ink a wall, then swim straight up it as a squid to reach high ground.'],
+      ['climb', 'Climb inked walls', 'Ink a wall, then swim straight up it in goo form to reach high ground.'],
     ];
     const zoneRules = [
       ['take', 'Take the zone', 'Ink 80% of the live zone to take it. Ink 40% of a zone they hold to knock it back to neutral.'],
@@ -1941,11 +1941,11 @@ export class Menus {
       h('div', { class: 'iw-cred__logo', html: logoMarkup(GAME_TITLE, GAME_SUBTITLE, 'md') }),
       h('p', { class: 'iw-cred__lead' }, 'An original 4 v 4 turf-war shooter.'),
       sec('Original game', 'Based on INKWAVE by jaydendavisnc (MIT)', h('p', { class: 'dim' }, 'MIT License · github.com/jaydendavisnc/inkwave')),
-      sec('Made with', 'Procedural everything — squidkids, weapons, stage, ink, music and sound are all generated in code.'),
+      sec('Made with', 'Procedural everything — gooblins, weapons, stage, ink, music and sound are all generated in code.'),
       sec('Rendering', 'three.js', h('p', { class: 'dim' }, 'by the three.js authors & contributors')),
       sec('Typography', 'Titan One — Font Diner', 'Rubik — Hubert & Fischer', h('p', { class: 'dim' }, 'SIL Open Font License')),
-      sec('Starring the squidkids', cast),
-      sec('Special thanks', 'Everyone who ever painted a wall', 'Every bot that got splatted in testing', 'And you, for playing'),
+      sec('Starring the gooblins', cast),
+      sec('Special thanks', 'Everyone who ever painted a wall', 'Every bot that got splurted in testing', 'And you, for playing'),
       h('div', { class: 'iw-cred__end' }, h('div', { class: 'iw-cred__endsplat', html: splatSVG({ seed: 77, cls: 'iw-fa' }) }), h('span', { class: 'iw-display' }, 'STAY GOOEY!')));
     const viewport = h('div', { class: 'iw-cred__view' }, roll);
     const el = h('div', { class: 'iw-screen iw-credits' },
@@ -2129,13 +2129,13 @@ export class Menus {
     this._bind(wChip, { id: 'weapon', accept: () => { this._sfx('ui_click'); this._go('loadout'); } });
     const lookAv = h('span', { class: 'iw-lchip__av' }, h('span', { class: 'iw-lchip__blob', html: splatSVG({ seed: 17, cls: 'iw-fa', r: 62, arms: 8, drops: 0 }) }), h('span', { class: 'iw-lchip__squid', html: SQUID }));
     const lChip = h('button', { class: 'iw-wchip iw-lchip iw-hub__chip iw-in iw-in--right' }, lookAv,
-      h('span', { class: 'iw-wchip__text' }, h('small', null, 'LOOK'), h('b', null, 'Locker')),
+      h('span', { class: 'iw-wchip__text' }, h('small', null, 'LOOK'), h('b', null, 'Wardrobe')),
       h('span', { class: 'iw-wchip__edit' }, h('i', { html: GLYPHS.hanger })));
     this._fx(lChip);
     this._bind(lChip, { id: 'look', accept: () => { this._sfx('ui_click'); this._go('locker'); } });
     this._portraitInto(lookAv, { kind: 'head', size: 128 });
     const me = h('div', { class: 'iw-hub__me' },
-      h('div', { class: 'iw-hub__metag iw-in iw-in--down' }, h('span', { class: 'iw-hub__metaglbl iw-tape' }, 'YOUR SPLASHTAG'), stag),
+      h('div', { class: 'iw-hub__metag iw-in iw-in--down' }, h('span', { class: 'iw-hub__metaglbl iw-tape' }, 'YOUR GOO TAG'), stag),
       h('div', { class: 'iw-hub__chips' }, wChip, lChip));
 
     const promptsIdle = this._prompts([['Enter', 'A', 'Select'], ['Esc', 'B', 'Back']]);
@@ -2149,7 +2149,7 @@ export class Menus {
     promptsBusy.classList.add('is-busy');
     const el = h('div', { class: 'iw-screen iw-online' },
       h('div', { class: 'iw-scrim-left' }),
-      this._header('ONLINE', { sub: 'Private rooms · 4 v 4 · up to 8 squidkids' }),
+      this._header('ONLINE', { sub: 'Private rooms · 4 v 4 · up to 8 gooblins' }),
       body, me, promptsIdle, promptsEntry, promptsBusy);
 
     // ---- code entry
@@ -2460,7 +2460,7 @@ export class Menus {
     const pipsA = h('span', { class: 'iw-lob__pips is-a' }), pipsB = h('span', { class: 'iw-lob__pips is-b' });
     const statusTxt = h('span', { class: 'iw-lob__statustxt' });
     const status = h('div', { class: 'iw-lob__status iw-in iw-in--down' },
-      h('div', { class: 'iw-lob__count' }, h('small', { class: 'iw-lob__countlbl' }, 'SQUIDKIDS'), countEl, h('small', null, '/8')),
+      h('div', { class: 'iw-lob__count' }, h('small', { class: 'iw-lob__countlbl' }, 'GOOBLINS'), countEl, h('small', null, '/8')),
       h('div', { class: 'iw-lob__teams' },
         h('div', { class: 'iw-lob__tline is-a' }, h('span', { class: 'iw-lob__tl is-a' }, TEAM_LABEL[0]), pipsA),
         h('em', { class: 'iw-lob__vs', html: splatSVG({ seed: 5, fill: '#15121c', r: 52, arms: 8, drops: 2 }) }, h('b', null, 'VS')),
@@ -2544,7 +2544,7 @@ export class Menus {
     const wChip = h('button', { class: 'iw-wchip iw-lob__wchip' }, wIcon, h('span', { class: 'iw-wchip__text' }, h('small', null, 'WEAPON'), wName), h('span', { class: 'iw-wchip__edit' }, h('i', { html: GLYPHS.pencil })));
     this._fx(wChip);
     const lookAv = h('span', { class: 'iw-lchip__av' }, h('span', { class: 'iw-lchip__blob', html: splatSVG({ seed: 17, cls: 'iw-fa', r: 62, arms: 8, drops: 0 }) }), h('span', { class: 'iw-lchip__squid', html: SQUID }));
-    const lChip = h('button', { class: 'iw-wchip iw-lchip iw-lob__lchip', title: 'Locker' }, lookAv, h('span', { class: 'iw-lob__lbadge', html: GLYPHS.hanger }), h('small', { class: 'iw-lob__llbl' }, 'LOOK'));
+    const lChip = h('button', { class: 'iw-wchip iw-lchip iw-lob__lchip', title: 'Wardrobe' }, lookAv, h('span', { class: 'iw-lob__lbadge', html: GLYPHS.hanger }), h('small', { class: 'iw-lob__llbl' }, 'LOOK'));
     this._fx(lChip);
     this._portraitInto(lookAv, { kind: 'head', size: 128 });
     const teamSeg = this._seg([[0, h('span', { class: 'iw-teamopt is-a' }, h('i'), TEAM_LABEL[0])], ['auto', h('span', { class: 'iw-teamopt' }, h('i', { html: GLYPHS.rotate }), 'AUTO')], [1, h('span', { class: 'iw-teamopt is-b' }, h('i'), TEAM_LABEL[1])]], 'auto', (v) => requestTeam(v));
@@ -3340,7 +3340,7 @@ export class Menus {
       { id: 'howto', label: 'HOW TO PLAY', icon: GLYPHS.question, cls: 'iw-btn--menu', accept: () => this._go('howto') },
       { id: 'quit', label: online ? 'LEAVE ROOM' : 'QUIT MATCH', icon: online ? GLYPHS.exit : GLYPHS.close, cls: 'iw-btn--menu iw-btn--danger', accept: () => this._openModal({
         title: online ? 'LEAVE ROOM?' : 'QUIT MATCH?', danger: true,
-        text: online ? 'You’ll leave the match and the room — a bot takes over your squidkid for the team.'
+        text: online ? 'You’ll leave the match and the room — a bot takes over your gooblin for the team.'
           : zoneMode ? 'You will leave this Zone Control match and head back to the lobby. It will not count.' : 'You will leave this Turf Riot and head back to the lobby. Your turf will not count.',
         buttons: [
           { label: 'KEEP PLAYING', accept: () => this._closeModal(), sound: null },
@@ -3396,7 +3396,7 @@ export class Menus {
       const n = h('span', { class: `iw-pstat ${cls}` }, h('i', { html: icon }), b, h('small', null, label));
       return { el: n, b };
     };
-    const sTurf = stat('iw-pstat--turf', GLYPHS.drop, 'TURF'), sSplat = stat('', SPLAT_ICON, 'SPLATS'), sDeath = stat('', DEATH_ICON, 'SPLATTED'), sSp = stat('iw-pstat--sp', specialIcon((G.local && G.local.specialId) || (this._weapons()[selfP.weapon] || {}).special), 'SPECIAL');
+    const sTurf = stat('iw-pstat--turf', GLYPHS.drop, 'TURF'), sSplat = stat('', SPLAT_ICON, 'SPLURTS'), sDeath = stat('', DEATH_ICON, 'SPLURTED'), sSp = stat('iw-pstat--sp', specialIcon((G.local && G.local.specialId) || (this._weapons()[selfP.weapon] || {}).special), 'SPECIAL');
     const you = h('div', { class: 'iw-pyou' },
       h('span', { class: 'iw-pyou__av', html: SQUID }),
       h('div', { class: 'iw-pyou__id' }, h('small', null, 'YOUR MATCH'), h('b', null, selfP.name || 'You')),
@@ -3656,8 +3656,8 @@ export class Menus {
         h('div', { class: 'iw-ttable__head iw-in' },
           h('span', { class: 'iw-ttable__team' }, h('i', { class: 'iw-ttable__dot' }), names[team] || TEAM_NAMES[team], isWin ? h('em', { class: 'iw-ttable__win' }, h('i', { html: GLYPHS.crown }), 'WIN') : null),
           h('span', { class: 'iw-ttable__col', title: 'Turf inked' }, h('i', { html: GLYPHS.drop }), 'TURF'),
-          h('span', { class: 'iw-ttable__col', title: 'Splats' }, h('i', { html: SPLAT_ICON })),
-          h('span', { class: 'iw-ttable__col', title: 'Times splatted' }, h('i', { html: DEATH_ICON }))),
+          h('span', { class: 'iw-ttable__col', title: 'Splurts' }, h('i', { html: SPLAT_ICON })),
+          h('span', { class: 'iw-ttable__col', title: 'Times splurted' }, h('i', { html: DEATH_ICON }))),
         rows.map((p, ri) => {
           const turfNum = h('b', null, '0');
           const turfBar = h('i', { class: 'iw-prow__turfbar' });
@@ -3683,7 +3683,7 @@ export class Menus {
         h('div', { class: 'iw-ttable__head iw-in' },
           h('span', { class: 'iw-ttable__team' }, h('i', { class: 'iw-ttable__dot' }), start ? 'SQUAD · 5–8' : 'SQUAD · TOP 4', !start && win ? h('em', { class: 'iw-ttable__win' }, h('i', { html: GLYPHS.crown }), 'SUNK IT') : null),
           h('span', { class: 'iw-ttable__col', title: 'Damage to the boss' }, h('i', { html: awardIcon('pow') }), 'DAMAGE'),
-          colIco(awardIcon('crit'), 'Weak-point hits'), colIco(SPLAT_ICON, 'Splats (crablets)'), colIco(DEATH_ICON, 'Times splatted'),
+          colIco(awardIcon('crit'), 'Weak-point hits'), colIco(SPLAT_ICON, 'Splurts (crablets)'), colIco(DEATH_ICON, 'Times splurted'),
           h('span', { class: 'iw-ttable__col', title: 'Turf inked' }, h('i', { html: GLYPHS.drop }), 'TURF')),
         rows.map((p, ri) => {
           const dmgNum = h('b', null, '0');
@@ -3726,7 +3726,7 @@ export class Menus {
         bd.push([win ? 'WIN BONUS' : 'MATCH', base]);
         if (dx) bd.push(['DAMAGE', dx]);
         bd.push([`TURF`, tx]);
-        if (sx) bd.push(['SPLATS', sx]);
+        if (sx) bd.push(['SPLURTS', sx]);
       }
     }
     let acc = 0;

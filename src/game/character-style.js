@@ -38,7 +38,7 @@ export const OUTFITS = [
   { shirt: '#f2f2ef', shorts: '#23262d', shoe: '#23262d', sole: '#f2f1ec', sock: '#f7f7f4', strap: '#23262d', pattern: 8 },
   { shirt: '#1f2a44', shorts: '#1f2a44', shoe: '#f2f1ec', sole: '#1f2a44', sock: '#f7f7f4', strap: '#161b29', pattern: 9 },
 ];
-export const OUTFIT_NAMES = ['Basic Ringer', 'Night Pinstripe', 'Raglan Runner', 'Chevron Tee', 'Breton Stripe', 'Splatter Tee', 'Splat Camo', 'Dip-Dye Tee', 'Pro Jersey', 'Track Top'];
+export const OUTFIT_NAMES = ['Basic Ringer', 'Night Pinstripe', 'Raglan Runner', 'Chevron Tee', 'Breton Stripe', 'Drip Tee', 'Goo Camo', 'Dip-Dye Tee', 'Pro Jersey', 'Track Top'];
 
 // ---- eyes: iris gradient [top, bottom] ---------------------------------------------------------------------------
 export const IRIS = [
@@ -74,8 +74,8 @@ export const PRESETS = [
   { id: 'pip', name: 'Pip', blurb: 'Twin tails, breton stripes, always first to the ferry deck.', style: { hair: 2, skin: 4, outfit: 4, eyes: 4, hat: 0, brows: 2 } },
   { id: 'coral', name: 'Coral', blurb: 'Dip-dyed and unbothered.', style: { hair: 3, skin: 3, outfit: 7, eyes: 5, hat: 0, brows: 0 } },
   { id: 'marlo', name: 'Marlo', blurb: 'Ponytail up, jersey on, game face.', style: { hair: 4, skin: 1, outfit: 8, eyes: 7, hat: 0, brows: 1 } },
-  { id: 'riptide', name: 'Riptide', blurb: 'Mohawk crest and a splatter tee. Loud.', style: { hair: 5, skin: 7, outfit: 5, eyes: 3, hat: 0, brows: 3 } },
-  { id: 'nori', name: 'Nori', blurb: 'Low bun under a bucket hat, splat camo, very patient charger main.', style: { hair: 6, skin: 6, outfit: 6, eyes: 2, hat: 3, brows: 3 } },
+  { id: 'riptide', name: 'Riptide', blurb: 'Mohawk crest and a drip tee. Loud.', style: { hair: 5, skin: 7, outfit: 5, eyes: 3, hat: 0, brows: 3 } },
+  { id: 'nori', name: 'Nori', blurb: 'Low bun under a bucket hat, goo camo, very patient charger main.', style: { hair: 6, skin: 6, outfit: 6, eyes: 2, hat: 3, brows: 3 } },
   { id: 'suki', name: 'Suki', blurb: 'Side-swept and too cool for the lobby.', style: { hair: 7, skin: 8, outfit: 1, eyes: 6, hat: 0, brows: 2 } },
   { id: 'kelp', name: 'Kelp', blurb: 'Beanie season, all season.', style: { hair: 3, skin: 2, outfit: 2, eyes: 3, hat: 2, brows: 0 } },
   { id: 'skipper', name: 'Skipper', blurb: 'Snapback, raglan, harbour regular.', style: { hair: 0, skin: 5, outfit: 3, eyes: 0, hat: 1, brows: 1 } },

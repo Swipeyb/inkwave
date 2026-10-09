@@ -116,7 +116,7 @@ export const WEAPONS = {
   },
   charger: {
     id: 'charger', name: 'Glint Charger', kind: 'charger', class: 'Charger',
-    blurb: 'Hold to charge, release for a long piercing line. Full charge splats.',
+    blurb: 'Hold to charge, release for a long piercing line. Full charge splurts.',
     stats: { range: 1.0, damage: 1.0, rate: 0.25, mobility: 0.35, paint: 0.45 },
     chargeTime: 1.0, rangeMin: 11, rangeMax: 27, damageMin: 40, damageMax: 160,
     inkFull: 18, lineSplatEvery: 1.2, lineRadius: 0.55, impactRadius: 1.2,
@@ -125,7 +125,7 @@ export const WEAPONS = {
   },
   blaster: {
     id: 'blaster', name: 'Popper Blaster', kind: 'blaster', class: 'Blaster',
-    blurb: 'Slow shots that burst mid-air. Direct hits splat instantly.',
+    blurb: 'Slow shots that burst mid-air. Direct hits splurt instantly.',
     stats: { range: 0.55, damage: 0.9, rate: 0.3, mobility: 0.6, paint: 0.5 },
     fireInterval: 0.78, directDamage: 125, splashDamageMax: 70, splashDamageMin: 30,
     splashRadius: 2.6, inkPerShot: 9, projSpeed: 23, range: 10.5,
@@ -136,7 +136,7 @@ export const WEAPONS = {
   // `anim` = the pose family the character animates with (kind otherwise)
   bucket: {
     id: 'bucket', name: 'Bilge Bucket', kind: 'bucket', class: 'Bucket', anim: 'blaster',
-    blurb: 'Hurl a wave of ink in an arc: aim higher to throw farther, lob it over cover. Full damage at any distance; two hits splat.',
+    blurb: 'Hurl a wave of ink in an arc: aim higher to throw farther, lob it over cover. Full damage at any distance; two hits splurt.',
     stats: { range: 0.5, damage: 0.8, rate: 0.35, mobility: 0.6, paint: 0.7 },
     fireInterval: 0.6, windup: 0.12, inkPerShot: 6,
     throwSpeed: 15.5, lob: 0.3, blobs: 5, gravity: 20, drag: 0.25, reach: 9.5,
@@ -219,7 +219,7 @@ export const WEAPONS = {
   },
   blade: {
     id: 'blade', name: 'Brine Cutlass', kind: 'blade', class: 'Cutlass', anim: 'blade',
-    blurb: 'Tap for quick slashes that fling a crescent of ink. Hold to charge an overhead cut that sends a long ink wave. The blade itself hits hard: a charged cut splats in one hit.',
+    blurb: 'Tap for quick slashes that fling a crescent of ink. Hold to charge an overhead cut that sends a long ink wave. The blade itself hits hard: a charged cut splurts in one hit.',
     stats: { range: 0.35, damage: 0.85, rate: 0.75, mobility: 0.85, paint: 0.55 },
     // (kits/blade.js; pose family HOLD.blade in character.js) range = the quick cut's droplet reach (aim assist, bots)
     range: 6.5, projSpeed: 17,
@@ -317,7 +317,7 @@ export function weaponRange(w) {
 // Sub weapons. Each weapon has a default (`sub` on the weapon); the loadout can swap it for any of these.
 export const SUBS = {
   bomb: {
-    id: 'bomb', name: 'Goo Bomb', kind: 'bomb', blurb: 'Bounces, arms when it lands, then bursts. Splats anyone close.',
+    id: 'bomb', name: 'Goo Bomb', kind: 'bomb', blurb: 'Bounces, arms when it lands, then bursts. Splurts anyone close.',
     inkCost: 70, throwSpeed: 13.5, fuse: 0.95, radius: 3.1, damageMax: 180, damageMin: 35, paintRadius: 2.7,
   },
   sticky: {
@@ -325,7 +325,7 @@ export const SUBS = {
     inkCost: 70, throwSpeed: 13.5, fuse: 2.4, radius: 4.0, damageMax: 180, damageMin: 35, paintRadius: 3.3,
   },
   burst: {
-    id: 'burst', name: 'Pop Pellet', kind: 'burst', blurb: 'Pops on impact. Cheap enough to throw twice: two direct hits or three near misses splat.',
+    id: 'burst', name: 'Pop Pellet', kind: 'burst', blurb: 'Pops on impact. Cheap enough to throw twice: two direct hits or three near misses splurt.',
     inkCost: 40, throwSpeed: 16, radius: 2.1, directDamage: 60, splashDamage: 35, paintRadius: 1.8,
   },
   seeker: {
@@ -346,7 +346,7 @@ export const SUBS = {
     inkCost: 55, throwSpeed: 9, width: 3.4, height: 2.7, hp: 170, decay: 19, shotMul: 0.5,
   },
   sprinkler: {
-    id: 'sprinkler', name: 'Twirl Sprinkler', kind: 'sprinkler', blurb: 'Sticks to any surface and sprays ink around it in pulses, until it is shot or you get splatted.',
+    id: 'sprinkler', name: 'Twirl Sprinkler', kind: 'sprinkler', blurb: 'Sticks to any surface and sprays ink around it in pulses, until it is shot or you get splurted.',
     inkCost: 60, throwSpeed: 12, hp: 70, pulse: 0.3, drops: 6, sprayRadius: 3.2, sprayFade: 12, dropDamage: 8,
   },
   mine: {
@@ -428,13 +428,13 @@ export const SPECIALS = {
   strike: { id: 'strike', name: 'Vortex Strike', blurb: 'Pick a spot on the map and launch a missile. It lands as a huge swirling vortex of ink.',
     aimTime: 7, flight: 2.2, radius: 5.5, duration: 4.5, dps: 62, pull: 1.6 },
   // bazooka: tall narrow twisters in quick succession, long range, one-shot splats
-  zooka: { id: 'zooka', name: 'Twister Zooka', blurb: 'A bazooka that fires tall twisters of ink in quick succession — splats foes at long range.',
+  zooka: { id: 'zooka', name: 'Twister Zooka', blurb: 'A bazooka that fires tall twisters of ink in quick succession — splurts foes at long range.',
     duration: 6, interval: 1.0, speed: 34, range: 44, damage: 180, height: 2.8, radius: 0.55, paintEvery: 0.7, paintRadius: 0.95 },
   // speaker: after a short charge, a sound wave in the aimed direction through walls; splats anything in it
-  wail: { id: 'wail', name: 'Howl Box', blurb: 'Hold up a huge speaker, aim it and click: it blasts a sound wave that goes through walls and splats anything in its path.',
+  wail: { id: 'wail', name: 'Howl Box', blurb: 'Hold up a huge speaker, aim it and click: it blasts a sound wave that goes through walls and splurts anything in its path.',
     charge: 1.3, blast: 3.2, radius: 1.5, range: 72, dps: 260, holdTime: 6, holdSpeed: 3.2 },
   // invincible goo beast: fast through any ink, splats with a jump attack
-  kraken: { id: 'kraken', name: 'Goo Beast', blurb: 'Turn into an invincible goo beast. Race through any ink (even the enemy\'s) and splat foes with a jump attack.',
+  kraken: { id: 'kraken', name: 'Goo Beast', blurb: 'Turn into an invincible goo beast. Race through any ink (even the enemy\'s) and splurt foes with a jump attack.',
     duration: 7, speed: 7.2, hopVel: 10.5, attackVel: 8.5, attackFwd: 6.5, radius: 2.3, damage: 200, knockPerDamage: 0.02, cooldown: 0.65, paintRadius: 1.15 },
   // up to three giant bubbles: they wall off an area and burst into a deadly blast when your team shoots them
   blower: { id: 'blower', name: 'Bubble Wand', blurb: 'Blow up to three giant bubbles that wall off an area. Shoot them (you or your team) to set off a huge ink blast.',
@@ -545,7 +545,7 @@ export function noBotsStartBlock(lobby) {
 }
 
 export const BOT_NAMES = [
-  'Squiddo', 'Blotch', 'Marlo', 'Inky Vee', 'Pip', 'Coral', 'Riptide', 'Nori', 'Suki', 'Zest',
+  'Gloopo', 'Blotch', 'Marlo', 'Inky Vee', 'Pip', 'Coral', 'Riptide', 'Nori', 'Suki', 'Zest',
   'Kelp', 'Drip', 'Tako', 'Sprinkle', 'Bubbles', 'Moxie', 'Juno', 'Wasabi', 'Fizz', 'Loop',
 ];
 
