@@ -399,7 +399,7 @@ function drawAtlas(x) {
     x.strokeStyle = '#f2eee6'; x.lineWidth = 15; x.lineCap = 'round';
     x.beginPath(); x.moveTo(56, 150); x.bezierCurveTo(74, 72, 140, 62, 160, 110); x.bezierCurveTo(175, 150, 120, 170, 110, 135); x.bezierCurveTo(102, 110, 135, 100, 140, 120); x.stroke();
     x.beginPath(); x.moveTo(52, 180); x.quadraticCurveTo(80, 164, 108, 180); x.quadraticCurveTo(136, 196, 164, 180); x.stroke();
-    txt(x, 'KRAKEN', 355, 100, 74, FD, '#f2eee6', null, 0, 280);
+    txt(x, 'GLOOP', 355, 100, 74, FD, '#f2eee6', null, 0, 280);
     txt(x, 'LINES', 355, 168, 60, FD, '#e5b94d', null, 0, 280);
     txt(x, 'HARBOR FREIGHT  ·  EST. 1998', 355, 218, 18, FT, '#9fb0cc', null, 0, 280);
   });
@@ -429,7 +429,7 @@ function drawAtlas(x) {
     x.fillStyle = '#2c2e35'; x.beginPath(); x.arc(-14, -17, 7, 0, TAU); x.arc(18, -17, 7, 0, TAU); x.fill();
     x.fillStyle = '#e5b94d'; for (const yy of [-78, 78]) for (const xx of [-30, 30]) { x.beginPath(); x.arc(xx, yy, 11, 0, TAU); x.fill(); }
     x.restore();
-    x.save(); x.translate(350, 100); x.rotate(-0.08); txt(x, 'SQUIDKID', 0, 0, 70, FD, '#2c2e35', null, 0, 300); x.restore();
+    x.save(); x.translate(350, 100); x.rotate(-0.08); txt(x, 'GOOBLIN', 0, 0, 70, FD, '#2c2e35', null, 0, 300); x.restore();
     x.save(); x.translate(356, 172); x.rotate(-0.08); x.fillStyle = '#e9836c'; rr(x, -104, -32, 208, 64, 16); x.fill(); txt(x, 'SKATE', 0, 2, 50, FD, '#fff', null, 0, 190); x.restore();
     txt(x, 'DECKS · WHEELS · GEAR', 350, 228, 16, FT, '#7c70bd', null, 0, 280);
   });
@@ -501,7 +501,7 @@ function drawAtlas(x) {
   // container stencil (alpha)
   region(x, 'stencil', (x, w, h) => {
     x.clearRect(0, 0, w, h);
-    txt(x, 'KRAKEN LINES', w / 2, 62, 66, FD, '#fff', null, 0, w - 30);
+    txt(x, 'GLOOP LINES', w / 2, 62, 66, FD, '#fff', null, 0, w - 30);
     x.fillStyle = '#fff'; x.fillRect(24, 106, w - 48, 8);
     txt(x, 'KRKU 204519  3', 30, 150, 40, FT, '#fff', null, 0, w - 60, 'left');
     txt(x, 'MAX GROSS 30,480 KG', 30, 196, 26, FT, '#fff', null, 0, w - 60, 'left');
@@ -625,7 +625,7 @@ function miniSquid(x, cx, cy, s, body, eye = '#fff', pupil = INK.navy) {
 function drawStreetPrint(x) {
   const I = INK;
   // ---------------------------------------------------------------- posters
-  region(x, 'pst0', (x, w, h) => { // TURF WAR FINALS
+  region(x, 'pst0', (x, w, h) => { // TURF RIOT FINALS
     paperBG(x, w, h, '#f3ead6', 11);
     x.fillStyle = '#e8dcc0'; for (let i = -6; i < 16; i++) { x.beginPath(); x.moveTo(i * 30, h); x.lineTo(i * 30 + 14, h); x.lineTo(i * 30 + 214, 0); x.lineTo(i * 30 + 200, 0); x.fill(); }
     x.fillStyle = I.coral; splatShape(x, 78, 168, 78, 3, 2);
@@ -635,12 +635,12 @@ function drawStreetPrint(x) {
     x.beginPath(); x.moveTo(140, 96); x.lineTo(108, 170); x.lineTo(134, 170); x.lineTo(112, 248); x.lineTo(160, 156); x.lineTo(134, 156); x.lineTo(156, 96); x.closePath(); x.fill(); x.stroke();
     miniSquid(x, 62, 172, 30, I.cream, I.coraldk, '#fff');
     miniSquid(x, 200, 188, 30, I.cream, I.tealdk, '#fff');
-    txt(x, 'TURF WAR', w / 2, 46, 46, FD, I.navy, I.cream, 10, w - 20);
+    txt(x, 'TURF RIOT', w / 2, 46, 46, FD, I.navy, I.cream, 10, w - 20);
     ribbon(x, w / 2, 282, 170, 44, I.mustard, '#b98f2f');
     txt(x, 'FINALS', w / 2, 284, 36, FD, I.navy, null, 0, 160);
     txt(x, 'SAT · 8PM', w / 2, 326, 22, FT, I.navy, null, 0, w - 30, 'center');
     txt(x, 'PIER 3 ARENA · FREE ENTRY', w / 2, 348, 12, FT, I.coraldk, null, 0, w - 30);
-    x.fillStyle = I.navy; x.fillRect(0, h - 18, w, 18); txt(x, 'LIVE ON SQUID RADIO 88.2 FM', w / 2, h - 9, 10, FT, I.cream, null, 0, w - 20);
+    x.fillStyle = I.navy; x.fillRect(0, h - 18, w, 18); txt(x, 'LIVE ON GOO RADIO 88.2 FM', w / 2, h - 9, 10, FT, I.cream, null, 0, w - 20);
     vignette(x, w, h);
   });
   region(x, 'pst1', (x, w, h) => { // LOW TIDE RIOT gig
@@ -662,7 +662,7 @@ function drawStreetPrint(x) {
   region(x, 'pst2', (x, w, h) => { // LOST SQUID with tear-off tabs
     paperBG(x, w, h, '#f7f5ef', 31, 0.05);
     txt(x, 'LOST', w / 2, 44, 58, FD, I.red, null, 0, w - 30);
-    txt(x, 'SQUID', w / 2, 92, 36, FD, I.navy, null, 0, w - 30);
+    txt(x, 'GOO', w / 2, 92, 36, FD, I.navy, null, 0, w - 30);
     x.save(); x.translate(128, 176); x.rotate(-0.035);
     x.fillStyle = '#fff'; x.fillRect(-78, -60, 156, 118); x.fillStyle = '#bfe0ee'; x.fillRect(-70, -52, 140, 96);
     x.fillStyle = '#9fd0e4'; x.fillRect(-70, 20, 140, 24);
@@ -739,7 +739,7 @@ function drawStreetPrint(x) {
     txt(x, 'SKATE', w / 2, 52, 52, FD, I.cream, I.navy, 10, w - 20);
     txt(x, 'JAM', w / 2, 114, 70, FD, I.mustard, I.navy, 10, w - 20);
     txt(x, 'BEST TRICK CONTEST', w / 2, 276, 15, FT, I.navy, null, 0, w - 24);
-    txt(x, 'SUN 3PM · SQUIDKID SKATE', w / 2, 298, 12, FT, '#5a4f93', null, 0, w - 24);
+    txt(x, 'SUN 3PM · GOOBLIN SKATE', w / 2, 298, 12, FT, '#5a4f93', null, 0, w - 24);
     vignette(x, w, h, 0.14);
   });
   region(x, 'pst7', (x, w, h) => { // SQUID RADIO 88.2
@@ -751,9 +751,9 @@ function drawStreetPrint(x) {
     txt(x, '88.2', w / 2 + 4, 262, 72, FD, '#8c3f31', null, 0, w - 20);
     txt(x, '88.2', w / 2, 258, 72, FD, I.cream, null, 0, w - 20);
     txt(x, 'FM', 220, 222, 22, FD, I.navy, null, 0, 60);
-    txt(x, 'SQUID RADIO', w / 2, 44, 32, FD, I.navy, null, 0, w - 24);
+    txt(x, 'GOO RADIO', w / 2, 44, 32, FD, I.navy, null, 0, w - 24);
     txt(x, 'NONSTOP INK HITS', w / 2, 316, 14, FT, I.navy, null, 0, w - 24);
-    txt(x, 'ALL DAY · ALL SPLAT', w / 2, 340, 11, FT, I.cream, null, 0, w - 24);
+    txt(x, 'ALL DAY · ALL SPLATR', w / 2, 340, 11, FT, I.cream, null, 0, w - 24);
     vignette(x, w, h);
   });
   region(x, 'pst8', (x, w, h) => { // KRAKEN LINES cruises
@@ -766,7 +766,7 @@ function drawStreetPrint(x) {
     x.strokeStyle = I.mustard; x.lineWidth = 12; x.lineCap = 'round';
     x.beginPath(); x.moveTo(30, 300); x.bezierCurveTo(24, 240, 70, 230, 52, 196); x.stroke(); x.beginPath(); x.arc(52, 188, 8, 0, TAU); x.stroke();
     wavesBand(x, 258, w, 7, 50, I.teal, 0.3); wavesBand(x, 282, w, 6, 44, I.tealdk, 2.1);
-    txt(x, 'KRAKEN LINES', w / 2, 36, 32, FD, I.cream, null, 0, w - 24);
+    txt(x, 'GLOOP LINES', w / 2, 36, 32, FD, I.cream, null, 0, w - 24);
     txt(x, 'SAIL THE SEVEN REEFS', w / 2, 118, 16, FT, I.mustard, null, 0, w - 24);
     txt(x, 'DAILY FERRIES · PIER 1', w / 2, 336, 13, FT, I.cream, null, 0, w - 24);
     txt(x, 'kids ride free', w / 2, 358, 11, (p) => FT(p, 600), '#bcd6e8', null, 0, w - 24);
@@ -821,8 +821,8 @@ function drawStreetPrint(x) {
     x.fillStyle = I.lav; splatShape(x, 420, 70, 50, 9, 1);
     miniSquid(x, 108, 118, 52, I.navy, '#fff', I.navy);
     txt(x, 'INK THE TOWN', 336, 88, 50, FD, I.navy, null, 0, 300);
-    txt(x, 'TURF WAR · SEASON 3', 336, 140, 26, FD, I.coral, null, 0, 300);
-    txt(x, 'NEW STAGES · NEW GEAR · SAME SQUIDS', 336, 180, 13, FT, I.navy, null, 0, 300);
+    txt(x, 'TURF RIOT · SEASON 3', 336, 140, 26, FD, I.coral, null, 0, 300);
+    txt(x, 'NEW STAGES · NEW GEAR · SAME GOOBLINS', 336, 180, 13, FT, I.navy, null, 0, 300);
     x.fillStyle = I.teal; x.fillRect(0, h - 26, w, 26); txt(x, 'KELPLINE TERMINAL NOW OPEN', w / 2, h - 13, 12, FT, I.cream, null, 0, w - 40);
     vignette(x, w, h, 0.14);
   });
@@ -860,16 +860,16 @@ function drawStreetPrint(x) {
     if (sub) txt(x, sub, 226, h / 2 + 30, 14, FT, fg, null, 0, 280);
   });
   header('cart0', '#eba7c0', I.navy, 'CHILLY SCOOPS', 'SOFT SERVE · POPS · FLOATS', (x, cx, cy) => { x.fillStyle = '#c9934f'; x.beginPath(); x.moveTo(cx - 20, cy - 6); x.lineTo(cx + 20, cy - 6); x.lineTo(cx, cy + 44); x.fill(); x.fillStyle = I.cream; x.beginPath(); x.arc(cx, cy - 14, 22, 0, TAU); x.fill(); x.fillStyle = I.pink; x.beginPath(); x.arc(cx + 4, cy - 30, 14, 0, TAU); x.fill(); });
-  header('cart1', I.mustard, I.navy, 'SQUID DOGS', 'GRILLED · SAUCED · LEGENDARY', (x, cx, cy) => { x.fillStyle = '#e8cf95'; x.beginPath(); x.roundRect(cx - 42, cy - 14, 84, 30, 14); x.fill(); x.fillStyle = I.coral; x.beginPath(); x.roundRect(cx - 46, cy - 8, 92, 16, 8); x.fill(); x.strokeStyle = I.mustard; x.lineWidth = 3; x.beginPath(); for (let i = 0; i < 8; i++) x.lineTo(cx - 36 + i * 10, cy + (i % 2 ? -4 : 3)); x.stroke(); });
+  header('cart1', I.mustard, I.navy, 'GOO DOGS', 'GRILLED · SAUCED · LEGENDARY', (x, cx, cy) => { x.fillStyle = '#e8cf95'; x.beginPath(); x.roundRect(cx - 42, cy - 14, 84, 30, 14); x.fill(); x.fillStyle = I.coral; x.beginPath(); x.roundRect(cx - 46, cy - 8, 92, 16, 8); x.fill(); x.strokeStyle = I.mustard; x.lineWidth = 3; x.beginPath(); for (let i = 0; i < 8; i++) x.lineTo(cx - 36 + i * 10, cy + (i % 2 ? -4 : 3)); x.stroke(); });
   header('stall0', I.teal, I.cream, 'FRESH CATCH', 'CAUGHT THIS MORNING', (x, cx, cy) => { x.fillStyle = I.cream; x.beginPath(); x.ellipse(cx - 6, cy, 34, 16, 0, 0, TAU); x.fill(); x.beginPath(); x.moveTo(cx + 24, cy); x.lineTo(cx + 44, cy - 16); x.lineTo(cx + 44, cy + 16); x.fill(); x.fillStyle = I.teal; x.beginPath(); x.arc(cx - 24, cy - 3, 4, 0, TAU); x.fill(); });
   header('stall1', '#8cc49a', I.navy, 'HARBOR GREENS', 'FRUIT · VEG · HERBS', (x, cx, cy) => { x.fillStyle = I.mustard; x.beginPath(); x.ellipse(cx - 12, cy + 4, 20, 16, 0.4, 0, TAU); x.fill(); x.fillStyle = I.coral; x.beginPath(); x.arc(cx + 16, cy + 8, 16, 0, TAU); x.fill(); x.fillStyle = '#4f9a57'; x.beginPath(); x.ellipse(cx + 18, cy - 12, 8, 4, -0.6, 0, TAU); x.fill(); });
-  header('stall2', I.lav, I.cream, 'SPLAT MERCH', 'TEES · CAPS · STICKERS', (x, cx, cy) => { x.fillStyle = I.cream; x.beginPath(); x.moveTo(cx - 30, cy - 26); x.lineTo(cx - 12, cy - 30); x.quadraticCurveTo(cx, cy - 22, cx + 12, cy - 30); x.lineTo(cx + 30, cy - 26); x.lineTo(cx + 38, cy - 10); x.lineTo(cx + 24, cy - 6); x.lineTo(cx + 24, cy + 30); x.lineTo(cx - 24, cy + 30); x.lineTo(cx - 24, cy - 6); x.lineTo(cx - 38, cy - 10); x.closePath(); x.fill(); x.fillStyle = I.coral; splatShape(x, cx, cy + 6, 10, 4, 0); });
+  header('stall2', I.lav, I.cream, 'SPLATR MERCH', 'TEES · CAPS · STICKERS', (x, cx, cy) => { x.fillStyle = I.cream; x.beginPath(); x.moveTo(cx - 30, cy - 26); x.lineTo(cx - 12, cy - 30); x.quadraticCurveTo(cx, cy - 22, cx + 12, cy - 30); x.lineTo(cx + 30, cy - 26); x.lineTo(cx + 38, cy - 10); x.lineTo(cx + 24, cy - 6); x.lineTo(cx + 24, cy + 30); x.lineTo(cx - 24, cy + 30); x.lineTo(cx - 24, cy - 6); x.lineTo(cx - 38, cy - 10); x.closePath(); x.fill(); x.fillStyle = I.coral; splatShape(x, cx, cy + 6, 10, 4, 0); });
   region(x, 'chalk', (x, w, h) => { // chalk menu board
     x.fillStyle = '#34403d'; x.fillRect(0, 0, w, h);
     const rnd = mulberry32(151); for (let i = 0; i < 90; i++) { x.fillStyle = `rgba(255,255,255,${0.02 + rnd() * 0.05})`; x.beginPath(); x.ellipse(rnd() * w, rnd() * h, 6 + rnd() * 30, 2 + rnd() * 6, rnd() * PI, 0, TAU); x.fill(); }
     const chalkTxt = (s, cx, cy, px, col, al = 'center', font = FD) => { txt(x, s, cx, cy, px, font, col, null, 0, w - 30, al); };
     chalkTxt('TODAY', w / 2, 34, 32, '#f3efe4');
-    const items = [['SQUID DOG', '3.50'], ['SEA FRIES', '2.00'], ['FISH TACO', '4.00'], ['KELP SHAKE', '3.00'], ['FIZZ', '1.50']];
+    const items = [['GOO DOG', '3.50'], ['SEA FRIES', '2.00'], ['FISH TACO', '4.00'], ['KELP SHAKE', '3.00'], ['FIZZ', '1.50']];
     items.forEach(([a, b], i) => {
       const y = 76 + i * 34;
       chalkTxt(a, 18, y, 17, '#f3efe4', 'left', FT);
@@ -941,7 +941,7 @@ function drawStreetPrint(x) {
     x.fillStyle = '#b4b4b4'; x.beginPath(); x.arc(c, c, 40, 0, TAU); x.fill();
     miniSquid(x, c, c + 2, 30, '#e2e2e2', '#8a8a8a', '#e2e2e2');
     x.font = FT(15); x.fillStyle = '#e8e8e8'; x.textAlign = 'center'; x.textBaseline = 'middle';
-    const s = 'INKWAVE HARBOR · SEWER · INKWAVE HARBOR · SEWER · ';
+    const s = 'SPLATR HARBOR · SEWER · SPLATR HARBOR · SEWER · ';
     for (let i = 0; i < s.length; i++) { const a = (i / s.length) * TAU - HP; x.save(); x.translate(c + Math.cos(a) * 95, c + Math.sin(a) * 95); x.rotate(a + HP); x.fillText(s[i], 0, 0); x.restore(); }
   });
   region(x, 'gully', (x, w, h) => { x.clearRect(0, 0, w, h); x.fillStyle = '#fff'; x.fillRect(0, 0, w, 10); x.fillRect(0, h - 10, w, 10); x.fillRect(0, 0, 10, h); x.fillRect(w - 10, 0, 10, h); for (let i = 1; i < 8; i++) x.fillRect(i * 16 - 3, 0, 6, h); x.fillRect(0, h / 2 - 4, w, 8); });
@@ -1617,7 +1617,7 @@ D.ladder = {
 };
 
 D.sign = {
-  desc: 'Billboard with a bold original brand graphic on twin steel posts with goose-neck spot lamps. variant 0 KRAKEN LINES, 1 TIDE SNACKS, 2 SQUIDKID SKATE, 3 BARNACLE BREW. wall:true mounts it flat on a wall (z=0).',
+  desc: 'Billboard with a bold original brand graphic on twin steel posts with goose-neck spot lamps. variant 0 GLOOP LINES, 1 TIDE SNACKS, 2 GOOBLIN SKATE, 3 BARNACLE BREW. wall:true mounts it flat on a wall (z=0).',
   params: { width: 'm board (2.8)', height: 'm board (1.4)', color: 'frame (charcoal)', wall: 'bool' }, variants: 4, mount: 'ground|wall',
   build(B, o) {
     const W = o.width ?? 2.8, Hs = o.height ?? 1.4, v = (o.variant ?? 0) % 4, wall = !!o.wall, fc = o.color ?? 'charcoal';
@@ -3099,7 +3099,7 @@ export class PropKit {
     this.group = new THREE.Group(); this.group.name = 'props';
     if (scene) scene.add(this.group);
     this.uTime = { value: 0 };
-    this.teamColors = [new THREE.Color('#ff8a14'), new THREE.Color('#2f5bff')];
+    this.teamColors = [new THREE.Color('#22e0a1'), new THREE.Color('#ff4d3d')];
     this._headless = !!opts.headless || typeof document === 'undefined';
     if (!this._headless) this._makeMaterials();
     this._buckets = new Map();

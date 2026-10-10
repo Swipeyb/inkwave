@@ -117,9 +117,9 @@ function drawBanner(g, y0, font) {
     g.font = font(150);
     g.textBaseline = 'alphabetic';
     g.lineJoin = 'round';
-    g.lineWidth = 22; g.strokeStyle = CREAM; g.strokeText('INKWAVE', ox + 300, 186);
-    g.fillStyle = NAVY; g.fillText('INKWAVE', ox + 300, 186);
-    g.fillStyle = CORAL; g.fillText('INKWAVE', ox + 294, 180);
+    g.lineWidth = 22; g.strokeStyle = CREAM; g.strokeText('SPLATR', ox + 300, 186);
+    g.fillStyle = NAVY; g.fillText('SPLATR', ox + 300, 186);
+    g.fillStyle = CORAL; g.fillText('SPLATR', ox + 294, 180);
     g.font = font(34); g.fillStyle = CREAM; g.fillText('TURF RIOT  •  TIDEWATER PLAZA', ox + 320, 205 + 2);
     // splat accents
     blob(g, ox + 960, 70, 26, 5 + k, MUSTARD);
@@ -165,7 +165,7 @@ function drawShipping(g, y0, font) {
     const ox = k * 1024;
     g.font = font(110); g.textBaseline = 'middle';
     g.fillStyle = 'rgba(251,245,232,0.92)';
-    g.fillText('KRAKEN', ox + 140, 110);
+    g.fillText('GLOOP', ox + 140, 110);
     g.font = font(44); g.fillText('LINES  ~  SEA FREIGHT', ox + 150, 190);
     // tentacle wave
     g.strokeStyle = 'rgba(251,245,232,0.92)'; g.lineWidth = 16; g.lineCap = 'round';

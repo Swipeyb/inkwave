@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { G, on, emit, clamp, damp } from './core/ctx.js';
 import { Renderer } from './core/renderer.js';
 import { Input } from './core/input.js';
+import { IS_TOUCH, installTouch } from './ui/touch.js';
 import { mapTheme,
   DEFAULT_SETTINGS, QUALITY, TEAM_PALETTES, COLORBLIND_PALETTE, TEAM_NAMES, WEAPONS, WEAPON_ORDER, WEAPON_SUCCESSOR, ZONES, SUB, SUBS, SUB_ORDER, SPECIALS, SPECIAL_ORDER,
   MAPS, DIFFICULTY, PLAYER, PROGRESSION, VERSION, MATCH, OFFLINE_MAPS, mapOfflineOk, mapNoBots, mapBossOk,
@@ -59,7 +60,7 @@ class Game {
     for (const m of MAPS) { try { m.thumb = layoutThumbSVG(MAP_LAYOUTS[m.layout || m.id], m.theme); } catch (e) { console.warn('thumb', m.id, e); } }
     this.settings = G.settings = loadJSON('inkwave.settings', DEFAULT_SETTINGS);
     setLang(this.settings.lang || 'en');   // before any menu renders (src/i18n/strings.js)
-    document.title = t('INKWAVE — Turf Riot');
+    document.title = t('SPLATR — Turf Riot');
     // desktop app: the window's fullscreen state is owned by the native shell; mirror it into settings for the menu
     if (window.inkwaveNative) {
       this.settings.fullscreen = window.inkwaveNative.isFullScreen();
@@ -67,6 +68,9 @@ class Game {
     }
     // v1.1: fov became horizontal — migrate old vertical values once
     if (this.settings.fovMode !== 'h') { this.settings.fov = DEFAULT_SETTINGS.fov; this.settings.fovMode = 'h'; saveJSON('inkwave.settings', this.settings); }
+    // phones / tablets start on Medium (Low renders below screen resolution and looked blurry on phones). If a match
+    // still runs slow, the dynamic resolution and the automatic preset drop in _dynRes() step it down from there.
+    if (IS_TOUCH && this.settings.touchTuned !== 2) { this.settings.quality = 'medium'; this.settings.touchTuned = 2; saveJSON('inkwave.settings', this.settings); }
     this.profile = loadJSON('inkwave.profile', DEFAULT_PROFILE);
     if (WEAPON_SUCCESSOR[this.profile.weapon]) this.profile.weapon = WEAPON_SUCCESSOR[this.profile.weapon];   // retired weapons
     const app = document.getElementById('app');
@@ -97,9 +101,13 @@ class Game {
     this.input.onKey = (e, repeat) => this._onKey(e, repeat);
     this.input.onUnlock = () => this._onPointerUnlock();
     // after a focus steal while the map was held, the next click on the game takes the mouse back (no pause detour)
+    // Any click on the game during a match takes the mouse (browsers only grant the lock on a click: a match that starts
+    // on its own — Quick Play's countdown, or a joiner who never clicked Start — would otherwise leave aiming dead).
     this.R.renderer.domElement.addEventListener('mousedown', () => {
-      if (this._relock && G.mode === 'match' && this.match && !this.match.paused && !this.menus?.current) { this._relock = false; this.input.requestLock(); }
+      if (G.mode === 'match' && this.match && !this.match.attract && !this.match.paused && !this.menus?.current && !this.input.locked) { this._relock = false; this.input.requestLock(); }
     });
+    this._clickToAim();
+    try { this.touch = installTouch(this); } catch (e) { console.warn('[inkwave] touch controls', e); }
 
     // modules built by other authors
     const [charMod, fxMod, envMod, audioMod, musicMod] = await Promise.all([
@@ -133,7 +141,7 @@ class Game {
     // sky-fill balance (scene.environmentIntensity, hemisphere) + per-theme exposure are the environment theme's job
     // (Environment.setTheme), so a stage/time looks the same booted into or switched to mid-session
     G.renderer.toneMappingExposure = 0.94;
-    await progress(0.55, 'Teaching squids to swim…');
+    await progress(0.55, 'Teaching gooblins to swim…');
     G.projectiles = new Projectiles(scene);
     G.subs = new SubSystem(scene);
     G.specials = new SpecialSystem(scene);
@@ -157,6 +165,10 @@ class Game {
     // online session (G.net) — the menus' online screens and startNetMatch/netMatchGo/netMatchEnd below drive it
     try { (await import('./net/session.js')).installNet(); } catch (e) { console.error('[inkwave] net', e); }
     G.net?.on?.('lobby', ({ lobby }) => this._roomPalette(lobby));
+    // optional Solana prize pool card + results line (inert unless the relay has it configured — docs/PRIZE_POOL.md)
+    try { (await import('./ui/prize.js')).installPrize(); } catch (e) { console.warn('[inkwave] prize', e); }
+    try { (await import('./ui/quickplay.js')).installQuickPlay(); } catch (e) { console.warn('[inkwave] quick play', e); }
+    try { (await import('./ui/online.js')).installOnline(); } catch (e) { console.warn('[inkwave] online count', e); }
     await progress(0.7, 'Tuning the tentacles…');
 
     this._setPalette(this._pickPalette());
@@ -187,6 +199,7 @@ class Game {
       this.api.startMatch({ mapId: map.id, difficulty: params.get('difficulty') || this.settings.difficulty, duration: +params.get('autostart') || undefined, mode: pm === 'boss' || pm === 'zones' ? pm : 'turf' });
     }
     this.bootMs = Math.round(performance.now() - t0);
+    this._gpuCheck();
     window.__inkwave = this; // debug/audit hook
     window.__G = G;
     this.debug = {
@@ -402,7 +415,7 @@ class Game {
   _setSettings(partial) {
     Object.assign(this.settings, partial);
     saveJSON('inkwave.settings', this.settings);
-    if ('lang' in partial) { setLang(partial.lang); document.title = t('INKWAVE — Turf Riot'); this._rebuildHud(); }
+    if ('lang' in partial) { setLang(partial.lang); document.title = t('SPLATR — Turf Riot'); this._rebuildHud(); }
     if ('quality' in partial || 'shadows' in partial || 'bloom' in partial) this.R?.applySettings(this.settings);
     if ('fullscreen' in partial && window.inkwaveNative) window.inkwaveNative.setFullScreen(!!partial.fullscreen);
     if ('master' in partial || 'music' in partial || 'sfx' in partial) this._applyAudioVolumes();
@@ -460,6 +473,44 @@ class Game {
     if (this.menus && this.menus.current) return this.menus.handleKey(e) || false;
     return false;
   }
+  // Lag on a strong PC is almost always the browser drawing WITHOUT the graphics card (hardware acceleration off, or a
+  // blocklisted driver → software WebGL). Tell the player once per session how to fix it.
+  _gpuCheck() {
+    let name = '';
+    try {
+      const gl = this.R.renderer.getContext();
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      name = String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+    } catch { return; }
+    this.gpuName = name;
+    if (!/swiftshader|llvmpipe|softpipe|software|basic render|microsoft basic/i.test(name)) return;
+    try { if (sessionStorage.getItem('splatr.gpuwarn')) return; sessionStorage.setItem('splatr.gpuwarn', '1'); } catch { /* ignore */ }
+    console.warn('[splatr] software WebGL renderer:', name);
+    setTimeout(() => this.menus?.toast?.('Your browser isn’t using your graphics card, so the game will lag. Turn on “Use graphics acceleration” (hardware acceleration) in your browser settings, then restart the browser.', { kind: 'error', ms: 14000 }), 2500);
+  }
+
+  // "CLICK TO AIM" over a live match whenever the mouse isn't captured (keyboard + mouse players only)
+  _clickToAim() {
+    const el = document.createElement('div');
+    el.className = 'iw-clickaim';
+    el.innerHTML = '<b>CLICK TO AIM</b><span>Your mouse controls the camera once you click the game</span>';
+    el.hidden = true;
+    const st = document.createElement('style');
+    st.textContent = `.iw-clickaim { position: fixed; left: 50%; top: 58%; transform: translate(-50%, -50%); z-index: 30; pointer-events: none;
+      display: grid; gap: 4px; justify-items: center; padding: 14px 22px; border-radius: 16px; background: rgba(20, 16, 32, .82); color: #fff;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .16), 0 10px 30px rgba(0, 0, 0, .4); font: 500 13px/1.3 Rubik, system-ui, sans-serif; text-align: center; }
+      .iw-clickaim b { font: 400 22px/1 'Titan One', Rubik, sans-serif; letter-spacing: .06em; color: var(--a-light, #8cf5cf); }
+      .iw-clickaim[hidden] { display: none; }`;
+    document.head.appendChild(st);
+    document.body.appendChild(el);
+    setInterval(() => {
+      const m = this.match;
+      el.hidden = !(G.mode === 'match' && m && !m.attract && !m.paused && !this.menus?.current && !this.input.locked
+        && (m.state === 'playing' || m.state === 'intro') && this.input.lastDevice !== 'pad' && this._ptrFine !== false);
+    }, 200);
+    try { this._ptrFine = matchMedia('(pointer: fine)').matches; } catch { /* assume a mouse */ }
+  }
+
   _onPointerUnlock() {
     // only a live round pauses on focus loss; intro / time's up / judge / results release the mouse on purpose.
     // Holding the map is never a reason to pause (some browsers/embeds steal focus on TAB): relock on the next click.
@@ -521,7 +572,7 @@ class Game {
       const local = this.match.local;
       if (attacker?.isLocal) {
         G.audio?.play('splat_enemy', { volume: 0.9 });
-        this.hud?.feed({ text: { id: 'You splatted {name}!', params: { name: t(victim.name) } }, color: G.teamHex[local.team], kind: 'kill' });
+        this.hud?.feed({ text: { id: 'You splurted {name}!', params: { name: t(victim.name) } }, color: G.teamHex[local.team], kind: 'kill' });
       } else if (victim.isLocal) {
         G.audio?.play('splatted_self');
         G.audio?.duck?.(0.45, 2.2);
@@ -533,9 +584,9 @@ class Game {
         this.rig.lookAt.copy(victim.pos);
       } else if (victim.team === local?.team) {
         G.audio?.play('ally_splatted', { volume: 0.5 });
-        this.hud?.feed({ text: attacker ? { id: '{name} was splatted by {by}', params: { name: t(victim.name), by: t(attacker.name) } } : { id: '{name} was splatted', params: { name: t(victim.name) } }, color: G.teamHex[victim.enemyTeam], kind: 'death' });
+        this.hud?.feed({ text: attacker ? { id: '{name} was splurted by {by}', params: { name: t(victim.name), by: t(attacker.name) } } : { id: '{name} was splurted', params: { name: t(victim.name) } }, color: G.teamHex[victim.enemyTeam], kind: 'death' });
       } else if (attacker && attacker.team === local?.team) {
-        this.hud?.feed({ text: { id: '{name} splatted {victim}', params: { name: t(attacker.name), victim: t(victim.name) } }, color: G.teamHex[attacker.team], kind: 'ally' });
+        this.hud?.feed({ text: { id: '{name} splurted {victim}', params: { name: t(attacker.name), victim: t(victim.name) } }, color: G.teamHex[attacker.team], kind: 'ally' });
       }
     });
     on('respawn', ({ actor }) => {
@@ -1024,7 +1075,7 @@ class Game {
       const ZX = PROGRESSION.zones || { turfScale: 0.6, xpPerZoneTurfPoint: 1, xpKnockout: 300 };
       const zoneTurf = Math.round(local.stats.zoneTurf || 0);
       xpParts = [[won ? 'WIN BONUS' : 'MATCH', won ? PROGRESSION.xpWin : PROGRESSION.xpLose], ['TURF', Math.round(turf * PROGRESSION.xpPerTurfPoint * ZX.turfScale)],
-        ['ZONE INK', Math.round(zoneTurf * ZX.xpPerZoneTurfPoint)], ['SPLATS', Math.round(local.stats.splats * PROGRESSION.xpPerSplat)], ['KNOCKOUT', won && zr.reason === 'knockout' ? ZX.xpKnockout : 0]].filter(([, v], i) => i < 2 || v > 0);
+        ['ZONE INK', Math.round(zoneTurf * ZX.xpPerZoneTurfPoint)], ['SPLURTS', Math.round(local.stats.splats * PROGRESSION.xpPerSplat)], ['KNOCKOUT', won && zr.reason === 'knockout' ? ZX.xpKnockout : 0]].filter(([, v], i) => i < 2 || v > 0);
       gained = xpParts.reduce((a, [, v]) => a + v, 0);
     }
     const before = { level: p.level, xp: p.xp, toNext: PROGRESSION.xpForLevel(p.level) };
@@ -1049,6 +1100,8 @@ class Game {
     // online: the host brings the room back to the lobby once everyone has seen the results
     if (G.netm) {
       if (G.net.isHost) this._netEndT = setTimeout(() => { G.netm?.sendEnd(); this.netMatchEnd(); }, 12000);
+      // everyone else waits for the host's "back to the room" — but never forever (host asleep or gone)
+      else this._netEndT = setTimeout(() => { if (this.match?.state === 'results') this.netMatchEnd(); }, 20000);
     }
   }
 
@@ -1114,8 +1167,23 @@ class Game {
     const avg = d.acc / d.n;
     d.acc = 0; d.n = 0; d.t = 0;
     const m = this.match;
-    if (this.settings.quality === 'ultra' || document.hidden || !m || m.attract || m.state !== 'playing') { d.fast = 0; return; }
+    if (document.hidden || !m || m.attract || m.state !== 'playing') { d.fast = 0; d.slow = 0; return; }
     const s = this.R.dynScale || 1, tgt = this._frameTarget() / 1000;
+    // still under ~28 fps for 12 s with the resolution already at its floor (or on Ultra, which never scales): the effects are
+    // the bottleneck, so drop the graphics preset one notch (Ultra → High → Medium → Low), at most once per 20 s
+    const atFloor = this.settings.quality === 'ultra' || s <= this.R.dynFloor() + 0.01;
+    d.slow = avg > Math.max(1 / 28, tgt * 1.12) && atFloor ? (d.slow || 0) + 1 : 0;   // (a 30 fps cap is not "slow")
+    if (d.slow >= 3 && performance.now() - (d.qT || 0) > 20000) {
+      const order = ['low', 'medium', 'high', 'ultra'], i = order.indexOf(this.settings.quality);
+      if (i > 0) {
+        d.slow = 0; d.qT = performance.now();
+        this._setSettings({ quality: order[i - 1] });
+        this.R.setDynamicScale?.(1);
+        this.menus?.toast?.(`Graphics lowered to ${order[i - 1].toUpperCase()} for smoother play (Settings → Video)`, { ms: 4200 });
+        return;
+      }
+    }
+    if (this.settings.quality === 'ultra') { d.fast = 0; return; }
     if (avg > tgt * 1.12 && s > this.R.dynFloor() + 0.01) { this.R.setDynamicScale(s - 0.125); d.fast = 0; }
     else if (avg < tgt * 1.04 && s < 1 && d.ups < 2) { if (++d.fast >= 3) { this.R.setDynamicScale(s + 0.125); d.fast = 0; d.ups++; } }
     else d.fast = 0;

@@ -44,8 +44,8 @@ export function createLevelMaterial(paintTexture, atlasSize, muralTexture = null
   const uniforms = {
     uPaint: { value: paintTexture },
     uTexel: { value: 1 / atlasSize },
-    uTeamA: { value: new THREE.Color('#ff8a14') },
-    uTeamB: { value: new THREE.Color('#2f5bff') },
+    uTeamA: { value: new THREE.Color('#22e0a1') },
+    uTeamB: { value: new THREE.Color('#ff4d3d') },
     uTime: { value: 0 },
     uInkGlow: { value: 0.06 },
     uMural: { value: muralTexture },

@@ -26,7 +26,7 @@ export class BossModel {
     this.root = new THREE.Group(); this.root.name = 'HULLBREAKER';
     this.onFoot = null; this.onImpact = null; this.onEvent = null;
     this.phase = 1; this.physics = null;
-    const inkC = ink ? new THREE.Color(ink) : G.teamColors?.[1] ? G.teamColors[1].clone() : new THREE.Color('#2f5bff');
+    const inkC = ink ? new THREE.Color(ink) : G.teamColors?.[1] ? G.teamColors[1].clone() : new THREE.Color('#ff4d3d');
     const weakC = weak ? new THREE.Color(weak) : G.teamColors?.[0] ? G.teamColors[0].clone() : rivalOf(inkC);
     // ---- rig + geometry
     this.rig = buildRig();
@@ -175,7 +175,7 @@ const _cq = new THREE.Quaternion(), _ce = new THREE.Euler(0, 0, 0, 'YXZ');
 export class Crablet {
   constructor({ ink = null, weak = null, quality = 'high' } = {}) {
     this.root = new THREE.Group(); this.root.name = 'crablet';
-    const inkC = ink ? new THREE.Color(ink) : G.teamColors?.[1] ? G.teamColors[1].clone() : new THREE.Color('#2f5bff');
+    const inkC = ink ? new THREE.Color(ink) : G.teamColors?.[1] ? G.teamColors[1].clone() : new THREE.Color('#ff4d3d');
     const weakC = weak ? new THREE.Color(weak) : G.teamColors?.[0] ? G.teamColors[0].clone() : rivalOf(inkC);
     const R = buildCrablet(quality);
     this.R = R; this.tris = R.tris;

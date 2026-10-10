@@ -7,14 +7,17 @@ import { ERR, netError, codeFromRelay } from './errors.js';
 export const PROTO = 1;
 
 // Where the relay lives: ?relay=… wins; a page served from this machine or the LAN talks to a local `wrangler dev`
-// relay on :8787; the public site talks to the deployed Worker.
+// relay on :8787; playsplurt.online talks to SPLATR's own relay (deploy server/ and route api.playsplurt.online to it —
+// docs/PRIZE_POOL.md "Deploying"); any other public host keeps the original INKWAVE Worker.
+export const SPLURT_RELAY = 'wss://api.playsplurt.online';
 export const PROD_RELAY = 'wss://inkwave-net.inkwave.workers.dev';
 export function relayURL() {
   const q = new URLSearchParams(location.search).get('relay');
   if (q) return q.replace(/\/$/, '');
   const h = location.hostname;
   const local = h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || /^(10|192\.168|172\.(1[6-9]|2\d|3[01]))\./.test(h) || h.endsWith('.local');
-  return local ? `ws://${h}:8787` : PROD_RELAY;
+  if (local) return `ws://${h}:8787`;
+  return h === 'playsplurt.online' || h.endsWith('.playsplurt.online') || h === 'splurt.pages.dev' || h.endsWith('.splurt.pages.dev') ? SPLURT_RELAY : PROD_RELAY;
 }
 
 // Debug: simulate a real connection on localhost — ?netlag=ms (extra one-way delay on everything received),
@@ -39,11 +42,11 @@ export class Transport {
   }
 
   /** Resolves with the welcome frame, rejects with an Error carrying a `code` (src/net/errors.js). */
-  connect(code, name, create) {
+  connect(code, name, create, extra = null) {
     return new Promise((resolve, reject) => {
       let settled = false;
       const done = (fn, v) => { if (!settled) { settled = true; clearTimeout(timer); fn(v); } };
-      const url = `${relayURL()}/room/${encodeURIComponent(code)}?name=${encodeURIComponent(name)}&v=${PROTO}${create ? '&create=1' : ''}`;
+      const url = `${relayURL()}/room/${encodeURIComponent(code)}?name=${encodeURIComponent(name)}&v=${PROTO}${create ? '&create=1' : ''}${extra ? '&' + new URLSearchParams(extra) : ''}`;
       let ws;
       try { ws = new WebSocket(url); } catch { reject(netError(ERR.CONNECT, 'Could not connect')); return; }
       this.ws = ws;
@@ -102,6 +105,7 @@ export class Transport {
   broadcast(obj) { return this._raw('b|' + JSON.stringify(obj)); }
   sendTo(id, obj) { return this._raw('s|' + id + '|' + JSON.stringify(obj)); }
   lock(v) { return this._raw(JSON.stringify({ t: 'lock', v: !!v })); }
+  control(obj) { return this._raw(JSON.stringify(obj)); }   // relay control frame (prize pool: wallet / result)
   get open() { return !!this.ws && this.ws.readyState === 1; }
 
   close() {

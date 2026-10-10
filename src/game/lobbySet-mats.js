@@ -14,7 +14,7 @@ import { TEXLIB_GLSL } from '../world/texlib.js';
 export function makeUniforms() {
   return {
     uTime: { value: 0 },
-    uTeamA: { value: new THREE.Color('#ff8a14') }, uTeamB: { value: new THREE.Color('#2f5bff') },
+    uTeamA: { value: new THREE.Color('#22e0a1') }, uTeamB: { value: new THREE.Color('#ff4d3d') },
     uHzA: { value: new THREE.Color(0.012, 0.018, 0.034) },    // haze near the camera: cool blue-hour air
     uHzB: { value: new THREE.Color(0.2, 0.13, 0.09) },        // haze toward the street mouth: lit by the sodium lamps
     uHzK: { value: new THREE.Vector4(0.013, 0.14, 10, 36) },  // density /m, height falloff /m, mouth-warm start/end (-z)

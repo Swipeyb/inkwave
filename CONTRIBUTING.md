@@ -1,11 +1,11 @@
-# Contributing to INKWAVE
+# Contributing to SPLATR
 
-Thanks for your interest! INKWAVE is a plain ES-module three.js project with no build step, so getting started takes a minute.
+Thanks for your interest! SPLATR is a plain ES-module three.js project with no build step, so getting started takes a minute.
 
 ## Running locally
 
 ```bash
-git clone https://github.com/jaydendavisnc/inkwave.git
+git clone https://github.com/Swipeyb/inkwave.git
 cd inkwave
 npm install          # only needed for the headless tools (puppeteer-core)
 npm start            # serves http://localhost:8490 (and your LAN address)

@@ -1,7 +1,7 @@
 // Whirl Boomerang (sub kind 'boomerang'): thrown flat along the aim, it spins out ~9 m (stopping short at a wall), hovers
 // there shredding anything close (small rapid ticks + ink under it), then whirls back to the thrower, circles them for a
-// couple of seconds (grazing foes it touches) and bursts beside them like a small Splat Bomb. Should it hit a foe while
-// it flies (out or back), it stops dead, hovers a moment and goes off like a full Splat Bomb instead, without returning.
+// couple of seconds (grazing foes it touches) and bursts beside them like a small Goo Bomb. Should it hit a foe while
+// it flies (out or back), it stops dead, hovers a moment and goes off like a full Goo Bomb instead, without returning.
 // One out at a time (blocked() → the core's "Can't use"). If the thrower is splatted while it's out it fizzles: it drops
 // and pops in a little splash of ink, no damage (a boomerang already latched onto a foe still goes off, like any bomb).
 // Numbers: SUBS.boomerang in config.js. Registers the model, icon, sounds and bot use; see kits/registry.js.
@@ -367,7 +367,7 @@ function orbit(it, dt) {
   if (it.t >= s.orbit && !it.ghost) burst(it);   // (a ghost circles on until its owner's burst record)
 }
 
-// ---- a foe in its path: stop dead, whirr and blink in place, then a full Splat Bomb
+// ---- a foe in its path: stop dead, whirr and blink in place, then a full Goo Bomb
 function contact(it) {
   const s = it.sub;
   for (const e of G.actors) {

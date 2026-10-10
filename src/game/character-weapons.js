@@ -1046,7 +1046,7 @@ function buildZooka() {
   };
 }
 
-/** Bubble Blower: chubby cream toy gun with a fan pod on its back; a flared team nozzle feeds a big wand ring
+/** Bubble Wand: chubby cream toy gun with a fan pod on its back; a flared team nozzle feeds a big wand ring
  *  (Ø 0.28, a soaked team-ink cord inside a cream frame, drips hanging off it) held by four spokes. An upside-down
  *  soap bottle plugs in underneath: its rubber-sleeved neck is the left hand's foregrip. Muzzle = ring centre. */
 function buildBlower() {

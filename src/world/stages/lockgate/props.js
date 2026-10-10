@@ -1904,7 +1904,7 @@ export function register(D, H) {
     },
   };
   // paper bills pasted on a wall (wall at z = 0): coloured bills with printed-looking bars + a headline
-  const BILLS = [['REGATTA', '#e9dcb8', '#8e2f2a'], ['TURF WAR', '#f0e6c8', '#2f4a3c'], ['LOCK CLOSED', '#e6e0cf', '#3a4a6a'], ['DANCE', '#efd9b0', '#6a2a5a'], ['BOATS FOR HIRE', '#e8e2d0', '#2c3a58']];
+  const BILLS = [['REGATTA', '#e9dcb8', '#8e2f2a'], ['TURF RIOT', '#f0e6c8', '#2f4a3c'], ['LOCK CLOSED', '#e6e0cf', '#3a4a6a'], ['DANCE', '#efd9b0', '#6a2a5a'], ['BOATS FOR HIRE', '#e8e2d0', '#2c3a58']];
   D.lockgate_bills = {
     desc: 'Paper bills pasted on a wall (wall at z = 0, pos.y = bottom): 2–3 overlapping posters with headlines and print bars, a torn one (non-colliding).',
     params: { count: '2|3' }, variants: 5, mount: 'wall',

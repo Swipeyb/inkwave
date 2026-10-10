@@ -232,7 +232,7 @@ const STREET = [
 ];
 
 // ================================================================================================ Zone Control only
-// (onlyIn: 'zones', src/world/variants.js: built only in that mode, mirrored like everything else; Turf War is untouched)
+// (onlyIn: 'zones', src/world/variants.js: built only in that mode, mirrored like everything else; Turf Riot is untouched)
 // · the centre zone round the tram is cleared: the hall's island flower stall steps back out through the gable end
 //   onto the street, the cheese + bread stalls slide back along the aisles; all still there as cover round the zone
 // · each tram pier (the side zone) gets the goods landing (layout.js: hoist stage + lighter deck + gangplank): the

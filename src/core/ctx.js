@@ -6,7 +6,7 @@ export const G = {
   audio: null, music: null, hud: null, menus: null, input: null,
   match: null, actors: [], local: null, projectiles: null,
   teamColors: [null, null],      // THREE.Color (linear) per team
-  teamHex: ['#ff8a14', '#2f5bff'],
+  teamHex: ['#22e0a1', '#ff4d3d'],
   time: 0,
   mode: 'boot',                  // 'boot' | 'menu' | 'match'
 };

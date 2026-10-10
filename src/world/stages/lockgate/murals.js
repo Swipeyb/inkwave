@@ -82,7 +82,7 @@ export function drawMurals(g, R, kit) {
     g.fillStyle = 'rgba(232,222,196,0.9)'; g.fillRect(x, y, w, h);
     g.fillStyle = 'rgba(46,58,86,0.95)'; g.fillRect(x + 14, y + 14, w - 28, h - 28);
     kit.squid(g, x + 120, y + h * 0.5, 1.3, CREAM, 'rgba(46,58,86,1)');
-    shaded(g, "SQUIDLEY'S", x + w / 2 + 80, y + h * 0.3, 118, (p) => font(p), CREAM, 'rgba(0,0,0,0.4)', null, w - 300);
+    shaded(g, "GLOOPLEY'S", x + w / 2 + 80, y + h * 0.3, 118, (p) => font(p), CREAM, 'rgba(0,0,0,0.4)', null, w - 300);
     shaded(g, 'INKS', x + w / 2 + 80, y + h * 0.58, 104, (p) => font(p), YELLOW, 'rgba(0,0,0,0.4)', null, w - 300);
     shaded(g, 'FAST DRYING  ·  NEVER FADES', x + w / 2 + 80, y + h * 0.84, 34, (p) => fontB(p), CREAM, 'rgba(0,0,0,0.35)', null, w - 300);
     weather(g, x, y, w, h, 11, 1.6);

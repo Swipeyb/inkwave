@@ -399,9 +399,9 @@ export class SpecialSystem {
       case 'strike': return s.aiming ? 'Move the mouse to pick a spot · click to launch' : null;
       case 'zooka': return 'Fire twisters with LMB';
       case 'wail': return 'Aim the speaker · click to set it down and blast';
-      case 'kraken': return 'Kraken! LMB to jump-attack';
+      case 'kraken': return 'Goo Beast! LMB to jump-attack';
       case 'blower': return { id: 'Hold LMB to blow a bubble ({n} left) · shoot bubbles to blast them', params: { n: s.def.max - (s.count || 0) } };
-      case 'jetpack': return 'Ink Jet! Fire with LMB';
+      case 'jetpack': return 'Goo Jet! Fire with LMB';
       case 'stamp': return 'LMB to stamp · jump + LMB to slam · RMB to throw';
       case 'booyah': return s.charge >= 1 ? 'Charged! LMB to throw' : 'Charging… teammates press C to cheer!';
       case 'zipcaster': return s.hang > 0 ? 'Clinging — SPACE to jump off' : 'RMB / E to zip to a wall';
@@ -1020,7 +1020,7 @@ class Speaker {
   dispose() { this.sys.scene.remove(this.group, this.beam); this.beam.material.dispose(); this.loop?.stop?.(0.2); }
 }
 
-// Bubble Blower bubble: floats, walls off enemies, soaks up enemy fire; team fire sets it off
+// Bubble Wand bubble: floats, walls off enemies, soaks up enemy fire; team fire sets it off
 class Bubble {
   constructor(sys, a) {
     const d = SPECIALS.blower;
@@ -1470,7 +1470,7 @@ const IMPL = {
     },
   },
 
-  // ---------------------------------------------------------------------------------------------- Bubble Blower
+  // ---------------------------------------------------------------------------------------------- Bubble Wand
   blower: {
     start(a, s) { s.count = 0; s.cur = null; s.aimFace = true; s.noSquid = true; this._swapWeapon(a, 'sp_blower'); },
     weapon(a, s, dt, inp) {

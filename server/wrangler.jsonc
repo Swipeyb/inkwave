@@ -1,10 +1,29 @@
 {
-  // INKWAVE online relay: one Durable Object per room code (WebSocket fan-out + membership + host election).
+  // SPLATR online relay: one Durable Object per room code (WebSocket fan-out + membership + host election).
   "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "inkwave-net",
   "main": "src/index.js",
   "compatibility_date": "2026-09-01",
-  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }, { "name": "PRIZES", "class_name": "Prizes" }, { "name": "MATCHMAKER", "class_name": "Matchmaker" }, { "name": "PRESENCE", "class_name": "Presence" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }, { "tag": "v2", "new_sqlite_classes": ["Prizes"] }, { "tag": "v3", "new_sqlite_classes": ["Matchmaker"] }, { "tag": "v4", "new_sqlite_classes": ["Presence"] }],
+  // Optional Solana prize pool (docs/PRIZE_POOL.md). Off unless SOLANA_RPC_URL and TREASURY_PUBLIC_KEY are set.
+  // Non-secret settings can go in "vars"; TREASURY_SECRET_KEY only ever via `wrangler secret put` (or .dev.vars locally).
+  "vars": {
+    "PAYOUT_MODE": "live",                                      // legal review done (Oct 8). Real SOL only once the TREASURY_SECRET_KEY secret is set
+    "TREASURY_PUBLIC_KEY": "HMJMFqTjED8dwa7sqQYeaQbk2WXSGmLpd4Ksrwq1DCZW",   // prize wallet (public address)
+    "SOLANA_RPC_URL": "https://solana-rpc.publicnode.com",      // free keyless mainnet RPC (api.mainnet-beta blocks Cloudflare: 403). Use Helius before live
+    "PRIZE_PCT": "3",                                           // each match pays 3% of the pool...
+    "PRIZE_MAX_SOL": "0.1",                                     // ...never more than 0.1 SOL a match (raise after server-checked results, step 5)...
+    "PRIZE_RESERVE_SOL": "0.05",                                // ...and never touches the last 0.05 SOL
+    "MIN_HUMAN_PLAYERS": "2",                                   // 2+ players with a verified wallet for a prize match
+    "TOKEN_MINT": "",   // $SPLATR: empty until the CA is public (site shows SOON)
+    "MIN_HOLDING_USD": "5",                                     // hold ≈ $5 of $SPLATR (token count follows the live price)
+    "MIN_TOKEN_HOLDING": "1000000",                             // ...but never more than 1M tokens (also the fallback if no price)
+    "PRIZE_COOLDOWN_SEC": "600"                                 // a wallet can win once every 10 minutes
+  },
+  // Deploys keep any other vars you set in the Cloudflare dashboard (RPC URL, treasury public key, prize settings).
+  "keep_vars": true,
+  // Public relay endpoint for playsplurt.online (Cloudflare creates the DNS record + cert for a custom domain).
+  "routes": [{ "pattern": "api.playsplurt.online", "custom_domain": true }],
   "observability": { "enabled": false }
 }

@@ -1805,7 +1805,7 @@ export class Showcase {
   _lobNew(p, skey) {
     const L = this.lob;
     return {
-      id: p.id, name: p.name || 'Squidkid', you: !!p.you, host: !!p.host, ready: !!p.ready, weapon: p.weapon || 'shooter',
+      id: p.id, name: p.name || 'Gooblin', you: !!p.you, host: !!p.host, ready: !!p.ready, weapon: p.weapon || 'shooter',
       style: p.style ? { ...p.style } : {}, skey, team: 0, wantTeam: 0, mark: null, at: null, dest: null, c: null, a: this._anim(), kind: null,
       phase: 'off', t0: 0, delay: 0, flag: 0, enter: null, fresh: false, path: null, s: 0, v: 0, onEnd: null, leap: null, dive: null, after: null,
       pos: new THREE.Vector3(), yaw: 0, y: 0, sy: 1, vis: 0, plateH: PLATE_H, trailS: 0, hy: 0, popAnt: 0.3, puddle: false,
@@ -1841,7 +1841,7 @@ export class Showcase {
 
   _lobChar(M) {
     const kind = weaponKind(M.weapon);
-    const c = new this.CharacterClass({ color: this._lobRowColor(M.team).clone(), weapon: kind, style: { ...M.style }, name: M.name || 'Squidkid', isLocal: false });
+    const c = new this.CharacterClass({ color: this._lobRowColor(M.team).clone(), weapon: kind, style: { ...M.style }, name: M.name || 'Gooblin', isLocal: false });
     c.root.rotation.order = 'YXZ';
     c.setDance(M.ready ? 'lobby_pose' : M.danceIdle);
     c.root.visible = false;
@@ -2548,7 +2548,7 @@ export class Showcase {
   // a new look: rebuild the kid mid-squash (pre-warmed so it never shows a rest pose)
   _lobSwap(M) {
     const old = M.c;
-    const c = new this.CharacterClass({ color: this._lobRowColor(M.team).clone(), weapon: weaponKind(M.weapon), style: { ...M.style }, name: M.name || 'Squidkid', isLocal: false });
+    const c = new this.CharacterClass({ color: this._lobRowColor(M.team).clone(), weapon: weaponKind(M.weapon), style: { ...M.style }, name: M.name || 'Gooblin', isLocal: false });
     c.root.rotation.order = 'YXZ';
     const dance = old ? old.dance : (M.ready ? 'lobby_pose' : M.danceIdle);
     c.setDance(dance);

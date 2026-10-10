@@ -7,7 +7,7 @@
 import { G, emit } from '../core/ctx.js';
 import { MAPS, WEAPONS, WEAPON_ORDER, SUBS, SUB_ORDER, SPECIALS, SPECIAL_ORDER, MATCH, ZONES, BOT_NAMES, TEAM_PALETTES, mapNoBots, mapBossOk, bossFallbackMap, noBotsStartBlock } from '../config.js';
 import { randomStyle } from '../game/character-style.js';
-import { Transport } from './transport.js';
+import { Transport, relayURL } from './transport.js';
 import { NetMatch } from './netmatch.js';
 import { ERR, netError, codeFromText } from './errors.js';
 
@@ -15,6 +15,12 @@ import { ERR, netError, codeFromText } from './errors.js';
 // only mean a room code (28⁵ ≈ 17 M codes)
 const CODE_CHARS = 'BCEFGHJKLMNPQRTUVXYZ23456789';
 const TEAM = 4;
+// Quick Play (public rooms from the relay's matchmaker): the match starts QUICK_WAIT seconds after a second player
+// arrives, or QUICK_FULL seconds after the room fills; empty slots are bots
+export const QUICK_WAIT = 30, QUICK_FULL = 5;
+// While the game is quiet (fewer than BOT_FILL_BELOW people online, per the relay's /online count in src/ui/online.js),
+// a lone player isn't left waiting: the match starts QUICK_SOLO seconds after they join and bots fill every empty slot.
+export const QUICK_SOLO = 30, BOT_FILL_BELOW = 20;
 // a loadout's sub / special: a known id, or null (= the weapon's own)
 const subOf = (id) => (SUBS[id] ? id : null), specialOf = (id) => (SPECIALS[id] ? id : null);
 
@@ -33,6 +39,7 @@ export class NetSession {
     this._members = new Map();  // relay membership (id → name), authoritative for who is connected
     this._startCfg = null;
     this._botsPref = null;      // host: the "fill with bots" choice, kept while a humans-only stage forces bots off
+    this.prizeRound = null;     // prize pool round of the running match (docs/PRIZE_POOL.md): { id, hash } or null
   }
 
   get isHost() { return !!this.myId && this.myId === this.hostId; }
@@ -61,7 +68,7 @@ export class NetSession {
     // mode: 'turf' | 'zones' (Zone Control: the host runs the rules — zones.js) | 'boss' (Boss Battle: everyone is one
     // squad vs HULLBREAKER — docs/BOSS.md)
     const map = g?.mapDef?.id || MAPS[0].id;
-    return { map, time: g?.time || 'day', duration: g?.settings?.matchLength || MATCH.defaultDuration, bots: !mapNoBots(map), difficulty: g?.settings?.difficulty || 'normal', palette: g?.paletteIndex?.() ?? 0, mode: 'turf', players: [], maxPlayers: TEAM * 2 };
+    return { map, time: g?.time || 'day', duration: g?.settings?.matchLength || MATCH.defaultDuration, bots: !mapNoBots(map), difficulty: 'normal', palette: g?.paletteIndex?.() ?? 0, mode: 'turf', players: [], maxPlayers: TEAM * 2 };
   }
 
   _profile() {
@@ -81,13 +88,39 @@ export class NetSession {
     throw lastErr;
   }
 
+  // Quick Play: ask the relay's matchmaker for the next open public room and join it (anyone can; first one in hosts)
+  // holders: { sign(message) → { pk, sig(base64) } } joins a holders-only room — the wallet signs a message naming the
+  // room, the relay checks the signature and the on-chain $SPLATR holding before letting us in
+  async quickPlay(name, { holders = null } = {}) {
+    let lastErr = null;
+    for (let tries = 0; tries < 3; tries++) {   // a room can start or fill between the matchmaker's answer and our join
+      let code;
+      try {
+        const r = await fetch(relayURL().replace(/^ws/, 'http') + '/quick' + (holders ? '?mode=holders' : ''), { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        code = (await r.json()).code;
+      } catch { lastErr = netError(ERR.CONNECT, 'Could not connect'); break; }
+      let extra = null;
+      if (holders) {
+        try {
+          const pk = await holders.connect();
+          const msg = `SPLATR holder match\nroom: ${code}\nwallet: ${pk}\ntime: ${Date.now()}`;
+          extra = { wallet: pk, msg, sig: await holders.sign(msg) };
+        } catch (e) { lastErr = netError(e?.code || ERR.HOLDER_SIG, e?.message || 'Wallet check cancelled'); break; }
+      }
+      try { await this._connect(code, name, false, extra); return code; } catch (e) { lastErr = e; if (e.code !== ERR.IN_PROGRESS && e.code !== ERR.FULL) break; }
+    }
+    this._fail(lastErr);
+    throw lastErr;
+  }
+
   async join(code, name) {
     code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (code.length < 4) { const e = netError(ERR.NOT_FOUND, 'Room not found'); this._fail(e); throw e; }
     try { await this._connect(code, name, false); } catch (e) { this._fail(e); throw e; }
   }
 
-  async _connect(code, name, create) {
+  async _connect(code, name, create, extra = null) {
     this.leave(true);
     this.error = null;
     this._setState('connecting');
@@ -96,14 +129,19 @@ export class NetSession {
     tr.onMessage = (from, d) => this._message(from, d);
     tr.onClose = (reason) => this._closed(reason);
     const me = this._profile();
-    const welcome = await tr.connect(code, name || me.name, create);
+    const welcome = await tr.connect(code, name || me.name, create, extra);
     this.code = code;
+    this.quick = !!welcome.quick;
+    this.holders = !!welcome.holders;
+    this.verifiedWallet = welcome.wallet || null;   // holders-only rooms verify the wallet on join
+    this._quickDeadline = null;
     this.myId = welcome.id;
     this.hostId = welcome.host;
     this._members.clear();
     for (const m of welcome.members) this._members.set(m.id, m.name);
     this.lobby = this._blankLobby();
     this._botsPref = this.isHost ? true : null;   // a new room fills with bots unless its stage forbids them
+    if (this.quick) this._quickSettings();
     if (this.isHost) {
       this.lobby.players = [this._newPlayer(this.myId, name || me.name, { weapon: me.weapon, sub: me.sub, special: me.special, style: me.style })];
       this._fixTeams();
@@ -118,10 +156,11 @@ export class NetSession {
     this.match?.dispose(); this.match = null;
     this.tr?.close(); this.tr = null;
     const was = this.state;
-    this.code = null; this.myId = null; this.hostId = null;
+    this.code = null; this.myId = null; this.hostId = null; this.quick = false; this.holders = false; this.verifiedWallet = null; this._quickDeadline = null;
     this._members.clear();
     this.lobby = this._blankLobby();
     this._startCfg = null;
+    this.prizeRound = null;
     if (!silent && was !== 'offline') { this._setState('offline'); this._emit('lobby', { lobby: this.lobby }); }
     else this.state = 'offline';
   }
@@ -149,6 +188,13 @@ export class NetSession {
 
   // ------------------------------------------------------------------ relay membership
   _control(o) {
+    // optional prize pool (src/ui/prize.js listens): wallet proofs and the round's commit / reveal
+    if (o.t === 'wallet') { this._emit('wallet', o); return; }
+    if (o.t === 'prize') {
+      if (o.a === 'commit') this.prizeRound = { id: o.round, hash: o.hash, reported: false };
+      this._emit('prize', o);
+      return;
+    }
     if (o.t === 'join') {
       this._members.set(o.m.id, o.m.name);
       if (this.isHost) {
@@ -191,7 +237,8 @@ export class NetSession {
   }
   _wireLobby() {
     const l = this.lobby;
-    return { map: l.map, time: l.time, duration: l.duration, bots: l.bots, difficulty: l.difficulty, palette: l.palette, mode: l.mode, players: l.players.map(({ id, name, team, weapon, sub, special, style, ready, ping }) => ({ id, name, team, weapon, sub, special, style, ready, ping })) };
+    const startIn = this._quickDeadline ? Math.max(0, (this._quickDeadline - performance.now()) / 1000) : null;
+    return { map: l.map, time: l.time, duration: l.duration, bots: l.bots, difficulty: l.difficulty, palette: l.palette, mode: l.mode, quick: !!this.quick, startIn, players: l.players.map(({ id, name, team, weapon, sub, special, style, ready, ping }) => ({ id, name, team, weapon, sub, special, style, ready, ping })) };
   }
   // local view: mark you + host
   _pushLobby() {
@@ -239,7 +286,7 @@ export class NetSession {
   }
 
   setSettings(s = {}) {
-    if (!this.isHost) return;
+    if (!this.isHost || this.quick) return;   // Quick Play rooms keep the matchmaker's settings
     const l = this.lobby, wasMap = l.map;
     if (s.map && MAPS.some((m) => m.id === s.map)) l.map = s.map;
     if (s.time === 'day' || s.time === 'dusk') l.time = s.time;
@@ -272,6 +319,7 @@ export class NetSession {
   // ------------------------------------------------------------------ match orchestration
   start() {
     if (!this.isHost || this.state !== 'lobby' || !this.tr || this.startBlock()) return false;
+    if (this.quick && !this._quickGo) return false;   // Quick Play: only the countdown starts the match
     const l = this.lobby;
     const bots = l.bots && !mapNoBots(l.map);   // (a humans-only stage never gets bots, whatever the setting says)
     const roster = [];
@@ -346,10 +394,23 @@ export class NetSession {
     G.game.netMatchGo?.();
   }
 
+  // prize pool: send the relay the winning team's human players exactly as this screen was told them (every human
+  // reports; the relay only settles when the reports agree)
+  reportPrizeResult(winnerTeam) {
+    const r = this.prizeRound, cfg = this._startCfg;
+    if (!r || r.reported || !this.tr || !cfg) return;
+    r.reported = true;
+    const w = [...new Set(cfg.roster.filter((x) => !x.bot && x.team === winnerTeam).map((x) => x.owner))];
+    this.tr.control({ t: 'result', r: r.id, w });
+  }
+  // prize pool: ask the relay for a one-time message to sign / send the signature back
+  prizeControl(o) { return !!this.tr?.control(o); }
+
   // the match's results have been shown: everyone back to the lobby (the room stays)
   endMatch() {
     this.match?.dispose(); this.match = null;
     this._startCfg = null;
+    this.prizeRound = null;
     if (!this.tr) return;
     if (this.isHost) { this.tr.lock(false); for (const p of this.lobby.players) p.ready = false; this._broadcastLobby(); }
     this._setState('lobby');
@@ -368,6 +429,7 @@ export class NetSession {
           this.lobby.map = l.map; this.lobby.time = l.time; this.lobby.duration = l.duration; this.lobby.bots = l.bots; this.lobby.difficulty = l.difficulty;
           if (Number.isInteger(l.palette)) this.lobby.palette = l.palette;
           this.lobby.mode = l.mode === 'boss' || l.mode === 'zones' ? l.mode : 'turf';
+          if (this.quick) this._quickDeadline = typeof l.startIn === 'number' ? performance.now() + l.startIn * 1000 : null;
           const prev = new Map(this.lobby.players.map((p) => [p.id, p]));
           this.lobby.players = l.players.map((p) => ({ ...p, host: p.id === this.hostId }));
           for (const p of this.lobby.players) if (!prev.has(p.id)) this._emit('join', { player: p });
@@ -383,8 +445,33 @@ export class NetSession {
     }
   }
 
+  // ------------------------------------------------------------------ Quick Play
+  // public rooms: Turf Riot on a random stage that allows bots (they fill the empty slots), 3:00
+  _quickSettings() {
+    const l = this.lobby, ok = MAPS.filter((m) => !mapNoBots(m.id));
+    l.map = (ok[(Math.random() * ok.length) | 0] || MAPS[0]).id;
+    l.time = Math.random() < 0.5 ? 'day' : 'dusk';
+    l.mode = 'turf'; l.bots = true; this._botsPref = true;
+    l.difficulty = 'easy';   // public rooms: relaxed bots (players new to the game land here)
+    l.duration = MATCH.defaultDuration;
+  }
+  /** Seconds until a Quick Play room starts (null while it waits for a second player; see QUICK_SOLO). */
+  quickStartIn() { return this.quick && this._quickDeadline ? Math.max(0, (this._quickDeadline - performance.now()) / 1000) : null; }
+  // host: start the clock when a 2nd player is in, shorten it when the room fills, stop it if they all leave again
+  _quickTick() {
+    const n = this.lobby.players.length, now = performance.now();
+    let d = this._quickDeadline;
+    const quiet = !(G.onlineCount >= BOT_FILL_BELOW);   // unknown count → treat as quiet
+    if (n < 2) d = quiet && n >= 1 ? (d ?? now + QUICK_SOLO * 1000) : null;
+    else if (n >= TEAM * 2) d = Math.min(d ?? Infinity, now + QUICK_FULL * 1000);
+    else if (d == null) d = now + QUICK_WAIT * 1000;
+    if (d !== this._quickDeadline) { this._quickDeadline = d; this._broadcastLobby(); }
+    if (d != null && now >= d) { this._quickDeadline = null; this._quickGo = true; const ok = this.start(); this._quickGo = false; if (!ok) this._broadcastLobby(); }
+  }
+
   // ------------------------------------------------------------------ per frame
   update(dt) {
+    if (this.quick && this.isHost && this.state === 'lobby' && this.tr) this._quickTick();
     if (this.tr && this.state === 'lobby') {
       this._pingT = (this._pingT || 0) - dt;
       if (this._pingT <= 0) {

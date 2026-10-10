@@ -2,19 +2,20 @@
   <img src="assets/stages/halyard-day.webp" alt="Halyard Marina at golden hour" width="100%">
 </p>
 
-<h1 align="center">INKWAVE</h1>
+<h1 align="center">SPLATR</h1>
 
 <p align="center">
   <b>English</b> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
 <p align="center">
-  An original Splatoon-style 4v4 turf-war shooter that runs in your browser.<br>
-  Paint the ground, swim through your ink, out-turf the other team.
+  An online 4v4 goo-slinging turf brawler that runs in your browser — and the game behind the <b>$SPLATR</b> coin.<br>
+  Paint the ground, swim through your goo, out-turf the other team.<br>
+  <b><a href="https://playsplurt.online">playsplurt.online</a></b><br>
+  <sub>Based on <a href="https://github.com/jaydendavisnc/inkwave">INKWAVE</a> by jaydendavisnc (MIT).</sub>
 </p>
 
 <p align="center">
-  <a href="https://inkwave-aah.pages.dev"><b>▶ Play now</b></a> ·
   <a href="#controls">Controls</a> ·
   <a href="#playing-online">Online</a> ·
   <a href="#running-locally">Run locally</a> ·
@@ -22,8 +23,13 @@
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
+> **SPLATR is online-only.** The title screen goes straight to creating / joining an online room; the solo
+> PLAY (vs bots) modes, the loadout PRACTICE button and the bot-skill pickers are gone from the menus. Rooms can still
+> fill empty slots with bots, and a player who drops mid-match is still taken over by a bot (the netcode relies on it).
+> The offline match engine itself stays: online matches run on it, and so do the title-screen attract mode and the
+> `?autostart` smoke test.
+
 <p align="center">
-  <a href="https://github.com/jaydendavisnc/inkwave/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/jaydendavisnc/inkwave/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="three.js r186" src="https://img.shields.io/badge/three.js-r186-000000?logo=three.js&logoColor=white">
   <img alt="No build step" src="https://img.shields.io/badge/build-none%20needed-2ea44f">
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
@@ -33,7 +39,7 @@
 
 ## Features
 
-- **Game modes, 4 v 4.** Turf War (most ground painted wins) and Zone Control (hold the live zone to count down from 100 — rotating side zones, penalties, overtime). Play against bots on three difficulty levels.
+- **Game modes, 4 v 4.** Turf Riot (most ground painted wins) and Zone Control (hold the live zone to count down from 100 — rotating side zones, penalties, overtime). Play against bots on three difficulty levels.
 - **Online with friends.** Create a private room, share the five-character code, and up to eight players line up in the lobby with their loadouts and looks. Empty slots fill with bots; if someone drops, a bot takes over their squidkid mid-match.
 - **Squid form.** Hold to dive into your ink: swim fast, refill your tank, climb inked walls, dolphin-jump water gaps.
 - **Twelve weapons**, each with its own feel: Spritzer, Twinfire Pistols, Canopy Brolly (shotgun + launchable shield), Popper Blaster, Squall Spinner, Glint Charger, Tideline Bow (tri-arrow, two charge rings), Swell Roller, Swish Brush, Brine Cutlass (charged one-hit blade), Sponge Mitts (ink fists, charged leap, wall cling) and Bilge Bucket. Mix any main with any of 15 subs and 19 specials.
@@ -83,13 +89,18 @@ npm run relay    # ws://<this machine>:8787
 ```
 
 A page opened from `localhost` or a LAN address uses that relay automatically; `?relay=wss://…` points it anywhere else.
+The public site, [playsplurt.online](https://playsplurt.online), expects its relay at `wss://api.playsplurt.online` (deploy `server/` and give the Worker that custom domain; see [`docs/PRIZE_POOL.md`](docs/PRIZE_POOL.md#deploying-playsplurtonline)).
+
+**Optional Solana prize pool.** The relay can run a prize pool for online matches (a random share of a treasury
+wallet's SOL to a random player on the winning team, with commit-reveal randomness and dry-run by default). It is off
+unless configured; see [`docs/PRIZE_POOL.md`](docs/PRIZE_POOL.md), including the legal warning, before enabling it.
 
 ## Running locally
 
 There is no build step. Any static file server works; the included one also serves to your LAN and sends no-cache headers so module updates are never stale.
 
 ```bash
-git clone https://github.com/jaydendavisnc/inkwave.git
+git clone https://github.com/Swipeyb/inkwave.git
 cd inkwave
 npm install      # Electron + the headless tools
 npm start        # the desktop app (Electron)
@@ -137,4 +148,4 @@ Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) fo
 
 ## License
 
-[MIT](LICENSE) © 2026 Jayden Davis. INKWAVE is an independent project and is not affiliated with Nintendo; Splatoon is a trademark of Nintendo.
+[MIT](LICENSE) © 2026 Jayden Davis. SPLATR is based on INKWAVE by jaydendavisnc (MIT); the original copyright and license notice are kept in [LICENSE](LICENSE). SPLATR is an independent project and is not affiliated with Nintendo or any other game publisher.

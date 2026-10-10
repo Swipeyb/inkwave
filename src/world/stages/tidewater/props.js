@@ -2030,7 +2030,7 @@ export const PLACEMENTS = [
   // bronze name plaques on the terrace's outer face beside its south + west flights
   { type: 'tidewater_streetname', pos: [-2.914, 0.42, -8.006], rotY: -2.793, text: 'JUBILEE', sub: '1887', bronze: true },
   { type: 'tidewater_streetname', pos: [-8.006, 0.42, -2.914], rotY: -1.920, text: 'JUBILEE', sub: '1887', bronze: true },
-  // ---- the terrace: candelabra lamps on the dais corners, a back-to-back bench pair (Turf War only: Zone Control's
+  // ---- the terrace: candelabra lamps on the dais corners, a back-to-back bench pair (Turf Riot only: Zone Control's
   //      centre zone is the terrace, and the benches are cleared off it so the dais is open to fight over)
   { type: 'tidewater_lamp', pos: [-5.1, TERR.daisTop, -5.1], variant: 2 },
   { type: 'tidewater_lamp', pos: [5.1, TERR.daisTop, -5.1], variant: 2 },

@@ -1,4 +1,4 @@
-// Electron shell for INKWAVE: serves the static game over a privileged app:// scheme
+// Electron shell for SPLATR (based on INKWAVE): serves the static game over a privileged app:// scheme
 // (ES modules + import maps don't load from file://) and opens it in a native window.
 const { app, BrowserWindow, Menu, protocol, net, shell, powerSaveBlocker, ipcMain, screen, nativeTheme } = require('electron');
 const fs = require('node:fs');
@@ -50,7 +50,7 @@ function createWindow() {
     ...bounds,
     minWidth: 960,
     minHeight: 600,
-    title: 'INKWAVE',
+    title: 'SPLATR',
     backgroundColor: '#0d1020',
     fullscreen: !!state.fullscreen,
     fullscreenable: true,

@@ -649,6 +649,7 @@ export class NetMatch {
   }
   sendResult(result) {
     if (!this.isHost) return;
+    this.s.reportPrizeResult?.(result.winner);
     this._sendNow({ k: 'res', cov: result.coverage, win: result.winner, mode: result.mode, bo: result.boss,
       ...(result.mode === 'zones' ? { zc: result.counts, zp: result.penalty, zr: result.reason, zo: result.overtime ? 1 : 0, zl: result.log } : {}),
       st: this.match.actors.map((a) => [a.nid, Math.round(a.stats.turf), a.stats.splats, a.stats.deaths, Math.round(a.stats.bossDmg || 0), a.stats.weakHits || 0]) });
@@ -656,12 +657,14 @@ export class NetMatch {
   _result(d) {
     const m = this.match;
     if (!m || this.isHost) return;
+    if (m.result && (m.state === 'judge' || m.state === 'results')) return;   // already judged locally (host was late)
     for (const [nid, turf, splats, deaths, bossDmg, weakHits] of d.st || []) { const a = this.byNid.get(nid); if (a) { a.stats.turf = turf; a.stats.splats = splats; a.stats.deaths = deaths; if (bossDmg !== undefined) { a.stats.bossDmg = bossDmg; a.stats.weakHits = weakHits; } } }
     if (d.mode !== 'boss') m.time = 0;   // (a boss win stops the clock where it was)
     m.result = d.mode === 'boss' ? { mode: 'boss', coverage: d.cov, winner: d.win, boss: d.bo }
       : d.mode === 'zones' ? { mode: 'zones', coverage: d.cov, winner: d.win, reason: d.zr, counts: d.zc, penalty: d.zp, overtime: !!d.zo, log: d.zl || [] }
         : { coverage: d.cov, winner: d.win };
     m.setState('judge');
+    this.s.reportPrizeResult?.(d.win);
   }
   sendEnd() { if (this.isHost) this._sendNow({ k: 'end' }); }
 

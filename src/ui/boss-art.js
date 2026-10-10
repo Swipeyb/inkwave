@@ -8,8 +8,8 @@
 //   --boss (the boss's corrupt ink = team 1), --weak (weak-point glow = the squad's ink). Both have fallbacks.
 
 const K = '#15121c';
-const INK = 'var(--boss, var(--enemy, #2f5bff))';
-const WEAK = 'var(--weak, var(--self, #ff8a14))';
+const INK = 'var(--boss, var(--enemy, #ff4d3d))';
+const WEAK = 'var(--weak, var(--self, #22e0a1))';
 const SHELL = '#23706b', SHELL_D = '#174c4a', SHELL_L = '#3c9a90';
 const RUST = '#c2602c', RUST_D = '#8e3d1b';
 const CARA = '#a8283f', CARA_D = '#6c1628', CARA_L = '#dc4d61';

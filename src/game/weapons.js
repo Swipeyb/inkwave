@@ -127,7 +127,7 @@ export class WeaponRunner {
       case 'splatling': this._splatling(dt, inp, w); break;
       default: MAIN_KITS[w.kind]?.update(this, dt, inp, w);   // kit weapons (kits/*.js)
     }
-    // ---- sub weapon (the actor's own: the Splat Bomb here, everything else via G.subs). Bomb Barrage: its bomb,
+    // ---- sub weapon (the actor's own: the Goo Bomb here, everything else via G.subs). Bomb Barrage: its bomb,
     // no ink, as fast as its throw gap allows
     const bar = a.specialActive && a.specialActive.kind === 'barrage' ? a.specialActive : null;
     const sub = bar ? bar.bomb : (a.sub || SUB.bomb);

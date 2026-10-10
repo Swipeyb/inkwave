@@ -19,6 +19,10 @@ export const ERR = {
   CONNECT: 'ERR_CONNECT',        // the socket never opened (offline, blocked, relay down)
   LOST: 'ERR_LOST',              // the socket dropped after we were in
   MATCH_START: 'ERR_MATCH_START',// the host's start-match handshake failed
+  NOT_HOLDER: 'ERR_NOT_HOLDER',  // holder match: the wallet doesn't hold enough $SPLATR
+  HOLDER_SIG: 'ERR_HOLDER_SIG',  // holder match: the signed wallet check failed / was cancelled
+  WALLET_DUP: 'ERR_WALLET_DUP',  // holder match: that wallet is already in the room
+  NO_WALLET: 'ERR_NO_WALLET',    // holder match: no Solana wallet in this browser
 };
 
 /** An Error carrying a machine-readable `code`. `message` is a log/debug fallback only — never compare on it. */

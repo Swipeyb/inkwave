@@ -130,7 +130,7 @@ export class DioramaOverlay {
     const cam = G.camera, W = innerWidth, H = innerHeight;
     if (!me || !cam) return;
     const allies = (G.actors || []).filter((o) => o.team === me.team && o !== me);
-    const col = G.teamHex?.[me.team] || '#ff8a14';
+    const col = G.teamHex?.[me.team] || '#22e0a1';
     if (col !== this._last.col) { this._last.col = col; this.el.style.setProperty('--c', col); }
     const canJump = !!(me.alive && me.canSuperJump && me.canSuperJump());
     // splatted in a live round: picks plan the respawn's Super Jump instead (player.js queueJump)
@@ -200,7 +200,8 @@ export class DioramaOverlay {
     const inp = G.input;
     let moved = false;
     if (inp) {
-      const mdx = inp.locked ? inp.mouse.dx || 0 : 0, mdy = inp.locked ? inp.mouse.dy || 0 : 0;
+      const ptr = inp.locked || inp.lastDevice === 'touch';   // touch: drag on the right side steers, SHOOT picks
+      const mdx = ptr ? inp.mouse.dx || 0 : 0, mdy = ptr ? inp.mouse.dy || 0 : 0;
       let sx = 0, sy = 0;
       if (inp.pad && inp.padAxis) { sx = inp.padAxis(2) || 0; sy = inp.padAxis(3) || 0; if (Math.hypot(sx, sy) < 0.15) sx = sy = 0; }
       if (mdx || mdy || sx || sy) {
@@ -230,7 +231,7 @@ export class DioramaOverlay {
     if (G.rig) { G.rig.dioLook.x = (this.cx - 0.5) * 2; G.rig.dioLook.y = (this.cy - 0.55) * 2; }
     // click / A on a pin → super jump (number keys are handled by the player controller; flash their pin)
     if (inp && this.k > 0.7) {
-      const click = (inp.locked && inp.mouse.leftPressed) || inp.padPressed?.has?.(0);
+      const click = ((inp.locked || inp.lastDevice === 'touch') && inp.mouse.leftPressed) || inp.padPressed?.has?.(0);
       if (click && this.hover >= 0) this._jump(this.hover, me);
       for (let i = 0; i < 4; i++) if (inp.wasPressed?.('Digit' + (i + 1))) this._flash(i);
       for (let i = 5; i < NPIN; i++) if (this.pins[i].vis && inp.wasPressed?.('Digit' + (i % 10))) this._flash(i);

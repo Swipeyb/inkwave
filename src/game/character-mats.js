@@ -77,7 +77,7 @@ function inject(shader, o) {
 /** Per-character uniform bundle (shared by that character's body materials). */
 export function makeCharUniforms() {
   return {
-    uTeam: { value: new THREE.Color('#ff8a14') },
+    uTeam: { value: new THREE.Color('#22e0a1') },
     uShirt: { value: new THREE.Color('#f3f1ec') },
     uShorts: { value: new THREE.Color('#2a3350') },
     uShoe: { value: new THREE.Color('#2a2d36') },
@@ -97,6 +97,7 @@ export function makeCharUniforms() {
     uOpacity: { value: 1 },
     uMouth: { value: new THREE.Vector4(0.75, 1, 0, 0) },
     uFreckle: { value: 0 },
+    uMaskK: { value: 1 },                               // 1 = Inkling eye mask painted on the skin, 0 = none (goggles)
     // Face hooks (driven per frame by character.js). All additive to the legacy drivers (eye-bone Y scale, uLook, uMouth).
     uLid: { value: new THREE.Vector4(0, 0, 0, 0) },    // lid close 0…1: upper L, upper R, lower L, lower R
     uGaze: { value: new THREE.Vector4(0, 0, 0, 0) },   // eyeball yaw/pitch (rad): L.x L.y R.x R.y (+x = kid's left, +y = up)
@@ -183,6 +184,7 @@ export function makeSkinMaterial(u, skinHex) {
   const sssTint = new THREE.Color(1.0, 0.38, 0.26).lerp(new THREE.Color(0.75, 0.3, 0.2), clampN((0.6 - lum) / 0.4));
   m.onBeforeCompile = (shader) => {
     for (const k of ['uHurt', 'uHurtSeed', 'uFlash', 'uMouth', 'uTeam', 'uFreckle']) shader.uniforms[k] = u[k];
+    shader.uniforms.uMaskK = u.uMaskK || { value: 1 };
     shader.uniforms.uLid = u.uLid || { value: new THREE.Vector4() };
     shader.uniforms.uMouth2 = u.uMouth2 || { value: new THREE.Vector4() };
     shader.uniforms.uSkinLum = { value: lum };
@@ -196,7 +198,7 @@ export function makeSkinMaterial(u, skinHex) {
         uniform vec3 uMouthC; uniform vec3 uMouthU; uniform vec3 uMouthF; uniform float uMouthHW;`,
       vBegin: bodyVBegin + 'vHead = aHead; vFace = aFace; vIwUv = uv; transformed = iwPos;',
       fPars: bodyFPars + /* glsl */`
-        uniform vec4 uMouth; uniform vec4 uMouth2; uniform vec3 uTeam; uniform float uFreckle; uniform float uSkinLum;
+        uniform vec4 uMouth; uniform vec4 uMouth2; uniform vec3 uTeam; uniform float uFreckle; uniform float uSkinLum; uniform float uMaskK;
         uniform vec3 uSSSW; uniform vec3 uSSSTint; uniform vec3 uMouthC; uniform vec3 uMouthF;
         varying vec3 vHead; varying vec4 vFace; varying vec2 vIwUv;
         float iwSSS = 1.0; float iwThin = 0.0;` + FACE_GLSL,
@@ -269,7 +271,7 @@ export function makeSkinMaterial(u, skinHex) {
           //      ~1.5 mm feathered edge (plus AA), a whisper of a recess in the geometry, and a little of the skin's scatter
           float sd = iwVisorSD(az, el);
           float w = max(fwidth(sd), 1e-4);
-          iwVisor = smoothstep(-0.008 - w, 0.008 + w, sd);
+          iwVisor = smoothstep(-0.008 - w, 0.008 + w, sd) * uMaskK;
           vec3 vc = mix(vec3(0.012, 0.0135, 0.02), vec3(0.018, 0.021, 0.032), smoothstep(-0.1, 0.5, el));
           diffuseColor.rgb = mix(diffuseColor.rgb, vc, iwVisor);
           iwSSS *= 1.0 - 0.88 * iwVisor;

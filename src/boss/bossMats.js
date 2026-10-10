@@ -14,7 +14,7 @@ import * as THREE from 'three';
 
 export function makeUniforms() {
   return {
-    uTime: { value: 0 }, uInk: { value: new THREE.Color('#2f5bff') }, uWeak: { value: new THREE.Color('#ff8a14') },
+    uTime: { value: 0 }, uInk: { value: new THREE.Color('#ff4d3d') }, uWeak: { value: new THREE.Color('#22e0a1') },
     uFlash: { value: 0 }, uWeakFlash: { value: 0 }, uCrack: { value: 0 }, uOpen: { value: 0 }, uEnrage: { value: 0 },
     uGlowL: { value: 0 }, uCannon: { value: 0 }, uBelly: { value: 0 }, uEyeMode: { value: 0 }, uEyeSpin: { value: 0 },
     uEyeGlow: { value: 1 }, uDrip: { value: 0.6 }, uStencil: { value: null }, uLamp: { value: 1 }, uHeat: { value: 0 },

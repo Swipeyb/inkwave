@@ -232,7 +232,7 @@ export function drawMurals(g, R, kit) {
     g.save(); g.translate(145, 0);
     g.font = `${kit.fontB ? '' : ''}900 92px Rubik, "Arial Black", sans-serif`; g.fillStyle = cream; g.textBaseline = 'alphabetic';
     if ('letterSpacing' in g) g.letterSpacing = '6px';
-    g.fillText('KRAKEN', 0, 96);
+    g.fillText('GLOOP', 0, 96);
     g.font = '800 34px Rubik, "Arial Black", sans-serif'; if ('letterSpacing' in g) g.letterSpacing = '14px';
     g.fillText('LINES', 6, 138);
     g.restore();

@@ -47,7 +47,7 @@ const TWIN_KICK_T = { duration: 130, easing: 'cubic-bezier(.2,.8,.3,1)' };
 const MITT_KICK = [[{ transform: 'translateX(4px) scale(1.35)' }, { transform: 'none' }], [{ transform: 'translateX(-4px) scale(1.35)' }, { transform: 'none' }]];
 const MITT_KICK_T = { duration: 150, easing: 'cubic-bezier(.2,.8,.3,1)' };
 const TAU = Math.PI * 2;
-const STREAKS = { 2: 'DOUBLE SPLAT!', 3: 'TRIPLE SPLAT!', 4: 'QUAD SPLAT!' };
+const STREAKS = { 2: 'DOUBLE SPLURT!', 3: 'TRIPLE SPLURT!', 4: 'QUAD SPLURT!' };
 const kindOf = (w) => (WEAPONS[w] && WEAPONS[w].kind) || w || 'shooter';
 // super-jump map slots: 3 teammates, base, then up to 6 team jump beacons (keys 1–9, 0)
 const NB = 10;
@@ -146,8 +146,8 @@ export class HUD {
   // ================================================================ build
   _build() {
     const el = this.el = h('div', { class: 'iw-hud is-hidden', 'aria-hidden': 'true' });
-    colorVars(el, 'self', '#ff8a14');
-    colorVars(el, 'enemy', '#2f5bff');
+    colorVars(el, 'self', '#22e0a1');
+    colorVars(el, 'enemy', '#ff4d3d');
 
     this.vig = h('div', { class: 'iw-hud__vig' });
     this.canvas = h('canvas', { class: 'iw-hud__smear' });
@@ -317,8 +317,8 @@ export class HUD {
 
     // judge + splatted + lineup live outside the hideable HUD so they survive setVisible(false)
     this.overLayer = h('div', { class: 'iw-hud-over' });
-    colorVars(this.overLayer, 'self', '#ff8a14');
-    colorVars(this.overLayer, 'enemy', '#2f5bff');
+    colorVars(this.overLayer, 'self', '#22e0a1');
+    colorVars(this.overLayer, 'enemy', '#ff4d3d');
     this.root.appendChild(this.overLayer);
     this._resizeCanvas();
   }
@@ -355,7 +355,7 @@ export class HUD {
     this._t += dt;
     const L = this._L;
     const t0 = f.teams && f.teams[0], t1 = f.teams && f.teams[1];
-    const ca = toHex(t0 && t0.color, '#ff8a14'), cb = toHex(t1 && t1.color, '#2f5bff');
+    const ca = toHex(t0 && t0.color, '#22e0a1'), cb = toHex(t1 && t1.color, '#ff4d3d');
     if (ca !== L.ca) { L.ca = ca; colorVars(this.el, 'self', ca); colorVars(this.overLayer, 'self', ca); L.tankCol = null; }
     if (cb !== L.cb) { L.cb = cb; colorVars(this.el, 'enemy', cb); colorVars(this.overLayer, 'enemy', cb); }
 
@@ -463,10 +463,10 @@ export class HUD {
 
   // angle (optional): screen-space direction toward the attacker (0 = right, +clockwise, y down). Without ScreenFX the
   // smears land on that edge; with ScreenFX the lens ink does the smear and the HUD only draws direction arcs.
-  damage(amount = 0.3, color = '#2f5bff', angle = null) {
+  damage(amount = 0.3, color = '#ff4d3d', angle = null) {
     if (this.fx) return;
     amount = clamp(+amount || 0);
-    const hex = toHex(color, '#2f5bff');
+    const hex = toHex(color, '#ff4d3d');
     const n = 1 + Math.round(amount * 2.2 + Math.random() * 0.8);
     for (let i = 0; i < n; i++) this._spawnSmear(amount, hex, angle);
     while (this._smears.length > 12) this._smears.shift();
@@ -475,7 +475,7 @@ export class HUD {
 
   // attacker / cause (optional, from the 'splatted' event): what splatted you — the attacker's main weapon, or the sub /
   // special / sea that did it (splatCause). Without them: the last killer the HUD saw and their main weapon.
-  showSplatted({ by = null, byColor = '#2f5bff', respawn = 5, attacker, cause } = {}) {
+  showSplatted({ by = null, byColor = '#ff4d3d', respawn = 5, attacker, cause } = {}) {
     this.hideSplatted(true);
     const C = 2 * Math.PI * 44;
     const num = h('b', { class: 'iw-spl__num' }, String(Math.ceil(respawn)));
@@ -491,12 +491,12 @@ export class HUD {
         h('div', { class: 'iw-spl__splat', html: splatSVG({ seed: 64, cls: 'iw-fby', r: 62, arms: 11, drops: 5, viewBox: 240 }) }),
         kw,
         h('div', { class: 'iw-spl__text' },
-          h('div', { class: 'iw-spl__by' }, by ? 'SPLATTED BY' : 'SPLATTED!'),
+          h('div', { class: 'iw-spl__by' }, by ? 'SPLURTED BY' : 'SPLURTED!'),
           by ? h('div', { class: 'iw-spl__name iw-display' }, String(by)) : null,
           why && why.name ? h('div', { class: `iw-spl__wn iw-spl__wn--${why.kind}` }, why.tag ? h('i', { class: 'iw-spl__wk' }, why.tag) : null, why.name) : null),
         ring),
       (hint = h('div', { class: 'iw-spl__hint', html: richText(t('Hold [TAB] to plan a Super Jump')) })));
-    colorVars(el, 'by', toHex(byColor, '#2f5bff'));
+    colorVars(el, 'by', toHex(byColor, '#ff4d3d'));
     this.splatLayer.appendChild(el);
     const st = { el, tint, hint, qkey: '', end: this._fxTime + Math.max(0, respawn), num, last: Math.ceil(respawn) };
     this._splatted = st;
@@ -528,10 +528,10 @@ export class HUD {
     return this._judgeTurf(opts);
   }
 
-  _judgeTurf({ colors = ['#ff8a14', '#2f5bff'], percents = [50, 50], names = TEAM_NAMES } = {}) {
+  _judgeTurf({ colors = ['#22e0a1', '#ff4d3d'], percents = [50, 50], names = TEAM_NAMES } = {}) {
     return new Promise((resolve) => {
       const [pa, pb] = pct(percents[0], percents[1]);
-      const ca = toHex(colors[0], '#ff8a14'), cb = toHex(colors[1], '#2f5bff');
+      const ca = toHex(colors[0], '#22e0a1'), cb = toHex(colors[1], '#ff4d3d');
       const share = pa + pb > 0 ? pa / (pa + pb) : 0.5;
       const winner = Math.abs(pa - pb) < 0.05 ? -1 : pa > pb ? 0 : 1;
       const numA = h('b', { class: 'iw-jd__num' }, '0.0%'), numB = h('b', { class: 'iw-jd__num' }, '0.0%');
@@ -709,12 +709,12 @@ export class HUD {
       // callouts, most important first
       let call = null, sub = null;
       const enemies = this._actors().filter((a) => a.team !== me.team);
-      if (enemies.length >= 4 && enemies.every((a) => !a.alive)) { call = 'WIPEOUT!'; sub = 'The whole team is splatted'; }
+      if (enemies.length >= 4 && enemies.every((a) => !a.alive)) { call = 'WIPEOUT!'; sub = 'The whole team is splurted'; }
       else if (multi >= 2) call = STREAKS[Math.min(4, multi)];
-      else if (!K.first) { call = 'FIRST SPLAT!'; }
+      else if (!K.first) { call = 'FIRST SPLURT!'; }
       else if (K.lastKiller && victim === K.lastKiller) { call = 'REVENGE!'; K.lastKiller = null; }
       else if (vStreak >= 3) { call = 'SHUTDOWN!'; sub = t("Ended {name}'s streak", { name: t(victim.name) }); }
-      else if (K.streak >= 3 && K.streak % 2 === 1) { call = t('SPLAT STREAK ×{n}', { n: K.streak }); }
+      else if (K.streak >= 3 && K.streak % 2 === 1) { call = t('SPLURT STREAK ×{n}', { n: K.streak }); }
       K.first = true;
       if (call) this._callout(call, sub, multi >= 3 || call === 'WIPEOUT!');
       return;
@@ -727,13 +727,13 @@ export class HUD {
 
   // ---------------------------------------------------------------- kill / assist cards + callouts
   _killCard(victim, kind) {
-    const col = toHex(G.teamHex?.[victim.team], kind === 'assist' ? '#ffffff' : (this._L.cb || '#2f5bff'));
+    const col = toHex(G.teamHex?.[victim.team], kind === 'assist' ? '#ffffff' : (this._L.cb || '#ff4d3d'));
     const card = h('div', { class: `iw-kcard iw-kcard--${kind}` },
       h('span', { class: 'iw-kcard__splat', html: splatSVG({ seed: 30 + ((Math.random() * 40) | 0), cls: 'iw-fself', r: 56, arms: 9, drops: 4 }) }),
       h('span', { class: 'iw-kcard__w', html: weaponIcon(kindOf(victim.weaponId)) }),
       h('span', { class: 'iw-kcard__txt' },
-        h('small', null, kind === 'assist' ? 'ASSIST' : 'SPLATTED'),
-        h('b', null, victim.name || 'Squidkid')));
+        h('small', null, kind === 'assist' ? 'ASSIST' : 'SPLURTED'),
+        h('b', null, victim.name || 'Gooblin')));
     colorVars(card, 'v', col);
     this.kcards.prepend(card);
     const cards = [...this.kcards.children].filter((c) => !c._out);
@@ -767,7 +767,7 @@ export class HUD {
     const actors = (match && match.actors) || this._actors();
     if (!actors.length) return;
     const names = (G.game && G.game.palette && G.game.palette.names) || TEAM_NAMES;
-    const col = (t) => toHex(G.teamHex?.[t], t ? '#2f5bff' : '#ff8a14');
+    const col = (t) => toHex(G.teamHex?.[t], t ? '#ff4d3d' : '#22e0a1');
     const side = (t) => {
       const list = actors.filter((a) => a.team === t);
       const wrap = h('div', { class: `iw-lu__team iw-lu__team--${t ? 'b' : 'a'}` },
@@ -813,7 +813,7 @@ export class HUD {
     if (!d) {
       if (this._dd.length >= 6) { const old = this._dd.shift(); old.el.remove(); }
       const el = h('div', { class: 'iw-dd', html: `<svg viewBox="-110 -110 220 220" aria-hidden="true"><path class="o" d="${DD_PATH}"/><path class="f" d="${DD_PATH}"/></svg>` });
-      colorVars(el, 'c', toHex(G.teamHex?.[attacker.team], this._L.cb || '#2f5bff'));
+      colorVars(el, 'c', toHex(G.teamHex?.[attacker.team], this._L.cb || '#ff4d3d'));
       this.ddLayer.appendChild(el);
       d = { a: attacker, el, t: 0, ang: null, px: 0, pz: 0 };
       this._dd.push(d);
@@ -886,7 +886,7 @@ export class HUD {
       el.style.opacity = d.k.toFixed(2);
     }
   }
-  _teamHex(t) { return toHex(G.teamHex?.[t], t ? (this._L.cb || '#2f5bff') : (this._L.ca || '#ff8a14')); }
+  _teamHex(t) { return toHex(G.teamHex?.[t], t ? (this._L.cb || '#ff4d3d') : (this._L.ca || '#22e0a1')); }
 
   // ---------------------------------------------------------------- Super Jump planned while splatted
   // The splat screen's line under the card: "Hold TAB to plan a Super Jump" until a target is picked on the TAB map,
@@ -929,7 +929,7 @@ export class HUD {
   // each zone's live ink share (the ticks = the 80 % needed to take it); then the rotation hint or the OVERTIME badge.
   _zMe() { const a = this._local(); return a && (a.team === 0 || a.team === 1) ? a.team : 0; }
   _zLive() { return this._live() && !!(this.lab || (G.match && G.match.zones)); }
-  _zHex(t) { return t === 0 || t === 1 ? toHex(G.teamHex?.[t], t ? '#2f5bff' : '#ff8a14') : '#ffffff'; }
+  _zHex(t) { return t === 0 || t === 1 ? toHex(G.teamHex?.[t], t ? '#ff4d3d' : '#22e0a1') : '#ffffff'; }
   _zLabel(id, me) { return id === 'center' ? ZONE_LABEL.center : (id === 'sideA' ? 0 : 1) === me ? ZONE_LABEL.home : ZONE_LABEL.away; }
 
   _updZones(z, dt) {
@@ -1094,9 +1094,9 @@ export class HUD {
   //   { mode: 'zones', colors, names, counts: [a, b], penalty: [a, b], winner, reason, overtime }
   //   counts are the scores (ZoneControl.state().count / match.result.counts); penalty is what each team still had to
   //   count off, shown apart (a hatched block ahead of the bar) — it isn't part of the score
-  _judgeZones({ colors = ['#ff8a14', '#2f5bff'], names = TEAM_NAMES, counts = [100, 100], penalty = [0, 0], winner = null, reason = null, overtime = false } = {}) {
+  _judgeZones({ colors = ['#22e0a1', '#ff4d3d'], names = TEAM_NAMES, counts = [100, 100], penalty = [0, 0], winner = null, reason = null, overtime = false } = {}) {
     return new Promise((resolve) => {
-      const ca = toHex(colors[0], '#ff8a14'), cb = toHex(colors[1], '#2f5bff');
+      const ca = toHex(colors[0], '#22e0a1'), cb = toHex(colors[1], '#ff4d3d');
       const whole = (v, d) => Math.max(0, Math.ceil((Number.isFinite(+v) ? +v : d) - 1e-6));
       const cnt = [0, 1].map((t) => whole(counts?.[t], 100)), pen = [0, 1].map((t) => whole(penalty?.[t], 0));
       const win = winner === 0 || winner === 1 ? winner : cnt[0] === cnt[1] ? -1 : cnt[0] < cnt[1] ? 0 : 1;
@@ -1520,7 +1520,7 @@ export class HUD {
     const W = Math.round(cw * dpr), H = Math.round(chh * dpr);
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
     const L = this._L;
-    if (!L.tankCol) { const s = L.ca || '#ff8a14'; L.tankCol = [shade(s, 0.42), s, shade(s, -0.3), shade(s, -0.55)]; }
+    if (!L.tankCol) { const s = L.ca || '#22e0a1'; L.tankCol = [shade(s, 0.42), s, shade(s, -0.3), shade(s, -0.55)]; }
     const [cLight, cMid, cDark, cDeep] = L.tankCol;
     c.clearRect(0, 0, W, H);
     const pad = 3 * dpr, bw = W - pad * 2, bh = H - pad * 2, rr = bw / 2;
@@ -1745,7 +1745,7 @@ export class HUD {
     }
     // dots
     const ps = m.players || [];
-    const ca = L.ca || '#ff8a14', cb = L.cb || '#2f5bff';
+    const ca = L.ca || '#22e0a1', cb = L.cb || '#ff4d3d';
     for (let i = 0; i < this.mapDots.length; i++) {
       const d = this.mapDots[i], p = ps[i];
       const dk = `md${i}`;
@@ -1805,7 +1805,7 @@ export class HUD {
     const canJump = this.lab ? true : !!(me && me.canSuperJump && me.canSuperJump());
     // virtual cursor (pointer is locked in-game: steer with mouse deltas; magnet toward beacons)
     const inp = G.input;
-    if (M.open && inp && inp.locked) {
+    if (M.open && inp && (inp.locked || inp.lastDevice === 'touch')) {
       M.cx = clamp(M.cx + (inp.mouse.dx || 0) / Math.max(80, bw), 0.02, 0.98);
       M.cy = clamp(M.cy + (inp.mouse.dy || 0) / Math.max(80, bh), 0.02, 0.98);
       let best = -1, bd = 0.09;
@@ -1819,7 +1819,7 @@ export class HUD {
       this.mapCursor.style.transform = `translate3d(${(M.cx * bw).toFixed(1)}px,${(M.cy * bh).toFixed(1)}px,0)`;
       this.mapCursor.classList.toggle('is-snap', M.hover >= 0);
     }
-    if (M.open !== L.curOn) { L.curOn = M.open; this.mapCursor.classList.toggle('is-on', !!(M.open && inp && inp.locked)); }
+    if (M.open !== L.curOn) { L.curOn = M.open; this.mapCursor.classList.toggle('is-on', !!(M.open && inp && (inp.locked || inp.lastDevice === 'touch'))); }
     // number keys pressed this frame → flash the matching beacon (the controller performs the jump)
     if (M.open && inp) for (let i = 0; i < NB; i++) if (inp.wasPressed && inp.wasPressed('Digit' + slotKey(i))) { M.pressed = i; M.pressT = 0.5; this._restart(this.beacons[i], 'is-press'); }
     M.pressT = Math.max(0, M.pressT - dt);

@@ -14,9 +14,10 @@ const opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i
 const W = +opt('w', 1600), H = +opt('h', 900);
 
 const browser = await puppeteer.launch({
-  executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  // CHROME=/path/to/chrome (Linux / CI); CHROME_ARGS adds flags (e.g. "--enable-unsafe-swiftshader" without a GPU)
+  executablePath: process.env.CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   headless: 'new',
-  args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required', `--window-size=${W},${H}`],
+  args: [process.platform === 'darwin' ? '--use-angle=metal' : '--use-angle=swiftshader', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required', `--window-size=${W},${H}`, ...(process.env.CHROME_ARGS || '').split(' ').filter(Boolean)],
   defaultViewport: { width: W, height: H, deviceScaleFactor: 1 },
 });
 // always take the browser down with us (an orphaned headless Chrome keeps spinning its WebGL loop at 100 % CPU)

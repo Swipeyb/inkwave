@@ -13,7 +13,7 @@ import {
   richText, logoMarkup, mapThumb, RULE_ART, weaponIcon, specialIcon,
 } from './ui-icons.js';
 import {
-  GAME_TITLE, GAME_SUBTITLE, VERSION, WEAPONS, WEAPON_ORDER, SPECIALS, SUB, MAPS, DIFFICULTY, MATCH, QUALITY,
+  GAME_TITLE, COIN, GAME_SUBTITLE, VERSION, WEAPONS, WEAPON_ORDER, SPECIALS, SUB, MAPS, DIFFICULTY, MATCH, QUALITY,
   DEFAULT_SETTINGS, TEAM_PALETTES, COLORBLIND_PALETTE, PROGRESSION, BOT_NAMES, TEAM_NAMES, ZONES,
   mapNoBots, mapBossOk, bossFallbackMap, noBotsStartBlock,
 } from '../config.js';
@@ -23,30 +23,32 @@ import {
   computeAwards, medalMarkup, awardBadge, awardIcon, rankEmblem, rankTier, RANK_TIERS, inkBurst, InkWipe, createPreview,
   sweepEdge, sweepClip, splatClip, splatCover, skinSwatch, irisSwatch, outfitIcon, tagArt, inkBand, dripsSVG, computeBossAwards,
 } from './menu-art.js';
-import { bossSilhouette, bossEmblem, BOSS_GLYPH, BOSS_NAME, BOSS_EPITHET } from './boss-art.js';
+import { bossEmblem, BOSS_GLYPH, BOSS_NAME, BOSS_EPITHET } from './boss-art.js';
 import { WhatsNew } from './news.js';
 import { t, LANGUAGES } from '../i18n/strings.js';
 import { ERR, codeFromText } from '../net/errors.js';
+import { IS_TOUCH } from './touch.js';
+import { holderWallet } from './prize.js';
 
-const SCREENS = ['loading', 'title', 'main', 'mode', 'loadout', 'setup', 'locker', 'settings', 'howto', 'credits', 'pause', 'results', 'online', 'lobby'];
+const SCREENS = ['loading', 'title', 'main', 'loadout', 'locker', 'settings', 'howto', 'credits', 'pause', 'results', 'online', 'lobby'];
 // Transitions that get the full-screen ink wipe (the rest use staggered pop-ins).
 const WIPES = new Set(['loading>title', 'title>main', 'results>main', 'pause>main', 'results>null', 'pause>title', 'online>lobby', 'lobby>online', 'lobby>main', 'results>lobby', 'pause>online']);
 // Pushes/pops between these get the light ink swipe (decorative — the swap itself is immediate).
-const LIGHT = new Set(['main', 'mode', 'loadout', 'setup', 'locker', 'settings', 'howto', 'credits', 'pause', 'online', 'lobby']);
+const LIGHT = new Set(['main', 'loadout', 'locker', 'settings', 'howto', 'credits', 'pause', 'online', 'lobby']);
 // ?netmock=1 → an offline stand-in for G.net (src/net/mock.js) so the online screens work without the relay
 const NETMOCK = typeof location !== 'undefined' && new URLSearchParams(location.search).get('netmock') === '1';
 // room codes (the session generates them from this set: no O/0, I/1)
 const CODE_ABC = 'BCEFGHJKLMNPQRTUVXYZ23456789';   // as session.js: no O/0, I/1, and no W/A/S/D (menu keys)
 const TEAM_LABEL = ['ALPHA', 'BRAVO'];
 const EMOTES = [
-  { id: 'booyah', label: 'BOOYAH!', icon: 'booyah', key: '1', dir: 'up' },
+  { id: 'booyah', label: 'LFG!', icon: 'booyah', key: '1', dir: 'up' },
   { id: 'wave', label: 'HEY!', icon: 'hand', key: '2', dir: 'right' },
   { id: 'dance', label: 'DANCE', icon: 'note', key: '3', dir: 'down' },
   { id: 'flex', label: 'FLEX', icon: 'flex', key: '4', dir: 'left' },
 ];
-// splashtag title line ("Fresh Squidkid"): adjective + subject, picked from the player's name so everyone sees the same
+// splashtag title line ("Fresh Gooblin"): adjective + subject, picked from the player's name so everyone sees the same
 const TITLE_ADJ = ['Fresh', 'Inky', 'Turf', 'Splashy', 'Rad', 'Sneaky', 'Deep-Sea', 'Glossy', 'Tidal', 'Zesty', 'Mighty', 'Soggy', 'Speedy', 'Salty', 'Bubbly', 'Snazzy', 'Drippy', 'Sunny'];
-const TITLE_NOUN = ['Squidkid', 'Inkling', 'Turf Boss', 'Wave Rider', 'Splatter', 'Tentacle', 'Drip Lord', 'Sprayer', 'Rookie', 'Legend', 'Deck Hand', 'Sea Pickle', 'Kelp Fan', 'Ink Slinger', 'Plaza Star', 'Harbor Kid'];
+const TITLE_NOUN = ['Gooblin', 'Goo Goblin', 'Turf Boss', 'Wave Rider', 'Splurter', 'Tentacle', 'Drip Lord', 'Sprayer', 'Rookie', 'Legend', 'Deck Hand', 'Sea Pickle', 'Kelp Fan', 'Ink Slinger', 'Plaza Star', 'Harbor Kid'];
 // Room failures, keyed by the *error code* (src/net/errors.js) rather than by the English message: the wording is
 // free to be translated without any comparison or lookup depending on it. Every field is an i18n message id:
 // `title` + `text` fill the join panel, `short` is the one-line toast.
@@ -55,8 +57,14 @@ const JOIN_ERR = {
   [ERR.FULL]: { title: 'ROOM IS FULL', text: 'All 8 spots are taken. Ask the host to make space, or open a room of your own.', short: 'That room is full.', icon: 'users' },
   [ERR.IN_PROGRESS]: { title: 'MATCH IN PROGRESS', text: 'They are mid-match right now. Try again in a few minutes — the room reopens after the results.', short: 'They are mid-match right now.', icon: 'clock' },
   [ERR.TEAM_FULL]: { title: 'TEAM IS FULL', text: 'That team already has four players. Pick the other one, or wait for a spot.', short: 'That team is full.', icon: 'users' },
-  [ERR.CONNECT]: { title: 'CAN\u2019T CONNECT', text: 'The INKWAVE servers didn\u2019t answer. Check your connection, then try again.', short: 'The INKWAVE servers didn\u2019t answer.', icon: 'signal' },
+  [ERR.CONNECT]: { title: 'CAN\u2019T CONNECT', text: 'The SPLATR servers didn\u2019t answer. Check your connection, then try again.', short: 'The SPLATR servers didn\u2019t answer.', icon: 'signal' },
   [ERR.CODE_TAKEN]: { title: 'TRY AGAIN', text: 'That room code was just taken. Give it another go.', short: 'That room code was just taken.', icon: 'reset' },
+  [ERR.NOT_HOLDER]: { title: 'HOLDERS ONLY', text: 'Holder matches are for $SPLATR holders. Grab some, or hop into open Quick Play.', short: 'Holder matches need $SPLATR in your wallet.', icon: 'lock' },
+  [ERR.HOLDER_SIG]: { title: 'WALLET CHECK', text: 'The wallet signature didn’t go through. Approve it in your wallet to join a holder match.', short: 'Approve the wallet signature to join.', icon: 'key' },
+  [ERR.WALLET_DUP]: { title: 'ALREADY IN', text: 'That wallet is already in this match.', short: 'That wallet is already in this match.', icon: 'users' },
+  [ERR.NO_WALLET]: IS_TOUCH
+    ? { title: 'OPEN IN PHANTOM', text: 'Holder matches need your wallet. Opening SPLATR in the Phantom app — tap Holders Only again there.', short: 'Opening Phantom… tap Holders Only there.', icon: 'key' }
+    : { title: 'GET A WALLET', text: 'Holder matches need a Solana wallet like Phantom in this browser.', short: 'Install Phantom to join holder matches.', icon: 'key' },
   [ERR.LOST]: { title: 'CONNECTION LOST', text: 'The link to the room dropped. Check your connection and join again.', short: 'The link to the room dropped.', icon: 'signal' },
   [ERR.STALE]: { title: 'PLEASE REFRESH', text: 'The game was updated since this page loaded. Refresh to play online again.', short: 'Refresh the page to play online.', icon: 'reset' },
   [ERR.MATCH_START]: { title: 'COULDN\u2019T START', text: 'The match never got going. Back to the lobby — try again.', short: 'The match never got going.', icon: 'close' },
@@ -77,10 +85,10 @@ const TIPS = [
   'Hold [SHIFT] to dive into your ink — you are nearly invisible while swimming.',
   'Enemy ink slows you down and chips away at your health. Paint over it!',
   'Swim up any wall you have inked to reach high ground.',
-  'In Turf War only turf counts when time runs out. Splats just buy you space.',
+  'In Turf Riot only turf counts when time runs out. Splurts just buy you space.',
   'Your special gauge fills as you ink. Press [F] when it glows!',
-  'A Splat Bomb costs most of your tank — throw it where it claims the most turf.',
-  'Chargers splat in one fully-charged shot. Keep moving and use cover.',
+  'A Goo Bomb costs most of your tank — throw it where it claims the most turf.',
+  'Chargers splurt in one fully-charged shot. Keep moving and use cover.',
   'Rollers paint huge stripes. Flick the roller to splash foes at range.',
   'Low on ink? Dive in, refill, then push again.',
   'Hold [TAB] to open the big map and spot unpainted turf.',
@@ -92,12 +100,12 @@ const TIPS = [
 // Battle modes offered on the stage select (Zone Control: see src/game/zones.js)
 const ZONE_GLYPH = '<svg class="iw-ico" viewBox="0 0 64 64" aria-hidden="true"><path d="M8 21 V12 Q8 8 12 8 H21 M43 8 H52 Q56 8 56 12 V21 M56 43 V52 Q56 56 52 56 H43 M21 56 H12 Q8 56 8 52 V43" fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="19" y="19" width="26" height="26" rx="5" fill="currentColor"/></svg>';
 const MODE_INFO = {
-  turf: { id: 'turf', label: 'TURF WAR', name: 'Turf War', icon: GLYPHS.drop, text: 'Ink the most ground before the clock runs out.' },
+  turf: { id: 'turf', label: 'TURF RIOT', name: 'Turf Riot', icon: GLYPHS.drop, text: 'Ink the most ground before the clock runs out.' },
   zones: { id: 'zones', label: 'ZONE CONTROL', name: 'Zone Control', icon: ZONE_GLYPH, text: 'Hold the live zone to count down from 100 — first to 0 wins.' },
   boss: { id: 'boss', label: 'BOSS BATTLE', name: 'Boss Battle', icon: BOSS_GLYPH, text: `Your squad of 8 against ${BOSS_NAME}.` },
 };
 const modeOf = (m) => (m === 'zones' || m === 'boss' ? m : 'turf');
-// the battle modes (Turf War / Zone Control) — the rules cards, the in-match strip and the results use these two
+// the battle modes (Turf Riot / Zone Control) — the rules cards, the in-match strip and the results use these two
 const BATTLE_MODES = [MODE_INFO.turf, MODE_INFO.zones];
 const ZK = '#15121c';
 const zNum = (x, y, n, size = 16) => `<text x="${x}" y="${y}" text-anchor="middle" font-family="'Titan One', sans-serif" font-size="${size}" fill="#fff" stroke="${ZK}" stroke-width="3.2" paint-order="stroke" stroke-linejoin="round">${n}</text>`;
@@ -159,22 +167,21 @@ const BOSS_DIFF_INFO = {
 };
 const BOSS_DURATIONS = [180, 240, 300];
 const STAT_LABELS = [['range', 'Range'], ['damage', 'Damage'], ['rate', 'Fire rate'], ['mobility', 'Mobility'], ['paint', 'Ink coverage']];
-const KIND_LABEL = { shooter: 'Shooter', roller: 'Roller', charger: 'Charger', blaster: 'Blaster', dualies: 'Dualies', slosher: 'Slosher', splatling: 'Splatling', bucket: 'Bucket', spinner: 'Spinner', twins: 'Pistols', brush: 'Brush' };
+const KIND_LABEL = { shooter: 'Shooter', roller: 'Roller', charger: 'Charger', blaster: 'Blaster', dualies: 'Dualies', slosher: 'Slosher', splatling: 'Gatling', bucket: 'Bucket', spinner: 'Spinner', twins: 'Pistols', brush: 'Brush' };
 const STAT_ICONS = { range: GLYPHS.target, damage: GLYPHS.bolt, rate: GLYPHS.clock, mobility: GLYPHS.feather, paint: GLYPHS.drop };
 const LOCKER_TABS = [
-  { id: 'kids', label: 'SQUIDKIDS', icon: 'users', sections: ['_presets'] },
+  { id: 'kids', label: 'GOOBLINS', icon: 'users', sections: ['_presets'] },
   { id: 'hair', label: 'HAIR', icon: 'hair', sections: ['hair', 'hat'] },
   { id: 'face', label: 'FACE', icon: 'eye', sections: ['eyes', 'brows', 'skin'] },
   { id: 'outfit', label: 'OUTFIT', icon: 'shirt', sections: ['outfit'] },
 ];
 const MENU_DESC = {
-  play: 'Turf War or Zone Control 4 v 4 — or team up with the bots against HULLBREAKER in a Boss Battle',
-  online: 'Private rooms for up to 8 friends — create one or join with a room code',
-  loadout: 'Choose your weapon, sub and special — or practice with it',
-  locker: 'Choose your squidkid — tentacles, headgear, eyes, skin and outfit',
+  online: 'Online rooms for up to 8 players — create one or join with a room code',
+  loadout: 'Choose your weapon, sub and special',
+  locker: 'Choose your gooblin — tentacles, headgear, eyes, skin and outfit',
   settings: 'Controls, video, audio and gameplay options',
   howto: 'The rules in 30 seconds, plus every control',
-  credits: 'The squidkids and code behind INKWAVE',
+  credits: 'The gooblins and code behind SPLATR',
 };
 
 const pctFmt = (v) => Math.round(v * 100) + '%';
@@ -184,6 +191,8 @@ const settingsTabs = () => [
     { key: 'lang', label: t('settings.row.lang.label'), type: 'select', options: LANGUAGES.map((l) => [l.id, l.label]), help: t('settings.row.lang.help') },
   ] },
   { id: 'controls', label: t('settings.tab.controls'), icon: 'gamepad', rows: [
+    // phones / tablets only (src/ui/touch.js): AUTO fires while an enemy is under the crosshair (src/game/player.js)
+    ...(IS_TOUCH ? [{ key: 'touchFire', label: 'Firing mode', type: 'seg', options: [['auto', 'Auto'], ['manual', 'Manual']], help: 'Auto: you shoot by yourself whenever an enemy is in your sights. Manual: hold SHOOT to fire. The SHOOT button works in both.' }] : []),
     { key: 'sensitivity', label: t('settings.row.sensitivity.label'), type: 'slider', min: 0.2, max: 3, step: 0.05, fmt: (v) => v.toFixed(2) + '×', help: t('settings.row.sensitivity.help') },
     { key: 'padSensitivity', label: t('settings.row.padSensitivity.label'), type: 'slider', min: 0.2, max: 3, step: 0.05, fmt: (v) => v.toFixed(2) + '×', help: t('settings.row.padSensitivity.help') },
     { key: 'invertY', label: t('settings.row.invertY.label'), type: 'toggle', help: t('settings.row.invertY.help') },
@@ -211,7 +220,6 @@ const settingsTabs = () => [
     { key: 'rumble', label: t('settings.row.rumble.label'), type: 'slider', min: 0, max: 1, step: 0.05, fmt: pctFmt, help: t('settings.row.rumble.help') },
     { key: 'colorblind', label: t('settings.row.colorblind.label'), type: 'toggle', help: t('settings.row.colorblind.help') },
     { key: 'minimap', label: t('settings.row.minimap.label'), type: 'toggle', help: t('settings.row.minimap.help') },
-    { key: 'difficulty', label: t('settings.row.difficulty.label'), type: 'seg', options: null, help: t('settings.row.difficulty.help') },
     { key: 'matchLength', label: t('settings.row.matchLength.label'), type: 'seg', options: null, help: t('settings.row.matchLength.help') },
   ] },
 ];
@@ -259,7 +267,6 @@ export class Menus {
     this._extTick = 0;
     this._sfxAt = {};
     this._swapToken = 0;
-    this._setup = null;
     this._accentExternal = false;
     this._cur = { x: new Spring(0, 560, 34), y: new Spring(0, 560, 34), w: new Spring(0, 560, 34), h: new Spring(0, 560, 34), on: false, r: '' };
 
@@ -573,7 +580,7 @@ export class Menus {
     if (this._stack.length > 1) {
       this._sfx('ui_back');
       this.show(this._stack[this._stack.length - 2], { pop: true, back: true });
-    } else if (['mode', 'loadout', 'setup', 'locker', 'settings', 'howto', 'credits', 'online'].includes(this.current)) {
+    } else if (['loadout', 'locker', 'settings', 'howto', 'credits', 'online'].includes(this.current)) {
       this._sfx('ui_back'); // opened directly by the engine: fall back to the main menu
       this.show('main', { back: true });
     }
@@ -586,7 +593,7 @@ export class Menus {
     this._sfx('ui_confirm');
     this._sfx('splat_small');
     if (this._scr) this._scr.el.classList.add('is-go');
-    setTimeout(() => { this._leavingTitle = false; this.show('main', { wipe: true }); }, 200);
+    setTimeout(() => { this._leavingTitle = false; this.show('online', { wipe: true }); }, 200);   // online-only: straight to create / join (Back → main menu)
   }
 
   // ================================================================ focus + navigation
@@ -878,21 +885,47 @@ export class Menus {
   // ================================================================ SCREEN: title
   _scr_title() {
     const press = h('div', { class: 'iw-title__press iw-in iw-in--up' },
-      h('span', { class: 'iw-title__presstext' }, this._input === 'pad' ? 'PRESS ANY BUTTON' : 'PRESS ANY KEY'),
-      h('span', { class: 'iw-title__presssub' }, this._input === 'pad' ? '' : 'or click to start'));
+      h('span', { class: 'iw-title__presstext' }, IS_TOUCH ? 'TAP TO START' : this._input === 'pad' ? 'PRESS ANY BUTTON' : 'PRESS ANY KEY'),
+      h('span', { class: 'iw-title__presssub' }, IS_TOUCH || this._input === 'pad' ? '' : 'or click to start'));
     const el = h('div', { class: 'iw-screen iw-title', onclick: () => this._titleGo() },
       h('div', { class: 'iw-title__scrim' }),
       h('div', { class: 'iw-title__logo iw-in iw-in--logo' }, h('i', { class: 'iw-title__shock' }), h('div', { class: 'iw-title__logoin', html: logoMarkup(GAME_TITLE, GAME_SUBTITLE, 'xl') })),
       press,
       h('div', { class: 'iw-corner iw-corner--bl iw-in' }, h('b', null, GAME_TITLE), ' · an original turf-war shooter'),
-      h('div', { class: 'iw-corner iw-corner--br iw-in' }, `v${this._version()}`));
+      h('div', { class: 'iw-corner iw-corner--br iw-in' }, `v${this._version()}`),
+      this._caChip('iw-ca--title'));
     return {
       el, noCursor: true,
       onInputMode: (m) => {
+        if (IS_TOUCH) return;
         press.firstChild.textContent = t(m === 'pad' ? 'PRESS ANY BUTTON' : 'PRESS ANY KEY');
         press.lastChild.textContent = m === 'pad' ? '' : t('or click to start');
       },
     };
+  }
+
+  // $SPLATR contract address chip: full CA (selectable), COPY and BUY. Clicks never reach the screen underneath.
+  _caChip(cls = '') {
+    if (!COIN.ca) {   // before launch: just "SOON"
+      const el = h('div', { class: `iw-ca iw-ca--soon iw-in ${cls}` }, h('span', { class: 'iw-ca__k' }, `${COIN.ticker} CA`), h('b', { class: 'iw-ca__soon' }, 'SOON'));
+      return el;
+    }
+    const copyBtn = h('button', { class: 'iw-ca__btn', type: 'button' }, 'COPY');
+    const buy = h('a', { class: 'iw-ca__btn iw-ca__btn--buy', href: COIN.buyUrl, target: '_blank', rel: 'noopener' }, 'BUY');
+    const el = h('div', { class: `iw-ca iw-in ${cls}` },
+      h('span', { class: 'iw-ca__k' }, `${COIN.ticker} CA`),
+      h('code', { class: 'iw-ca__addr', title: COIN.ca }, COIN.ca),
+      copyBtn, buy);
+    for (const ev of ['click', 'mousedown', 'pointerdown', 'keydown']) el.addEventListener(ev, (e) => e.stopPropagation());
+    copyBtn.addEventListener('click', async () => {
+      let ok = false;
+      try { await navigator.clipboard.writeText(COIN.ca); ok = true; } catch { /* fall back to selecting it */ }
+      if (!ok) { const r = document.createRange(); r.selectNodeContents(el.querySelector('.iw-ca__addr')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+      copyBtn.textContent = ok ? 'COPIED ✓' : 'SELECTED';
+      this._sfx('ui_click');
+      setTimeout(() => { copyBtn.textContent = 'COPY'; }, 1600);
+    });
+    return el;
   }
 
   // ================================================================ SCREEN: main
@@ -903,11 +936,11 @@ export class Menus {
     const sp = this._special();
     const sub = this._sub();
     const items = [
-      { id: 'play', label: 'PLAY', sub: 'Turf War · Zone Control · Boss Battle', icon: GLYPHS.play, cls: 'iw-btn--menu iw-btn--xl iw-btn--primary', accept: () => this._go('mode'), sound: 'ui_confirm' },
-      { id: 'online', label: 'ONLINE', sub: 'Play with friends · private rooms', icon: GLYPHS.online, cls: 'iw-btn--menu iw-btn--online', accept: () => this._go('online'), sound: 'ui_confirm',
+      // online-only build: no solo / vs-bots PLAY entry — every match is an online room
+      { id: 'online', label: 'PLAY ONLINE', sub: 'Create or join a room', icon: GLYPHS.online, cls: 'iw-btn--menu iw-btn--xl iw-btn--primary iw-btn--online', accept: () => this._go('online'), sound: 'ui_confirm',
         badge: h('span', { class: 'iw-btn__live' }, h('i'), 'LIVE') },
       { id: 'loadout', label: 'LOADOUT', icon: weaponIcon(W.kind || lo.weapon), cls: 'iw-btn--menu', accept: () => this._go('loadout') },
-      { id: 'locker', label: 'LOCKER', icon: GLYPHS.hanger, cls: 'iw-btn--menu', accept: () => this._go('locker') },
+      { id: 'locker', label: 'WARDROBE', icon: GLYPHS.hanger, cls: 'iw-btn--menu', accept: () => this._go('locker') },
       { id: 'settings', label: 'SETTINGS', icon: GLYPHS.gear, cls: 'iw-btn--menu', accept: () => this._go('settings') },
       { id: 'howto', label: 'HOW TO PLAY', icon: GLYPHS.question, cls: 'iw-btn--menu', accept: () => this._go('howto') },
       { id: 'credits', label: 'CREDITS', icon: GLYPHS.star, cls: 'iw-btn--menu', accept: () => this._go('credits') },
@@ -962,98 +995,7 @@ export class Menus {
     };
   }
 
-  // ================================================================ SCREEN: mode (offline Play: Turf War | Zone Control | Boss Battle)
-  _scr_mode() {
-    const s = this._settings();
-    const st = this._setup || (this._setup = { times: {} });
-    const reduced = prefersReducedMotion();
-    const cur = modeOf(st.mode || s.lastMode);
-    const bossLen = [180, 240, 300].includes(s.bossLength) ? s.bossLength : 240;
-    const MODES = [
-      { id: 'turf', name: 'TURF WAR', kicker: 'CLASSIC', img: stageArt('tidewater', 'day'),
-        blurb: 'Two teams of four, one harbour. Ink the most ground before the whistle.',
-        chips: [[GLYPHS.users, '4 V 4'], [GLYPHS.clock, durLabel(s.matchLength || MATCH.defaultDuration || 180)], [GLYPHS.bot, 'VS BOTS']] },
-      { id: 'zones', name: 'ZONE CONTROL', kicker: 'RANKED RULES', img: stageArt('crossmarket', 'day'),
-        blurb: 'Take the live zone and hold it: your count ticks down from 100. The zone moves, so keep up!',
-        chips: [[GLYPHS.users, '4 V 4'], [GLYPHS.clock, `${Math.round((ZONES.duration || 300) / 60)}:00 + OT`], [ZONE_GLYPH, 'ROTATING ZONES']] },
-      { id: 'boss', name: 'BOSS BATTLE', kicker: 'CO-OP', img: stageArt('kelpline', 'dusk'), badge: 'NEW!', beta: true,
-        blurb: `Everyone's one squad against ${BOSS_NAME}, a giant crab in a rusted container. Sink it before time runs out!`,
-        chips: [[GLYPHS.users, 'SQUAD OF 8'], [GLYPHS.clock, durLabel(bossLen)], [BOSS_GLYPH, '1 BOSS']] },
-    ];
-    let picking = false;
-    const pick = (id, c) => {
-      if (picking) return;
-      picking = true;
-      st.mode = id;
-      this._setSetting('lastMode', id);
-      this._sfx('ui_confirm'); this._sfx('splat_small', 0.06);
-      restartAnim(c, 'is-pick');
-      cards.forEach((x) => x.classList.toggle('is-picked', x === c));
-      this._burstAt(c.querySelector('.iw-mode__tape'), { count: 16, dist: 10, size: 1.3, color: 'var(--mc)' });
-      setTimeout(() => { picking = false; if (this.current === 'mode') this._go('setup'); }, reduced ? 0 : 260);
-    };
-    const cards = MODES.map((m, i) => {
-      const img = h('img', { class: 'iw-mode__img', alt: '', draggable: 'false' });
-      img.addEventListener('error', () => img.remove(), { once: true });
-      img.src = m.img;
-      const hero = m.id === 'boss'
-        ? h('span', { class: 'iw-mode__hero is-boss', html: bossSilhouette() })
-        : h('span', { class: 'iw-mode__hero is-turf' },
-          h('i', { class: 'iw-mode__squid is-a', html: SQUID }),
-          m.id === 'zones' ? h('i', { class: 'iw-mode__zone', html: ZONE_GLYPH }) : h('b', { class: 'iw-mode__vs iw-display' }, 'VS'),
-          h('i', { class: 'iw-mode__squid is-b', html: SQUID }));
-      const c = h('button', { class: `iw-mode iw-mode--${m.id} iw-in iw-in--pop`, style: { '--tilt': `${[-1.4, 0.6, 1.4][i] ?? 0}deg` } },
-        h('span', { class: 'iw-mode__art' }, img, h('i', { class: 'iw-mode__tint' }),
-          h('span', { class: 'iw-mode__splat', html: splatSVG({ seed: 51 + i * 9, fill: 'var(--mc)', r: 58, arms: 9, drops: 5 }) }),
-          hero, h('i', { class: 'iw-mode__glare' })),
-        h('span', { class: 'iw-mode__kicker' }, m.kicker),
-        m.beta ? h('span', { class: 'iw-beta iw-mode__beta' }, 'PUBLIC BETA') : null,
-        h('span', { class: 'iw-mode__tape' }, h('span', { class: 'iw-display' }, m.name)),
-        h('span', { class: 'iw-mode__blurb' }, m.blurb),
-        h('span', { class: 'iw-mode__chips' }, m.chips.map(([ic, txt]) => h('span', { class: 'iw-chip' }, h('i', { html: ic }), /^\d+:00 \+ OT$/.test(txt) ? t('{n}:00 + OT', { n: txt.split(':')[0] }) : txt))),
-        m.badge ? h('span', { class: 'iw-mode__new' }, m.badge) : null,
-        h('span', { class: 'iw-mode__go' }, h('i', { html: GLYPHS.play }), 'SELECT'));
-      c.dataset.cur = 'own';
-      c._mode = m.id;
-      this._fx(c, { tilt: 7 });
-      this._bind(c, { id: 'mode-' + m.id, accept: () => pick(m.id, c) });
-      return c;
-    });
-    const bg = h('div', { class: 'iw-ss__bg' });
-    const setBg = (id) => {
-      const m = MODES.find((x) => x.id === id);
-      const im = h('img', { class: 'iw-ss__bgimg', alt: '', draggable: 'false' });
-      im.addEventListener('error', () => im.remove(), { once: true });
-      im.src = m.img.replace('.webp', '-sm.webp');
-      const olds = [...bg.children];
-      bg.appendChild(im);
-      requestAnimationFrame(() => requestAnimationFrame(() => im.classList.add('is-on')));
-      setTimeout(() => olds.forEach((o) => o.remove()), 900);
-    };
-    const el = h('div', { class: 'iw-screen iw-modesel' },
-      bg, h('div', { class: 'iw-ss__scrim' }),
-      this._header('PLAY', { sub: 'Choose a mode · you and the bots' }),
-      h('div', { class: 'iw-modesel__row' + (cards.length > 2 ? ' is-three' : '') }, cards),
-      this._prompts([[['←', '→'], 'DPad', 'Mode'], ['Enter', 'A', 'Select'], ['Esc', 'B', 'Back']]));
-    el.dataset.mode = cur;
-    setBg(cur);
-    const graph = new Map(cards.map((c, i) => [c, { left: cards[i - 1] || null, right: cards[i + 1] || null }]));
-    return {
-      el, initial: cards.find((c) => c._mode === cur) || cards[0],
-      onFocus: (f) => { if (f && f._mode && f._mode !== el.dataset.mode) { el.dataset.mode = f._mode; setBg(f._mode); } },
-      onNav: (dir) => this._graphNav(graph, dir),
-    };
-  }
-
-  // ================================================================ SCREEN: setup (stage select)
-  /** The time of day a stage will be played at: this session's pick → saved per-stage pick → settings.timeOfDay. */
-  _stageTime(id) {
-    const s = this._settings();
-    const t = (this._setup && this._setup.times && this._setup.times[id]) || (s.stageTimes && s.stageTimes[id]);
-    return t === 'dusk' || t === 'day' ? t : (s.timeOfDay === 'dusk' ? 'dusk' : 'day');
-  }
-
-  /** Warm the image cache with every stage render (hero + thumbnail, day + dusk) so switches never flash. */
+  // ================================================================ stage art preload (online lobby stage cards)
   _preloadStages() {
     if (this._stageImgs) return;
     this._stageImgs = [];
@@ -1069,377 +1011,6 @@ export class Menus {
       }
     }
   }
-
-  _scr_setup() {
-    const s = this._settings();
-    const maps = this._maps().filter((m) => !m.onlineOnly);   // (online-only stages live in the online lobby's picker)
-    const diffs = this._diffs();
-    const byId = (id) => maps.find((m) => m.id === id);
-    const st = this._setup || (this._setup = { times: {} });
-    st.mode = modeOf(st.mode || s.lastMode);   // picked on the mode screen (Play › mode), else the last one played
-    const boss = st.mode === 'boss';
-    const durations = boss ? BOSS_DURATIONS : (MATCH.durations || [90, 180]);
-    const diffText = (v) => (boss ? BOSS_DIFF_INFO[v] : DIFF_INFO[v]?.text) || '';
-    st.times = { ...(s.stageTimes || {}), ...(st.times || {}) };
-    if (!byId(st.mapId)) st.mapId = byId(s.lastStage) ? s.lastStage : maps[0].id;
-    st.difficulty = diffs[s.difficulty] ? s.difficulty : 'normal';
-    st.duration = boss ? (durations.includes(s.bossLength) ? s.bossLength : 240) : durations.includes(s.matchLength) ? s.matchLength : (MATCH.defaultDuration || 180);
-    const timeOf = (id) => this._stageTime(id);
-    const reduced = prefersReducedMotion();
-    this._preloadStages();
-
-    // ---- JS tweens (driven by tick → honour the lab's freeze / slow-mo)
-    const tweens = [];
-    const tween = (dur, step, done = null, delay = 0) => { const o = { t: -delay, dur, step, done }; tweens.push(o); if (delay <= 0) step(0); return o; };
-
-    // ---- hero: big stage art, name tape, DAY / DUSK switch, layout sticker
-    const art = h('div', { class: 'iw-ss__art' });
-    const counter = h('span', { class: 'iw-ss__count' });
-    const layoutMap = h('span', { class: 'iw-ss__layoutmap' });
-    const layoutEl = h('div', { class: 'iw-ss__layout' }, layoutMap, h('span', { class: 'iw-ss__layoutlbl' }, h('i', { html: GLYPHS.map }), 'LAYOUT'));
-    const stars = h('div', { class: 'iw-ss__stars' }, Array.from({ length: 16 }, (_, i) => {
-      const x = ((i * 0.618034 + 0.13) % 1) * 96 + 2, y = ((i * 0.41421 + 0.07) % 1) * 34 + 3;
-      return h('i', { style: { left: `${x.toFixed(1)}%`, top: `${y.toFixed(1)}%`, '--d': `${((i * 0.37) % 1 * 3).toFixed(2)}s`, '--s': (0.55 + ((i * 0.73) % 1) * 0.8).toFixed(2) } });
-    }));
-    const bossTag = boss ? h('div', { class: 'iw-ss__bosstag' }, h('span', { class: 'iw-ss__bossemb', html: bossEmblem() }), h('span', { class: 'iw-ss__bosstxt' }, h('small', null, 'BOSS'), h('b', { class: 'iw-display' }, BOSS_NAME))) : null;
-    const frame = h('div', { class: 'iw-ss__frame' }, art, h('i', { class: 'iw-ss__sun' }), stars, h('i', { class: 'iw-ss__glare' }), h('i', { class: 'iw-ss__vig' }), counter, layoutEl, bossTag);
-    const nameEl = h('div', { class: 'iw-ss__name' });
-    const blurbEl = h('div', { class: 'iw-ss__blurb' });
-    const caption = h('div', { class: 'iw-ss__caption' }, h('div', { class: 'iw-ss__tape' }, nameEl), blurbEl);
-    const drips = h('div', { class: 'iw-ss__drips', html: `<svg viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true">${
-      [[38, 1], [96, 1.6], [140, 0.8], [226, 1.3], [300, 0.9], [352, 1.5]].map(([x, k], i) => `<g class="iw-ss__drip" style="--d:${i}"><path class="iw-fa" d="M${x - 6} 0 L${x + 6} 0 L${x + 4} ${22 * k} Q${x} ${31 * k} ${x - 4} ${22 * k} Z"/></g>`).join('')}</svg>` });
-
-    // DAY / DUSK switch (big, sticker-like; the thumb carries a sun that sets and a moon that rises)
-    const optDay = h('span', { class: 'iw-daytgl__opt is-day iw-noclick' }, 'DAY');
-    const optDusk = h('span', { class: 'iw-daytgl__opt is-dusk iw-noclick' }, 'DUSK');
-    const tgl = h('button', { class: 'iw-daytgl' },
-      h('span', { class: 'iw-daytgl__sky' }, h('i', { class: 'iw-daytgl__cloud' }), h('i', { class: 'iw-daytgl__cloud is-2' }),
-        ...Array.from({ length: 6 }, (_, i) => h('i', { class: 'iw-daytgl__star', style: { '--i': i } }))),
-      h('span', { class: 'iw-daytgl__thumb' }, h('i', { class: 'iw-daytgl__sunico', html: GLYPHS.sun }), h('i', { class: 'iw-daytgl__moonico', html: GLYPHS.moon })),
-      optDay, optDusk);
-    const timeText = h('span', { class: 'iw-ss__timetext' });
-    const tglWrap = h('div', { class: 'iw-ss__time' }, h('div', { class: 'iw-ss__timehead' }, h('small', null, 'TIME OF DAY'), this._hint(['Q', 'E'], null)), tgl, timeText);
-    tglWrap.querySelector('.iw-padg').innerHTML = padGlyph('LB') + padGlyph('RB');
-    const hero = h('div', { class: 'iw-ss__hero iw-in iw-in--pop' },
-      h('div', { class: 'iw-ss__splat', html: splatSVG({ seed: 21, cls: 'iw-fa', r: 60, arms: 9, drops: 6 }) }),
-      h('div', { class: 'iw-ss__splat is-b', html: splatSVG({ seed: 34, cls: 'iw-fb', r: 56, arms: 8, drops: 4 }) }),
-      frame, drips, caption, tglWrap);
-    this._fx(frame, { tilt: 3, press: false });
-
-    // ---- background: the selected stage, blurred, washing the whole screen in its light
-    const bg = h('div', { class: 'iw-ss__bg' });
-    const setBg = () => {
-      const im = h('img', { class: 'iw-ss__bgimg', alt: '', draggable: 'false' });
-      im.addEventListener('error', () => im.remove(), { once: true });
-      im.src = stageArt(st.mapId, timeOf(st.mapId), true);
-      const olds = [...bg.children];
-      bg.appendChild(im);
-      requestAnimationFrame(() => requestAnimationFrame(() => im.classList.add('is-on')));
-      setTimeout(() => olds.forEach((o) => o.remove()), 900);
-    };
-
-    // ---- art layers + ink reveals
-    const makeLayer = (id, time) => {
-      const m = byId(id);
-      const img = h('img', { class: 'iw-ss__img', alt: '', draggable: 'false' });
-      const L = h('div', { class: 'iw-ss__layer', 'data-time': time }, img);
-      img.addEventListener('error', () => {
-        L.classList.add('is-noart');
-        L.appendChild(h('div', { class: 'iw-ss__fallback', html: (m && m.thumb) || mapThumb(m, 3) }));
-      }, { once: true });
-      img.src = stageArt(id, time);
-      L._img = img;
-      return L;
-    };
-    const whenReady = (img, cb) => {
-      if (img.complete || !img.decode) { cb(); return; }
-      let fired = false;
-      const go = () => { if (!fired) { fired = true; cb(); } };
-      img.decode().then(go, go);
-      setTimeout(go, 280); // never hold a reveal back for long
-    };
-    let artSeed = 3;
-    const showArt = (kind, fromEl) => {
-      const L = makeLayer(st.mapId, timeOf(st.mapId));
-      const finish = () => {
-        L.style.clipPath = '';
-        for (let n = L.previousSibling; n;) { const p = n.previousSibling; n.remove(); n = p; }
-      };
-      if (!art.firstChild || reduced || kind === 'instant') {
-        L.classList.add(art.firstChild ? 'is-fade' : 'is-first');
-        art.appendChild(L);
-        if (art.childElementCount > 1) setTimeout(finish, 320); else finish();
-        return;
-      }
-      const W = art.clientWidth || 1, H = art.clientHeight || 1;
-      const time = timeOf(st.mapId);
-      const ink = h('div', { class: `iw-ss__ink is-${kind} is-${time}` });
-      const ink2 = kind === 'stage' ? h('div', { class: 'iw-ss__ink is-stage is-b' }) : null;
-      const seed = (artSeed += 1);
-      ink.style.clipPath = L.style.clipPath = 'inset(0 0 0 100%)';
-      if (ink2) ink2.style.clipPath = ink.style.clipPath;
-      art.append(...[ink2, ink, L].filter(Boolean));
-      restartAnim(frame, kind === 'stage' ? 'is-hit' : 'is-flip');
-      whenReady(L._img, () => {
-        if (kind === 'time') {
-          // day → dusk: the ink edge sweeps right-to-left (the sun sets west); dusk → day the other way
-          const edge = sweepEdge(seed), dir = time === 'dusk' ? -1 : 1, D = 0.66;
-          tween(D, (k) => { ink.style.clipPath = sweepClip(edge, W, H, easeInOutCubic(k), dir); });
-          tween(D, (k) => { L.style.clipPath = sweepClip(edge, W, H, easeInOutCubic(k), dir); }, finish, 0.11);
-        } else {
-          // new stage: an ink splat thrown from the stage list side bursts open, carrying the new art inside it
-          let oy = H * 0.5;
-          if (fromEl && fromEl.isConnected) {
-            const fr = fromEl.getBoundingClientRect(), ar = art.getBoundingClientRect();
-            if (ar.height > 0) oy = clamp(((fr.top + fr.height / 2 - ar.top) / ar.height) * H, H * 0.12, H * 0.88);
-          }
-          const ox = W * 0.02, R = splatCover(ox, oy, W, H), D = 0.6;
-          const grow = (el, s, k) => { el.style.clipPath = splatClip(ox, oy, R * easeOutCubic(k), s); };
-          tween(D, (k) => grow(ink2, seed + 7, k));
-          tween(D, (k) => grow(ink, seed, k), null, 0.05);
-          tween(D, (k) => grow(L, seed + 3, k), finish, 0.12);
-        }
-      });
-    };
-
-    // ---- stage list: tilted tickets with the render, name tape, time badge, select splat
-    const tickets = maps.map((m, i) => {
-      const imgDay = h('img', { class: 'iw-ticket__img is-day', alt: '', draggable: 'false' });
-      const imgDusk = h('img', { class: 'iw-ticket__img is-dusk', alt: '', draggable: 'false' });
-      for (const [im, t] of [[imgDay, 'day'], [imgDusk, 'dusk']]) {
-        im.addEventListener('error', () => { im.remove(); c.classList.add('is-noart'); }, { once: true });
-        im.src = stageArt(m.id, t, true);
-      }
-      const badge = h('span', { class: 'iw-ticket__time iw-noclick' },
-        h('i', { class: 'iw-ticket__sun', html: GLYPHS.sun }), h('i', { class: 'iw-ticket__moon', html: GLYPHS.moon }));
-      const c = h('button', { class: 'iw-ticket iw-in iw-in--left', style: { '--tilt': `${[-1.2, 0.9, -0.7, 1.1][i % 4]}deg` } },
-        h('span', { class: 'iw-ticket__art' }, h('span', { class: 'iw-ticket__fallback', html: m.thumb || mapThumb(m, i + 2) }), imgDay, imgDusk, h('i', { class: 'iw-ticket__shade' })),
-        h('span', { class: 'iw-ticket__ink', html: splatSVG({ seed: 60 + i * 5, cls: 'iw-fa', r: 58, arms: 9, drops: 5 }) }),
-        h('span', { class: 'iw-ticket__num' }, String(i + 1).padStart(2, '0')),
-        h('span', { class: 'iw-ticket__name' }, m.name),
-        badge,
-        h('span', { class: 'iw-ticket__check', html: GLYPHS.check }));
-      c._mid = m.id;
-      c.dataset.cur = 'own';
-      this._fx(c, { tilt: 8 });
-      this._bind(c, {
-        id: 'map-' + m.id,
-        accept: (src) => select(m.id, src === 'mouse' ? 'click' : 'lock', c),
-        adjust: (d) => { select(m.id, 'nav', c); setTime(m.id, d < 0 ? 'day' : 'dusk', 'key'); },
-      });
-      badge.addEventListener('click', () => { this._setFocus(c); select(m.id, 'click', c); setTime(m.id, timeOf(m.id) === 'day' ? 'dusk' : 'day', 'mouse'); });
-      return c;
-    });
-    const refreshTicket = (c) => {
-      const t = timeOf(c._mid);
-      c.classList.toggle('is-dusk', t === 'dusk');
-      c.classList.toggle('is-sel', c._mid === st.mapId);
-    };
-    // more stages than fit: compact tickets in a scrolling list (the focused one is kept in view)
-    const listEl = h('div', { class: 'iw-ss__list' + (tickets.length > 3 ? ' is-many' : '') }, tickets);
-
-    // ---- match options (bot skill + length)
-    const dOpts = Object.values(diffs).map((d) => [d.id, h('span', { class: 'iw-diffopt' }, h('span', { class: 'iw-pips' }, Array.from({ length: 3 }, (_, k) => h('i', { class: k < (DIFF_INFO[d.id]?.pips || 2) ? 'on' : '' }))), d.name)]);
-    const dText = h('div', { class: 'iw-setup__desc' });
-    const diffSeg = this._seg(dOpts, st.difficulty, (v) => {
-      st.difficulty = v; dText.textContent = t(diffText(v)); restartAnim(dText, 'is-in');
-      safeCall(() => this.api.setSettings && this.api.setSettings({ difficulty: v })); updateStart();
-    });
-    dText.textContent = t(diffText(st.difficulty));
-    const diffRow = h('div', { class: 'iw-setrow iw-setrow--stack' }, h('div', { class: 'iw-setrow__label' }, h('i', { html: boss ? BOSS_GLYPH : GLYPHS.bot }), boss ? 'DIFFICULTY' : 'BOT SKILL'), diffSeg.el);
-    this._bind(diffRow, { id: 'difficulty', type: 'row', adjust: diffSeg.adjust, accept: diffSeg.cycle });
-    const lOpts = durations.map((d) => [d, durLabel(d)]);
-    const lenSeg = this._seg(lOpts, st.duration, (v) => {
-      st.duration = v; safeCall(() => this.api.setSettings && this.api.setSettings(boss ? { bossLength: v } : { matchLength: v })); updateStart();
-    });
-    // Zone Control always runs 5:00 (+ overtime): the length shows locked and never touches the saved Turf War length
-    const zMin = Math.round((ZONES.duration || 300) / 60);
-    const lenLock = h('div', { class: 'iw-lenlock' }, h('b', null, `${zMin}:00`), h('span', null, '+ OVERTIME'), h('em', null, 'ZONE CONTROL'));
-    const lenRow = h('div', { class: 'iw-setrow iw-setrow--stack' }, h('div', { class: 'iw-setrow__label' }, h('i', { html: GLYPHS.clock }), 'MATCH LENGTH'), lenSeg.el, lenLock);
-    const lenLocked = () => { this._sfx('ui_error', 0.15); restartAnim(lenLock, 'is-edge-r'); };
-    this._bind(lenRow, { id: 'length', type: 'row', adjust: (d) => (st.mode === 'zones' ? lenLocked() : lenSeg.adjust(d)), accept: () => (st.mode === 'zones' ? lenLocked() : lenSeg.cycle()) });
-    const matchPanel = this._panel('iw-ss__match iw-in iw-in--up', diffRow, dText, lenRow);
-
-    // ---- your weapon + your look + START
-    const lo = this._loadout();
-    const W = this._weapons()[lo.weapon];
-    const weaponChip = h('button', { class: 'iw-wchip iw-in' },
-      h('span', { class: 'iw-wchip__icon', html: weaponIcon(W.kind || lo.weapon) }),
-      h('span', { class: 'iw-wchip__text' }, h('small', null, 'WEAPON'), h('b', null, W.name)),
-      h('span', { class: 'iw-wchip__edit' }, h('i', { html: GLYPHS.pencil })));
-    this._fx(weaponChip);
-    this._bind(weaponChip, { id: 'weapon', accept: () => { this._sfx('ui_click'); this._go('loadout'); } });
-    const prof = this._profile();
-    const lookAv = h('span', { class: 'iw-lchip__av' }, h('span', { class: 'iw-lchip__blob', html: splatSVG({ seed: 17, cls: 'iw-fa', r: 62, arms: 8, drops: 0 }) }), h('span', { class: 'iw-lchip__squid', html: SQUID }));
-    const lookChip = h('button', { class: 'iw-wchip iw-lchip iw-in' }, lookAv,
-      h('span', { class: 'iw-wchip__text' }, h('small', null, 'SQUIDKID'), h('b', null, prof.name)),
-      h('span', { class: 'iw-wchip__edit' }, h('i', { html: GLYPHS.hanger })));
-    this._fx(lookChip);
-    this._bind(lookChip, { id: 'look', accept: () => { this._sfx('ui_click'); this._go('locker'); } });
-    this._portraitInto(lookAv, { kind: 'head', size: 128 });
-
-    const startSub = h('span');
-    const start = this._btn({ id: 'start', label: 'START!', icon: GLYPHS.play, cls: 'iw-btn--start iw-in iw-in--pop', sound: 'ui_confirm', accept: () => this._startMatch() });
-    start.querySelector('.iw-btn__text').appendChild(h('span', { class: 'iw-btn__sub' }, startSub));
-    start.append(h('span', { class: 'iw-start__charge' }, h('i')), h('span', { class: 'iw-start__ready' }, h('i', { html: GLYPHS.check }), 'READY'), h('span', { class: 'iw-start__chev' }, h('i'), h('i'), h('i')));
-    const updateStart = () => {
-      const m = byId(st.mapId);
-      // mode · stage · time (+ the length Turf War lets you pick; bot skill sits right beside it in its own panel)
-      startSub.textContent = `${t(MODE_INFO[st.mode].name)} · ${m ? t(m.name) : ''} · ${t(TIME_INFO[timeOf(st.mapId)].label)}${st.mode === 'zones' ? '' : ` · ${durLabel(st.duration)}`}`;
-      // long stage names: tighten the line a touch rather than cut it off
-      requestAnimationFrame(() => {
-        const box = startSub.parentElement;
-        if (!box || !box.isConnected) return;
-        box.classList.remove('is-tight');
-        if (box.scrollWidth > box.clientWidth + 1) box.classList.add('is-tight');
-      });
-    };
-
-    // ---- state changes
-    const renderTime = (anim) => {
-      const tod = timeOf(st.mapId);
-      tgl.dataset.time = tod; hero.dataset.time = tod; el.dataset.time = tod;
-      optDay.classList.toggle('is-on', tod === 'day'); optDusk.classList.toggle('is-on', tod === 'dusk');
-      timeText.textContent = t(TIME_INFO[tod].text);
-      if (anim) { restartAnim(tgl, 'is-flip'); restartAnim(timeText, 'is-in'); }
-      updateStart();
-    };
-    const renderStage = (anim) => {
-      const m = byId(st.mapId), i = maps.indexOf(m);
-      nameEl.innerHTML = t(m.name).split(' ').map((w, wi) => `<span class="iw-ss__word">${[...w].map((ch, k) => `<span style="--i:${wi * 4 + k}">${esc(ch)}</span>`).join('')}</span>`).join(' ');
-      blurbEl.textContent = t(m.blurb || '');
-      counter.innerHTML = `${t('STAGE')} <b>${String(i + 1).padStart(2, '0')}</b><em>/ ${String(maps.length).padStart(2, '0')}</em>`;
-      layoutMap.innerHTML = m.thumb || mapThumb(m, i + 2);
-      if (anim) { restartAnim(caption, 'is-in'); restartAnim(layoutEl, 'is-in'); restartAnim(counter, 'is-in'); }
-      renderTime(false);
-    };
-    const lockIn = () => {
-      this._sfx('ui_confirm');
-      restartAnim(start, 'is-recharge');
-      this._moveFocus(start, 'right');
-    };
-    const select = (id, how, fromEl) => {
-      const t = tickets.find((x) => x._mid === id);
-      if (st.mapId === id) {
-        if (how === 'lock') lockIn();
-        else if (how === 'click') { this._sfx('ui_click'); if (t) restartAnim(t, 'is-pick'); }
-        return;
-      }
-      st.mapId = id;
-      this._setSetting('lastStage', id);
-      tickets.forEach(refreshTicket);
-      if (t) { restartAnim(t, 'is-pick'); this._burstAt(t.querySelector('.iw-ticket__num'), { count: 9, dist: 4, size: 0.7 }); }
-      this._sfx('ui_toggle'); this._sfx('splat_small', 0.06);
-      renderStage(true);
-      showArt('stage', fromEl || t);
-      setBg();
-      restartAnim(start, 'is-recharge');
-      if (how === 'lock') lockIn();
-    };
-    const setTime = (id, time, src) => {
-      if (timeOf(id) === time) {
-        if (src === 'key' || src === 'tab') { this._sfx('ui_error', 0.15); restartAnim(tgl, time === 'day' ? 'is-edge-l' : 'is-edge-r'); }
-        return false;
-      }
-      st.times[id] = time;
-      this._setSetting('stageTimes', { ...st.times });
-      this._sfx('ui_toggle'); this._sfx(time === 'dusk' ? 'squid_in' : 'squid_out', 0.08);
-      const t = tickets.find((x) => x._mid === id);
-      if (t) { refreshTicket(t); restartAnim(t, 'is-timeflip'); }
-      if (id === st.mapId) { renderTime(true); showArt('time'); setBg(); }
-      return true;
-    };
-    this._bind(tgl, { id: 'time', type: 'row', accept: () => setTime(st.mapId, timeOf(st.mapId) === 'day' ? 'dusk' : 'day', 'toggle'), adjust: (d) => setTime(st.mapId, d < 0 ? 'day' : 'dusk', 'key') });
-    this._fx(tgl);
-    optDay.addEventListener('click', () => { this._setFocus(tgl); setTime(st.mapId, 'day', 'mouse'); });
-    optDusk.addEventListener('click', () => { this._setFocus(tgl); setTime(st.mapId, 'dusk', 'mouse'); });
-
-    const MI = MODE_INFO[st.mode];
-    const head = this._header(MI.label, { sub: boss ? `Pick a stage and the time of day · your squad of 8 vs ${BOSS_NAME}`
-      : st.mode === 'zones' ? 'Pick a stage and the time of day · 4 v 4 against bots · 5:00 + overtime' : 'Pick a stage and the time of day · 4 v 4 against bots' });
-    const el = h('div', { class: 'iw-screen iw-setup iw-ss' + (boss ? ' is-boss' : '') },
-      bg, h('div', { class: 'iw-ss__scrim' }),
-      head,
-      h('div', { class: 'iw-ss__left' }, h('div', { class: 'iw-seclabel iw-in' }, h('i', { html: GLYPHS.map }), 'STAGES'), listEl, matchPanel),
-      hero,
-      h('div', { class: 'iw-ss__foot' }, weaponChip, lookChip, start),
-      this._prompts([[['↑', '↓'], 'DPad', 'Stage'], [['←', '→'], null, 'Day · Dusk'], ['R', 'Y', 'Mode'], ['Enter', 'A', 'Select'], ['Esc', 'B', 'Back']]));
-    el.querySelector('.iw-prompts').children[1].querySelector('.iw-padg').innerHTML = padGlyph('LB') + padGlyph('RB');
-
-    // ---- the mode (picked on the mode screen): the locked Zone Control length, the START line
-    const renderMode = () => {
-      el.dataset.mode = st.mode;
-      lenRow.classList.toggle('is-locked', st.mode === 'zones');
-      updateStart();
-    };
-
-    // explicit focus graph (rows with ←/→ adjust would otherwise trap the pad in a column)
-    const selTicket = () => tickets.find((x) => x._mid === st.mapId) || tickets[0];
-    const graph = new Map();
-    tickets.forEach((t, i) => graph.set(t, { up: tickets[i - 1] || null, down: tickets[i + 1] || diffRow }));
-    const lenOrDiff = () => (st.mode === 'zones' ? diffRow : lenRow);
-    graph.set(tickets[0], { up: null, down: tickets[1] || diffRow });
-    graph.set(diffRow, { up: selTicket, down: () => (st.mode === 'zones' ? start : lenRow) });
-    graph.set(lenRow, { up: diffRow, down: start });
-    graph.set(tgl, { up: null, down: start });
-    graph.set(weaponChip, { up: tgl, down: null, left: lenOrDiff, right: lookChip });
-    graph.set(lookChip, { up: tgl, down: null, left: weaponChip, right: start });
-    graph.set(start, { up: tgl, down: null, left: lookChip, right: null });
-
-    tickets.forEach(refreshTicket);
-    renderStage(false);
-    renderMode();
-    showArt('instant');
-    setBg();
-    return {
-      el, initial: selTicket(),
-      onFocus: (f) => {
-        if (f._mid && this._navFocus) select(f._mid, 'nav', f);
-        if (f._mid && listEl.classList.contains('is-many')) f.scrollIntoView?.({ block: 'nearest', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
-      },
-      onNav: (dir) => {
-        if (dir === 'tab_prev' || dir === 'tab_next') { setTime(st.mapId, dir === 'tab_prev' ? 'day' : 'dusk', 'tab'); return true; }
-        if (dir === 'alt') { this._sfx('ui_back'); this._go('mode'); return true; }   // R / Y: back to the mode cards
-        return this._graphNav(graph, dir);
-      },
-      tick: (dt) => {
-        for (let i = tweens.length - 1; i >= 0; i--) {
-          const o = tweens[i];
-          o.t += dt;
-          if (o.t < 0) continue;
-          const k = clamp(o.t / o.dur);
-          safeCall(o.step, k);
-          if (k >= 1) { tweens.splice(i, 1); if (o.done) safeCall(o.done); }
-        }
-      },
-      destroy: () => { tweens.length = 0; },
-    };
-  }
-
-  _startMatch() {
-    if (this._starting) return;
-    this._starting = true;
-    const st = this._setup;
-    const time = this._stageTime(st.mapId);
-    const mode = modeOf(st.mode);
-    // Zone Control has a fixed length (main uses ZONES.duration) and never overwrites a saved length
-    const cfg = { mode, mapId: st.mapId, time, difficulty: st.difficulty, ...(mode === 'zones' ? {} : { duration: st.duration }) };
-    safeCall(() => this.api.setSettings && this.api.setSettings({ difficulty: st.difficulty, lastStage: st.mapId, lastMode: mode, stageTimes: { ...(st.times || {}) },
-      ...(mode === 'zones' ? {} : { [mode === 'boss' ? 'bossLength' : 'matchLength']: st.duration }) }));
-    if (this._scr) {
-      this._scr.el.classList.add('is-launch');
-      const b = this._scr.el.querySelector('.iw-btn--start');
-      this._burstAt(b, { count: 18, dist: 11, size: 1.4, ring: true });
-      this._burstAt(this._scr.el.querySelector('.iw-ss__frame'), { count: 14, dist: 16, size: 2.2 });
-      this._sfx('splat_big');
-    }
-    this._runWipe(() => {
-      this._starting = false;
-      safeCall(() => this.api.startMatch && this.api.startMatch(cfg));
-      if (this.current === 'setup') this.show(null, { instantLeave: true });
-    });
-  }
-
 
   /** Put a live 3D portrait of the player's squidkid into `host` (replacing its fallback squid glyph) when the
    *  showcase can render one (the UI lab can't → the glyph stays). */
@@ -1570,7 +1141,7 @@ export class Menus {
 
     const el = h('div', { class: 'iw-screen iw-locker' },
       h('div', { class: 'iw-scrim-left' }),
-      this._header('LOCKER', { sub: 'Choose your squidkid, then make it yours' }),
+      this._header('WARDROBE', { sub: 'Choose your gooblin, then make it yours' }),
       body, tag, spinHint,
       this._prompts([['Enter', 'A', 'Wear'], [['Q', 'E'], null, 'Tabs'], ['R', null, 'Shuffle'], ['Esc', 'B', 'Done']]));
     el.querySelector('.iw-prompts').children[1].querySelector('.iw-padg').innerHTML = padGlyph('LB') + padGlyph('RB');
@@ -1608,7 +1179,7 @@ export class Menus {
       tiles = [];
       const tab = tabs[tabIdx];
       for (const k of tab.sections) {
-        const sec = k === '_presets' ? { key: '_presets', title: 'CHOOSE YOUR SQUIDKID', count: presets.length, art: 'portrait', kind: 'bust', cause: 'preset' } : slots[k];
+        const sec = k === '_presets' ? { key: '_presets', title: 'CHOOSE YOUR GOOBLIN', count: presets.length, art: 'portrait', kind: 'bust', cause: 'preset' } : slots[k];
         const grid = h('div', { class: `iw-lgrid iw-lgrid--${sec.art === 'portrait' ? sec.kind : 'swatch'}`, style: { '--cols': cols(sec) } });
         for (let i = 0; i < sec.count; i++) { const t = makeTile(sec, i, tiles.length); tiles.push(t); grid.appendChild(t); }
         gridWrap.appendChild(h('section', { class: 'iw-lsec', style: { '--dir': dirSign } },
@@ -1646,7 +1217,7 @@ export class Menus {
     };
     const showInfo = (tl) => {
       const sec = tl._sec, i = tl._i;
-      infoSub.textContent = t(sec.key === '_presets' ? 'SQUIDKID' : sec.title);
+      infoSub.textContent = t(sec.key === '_presets' ? 'GOOBLIN' : sec.title);
       infoName.textContent = t(optName(sec, i));
       infoText.textContent = sec.key === '_presets' ? t(presets[i].blurb || '') : t('{n} of {m}', { n: i + 1, m: sec.count });
       info.classList.toggle('is-on', isOn(tl));
@@ -1884,31 +1455,12 @@ export class Menus {
     };
     render(equipped);
 
-    // practice: from the lobby it starts a solo session on a random stage; mid-practice it drops you back in (whatever
-    // you equip here is already in your hands)
-    const goPractice = () => {
-      if (this._starting) return;
-      if (inPractice) { this._resume(); return; }
-      this._starting = true;
-      this._burstAt(practiceBtn, { count: 16, dist: 10, size: 1.3, ring: true });
-      this._sfx('splat_big');
-      this._runWipe(() => {
-        this._starting = false;
-        safeCall(() => this.api.startPractice && this.api.startPractice());
-        if (this.current === 'loadout') this.show(null, { instantLeave: true });
-      });
-    };
-    const practiceBtn = this._btn({
-      id: 'practice', icon: GLYPHS.play, cls: 'iw-btn--menu iw-btn--primary iw-loadout__practice iw-in iw-in--down', sound: 'ui_confirm', tilt: -1.2,
-      label: inPractice ? 'BACK TO PRACTICE' : 'PRACTICE',
-      sub: inPractice ? 'Your picks are already equipped' : 'Try this loadout on a random stage',
-      accept: goPractice,
-    });
+    // (online-only build: no PRACTICE button; inPractice is only true for a session the engine's own hooks start)
     // ---- your squidkid (→ locker)
     const lookAv = h('span', { class: 'iw-lchip__av' }, h('span', { class: 'iw-lchip__blob', html: splatSVG({ seed: 17, cls: 'iw-fa', r: 62, arms: 8, drops: 0 }) }), h('span', { class: 'iw-lchip__squid', html: SQUID }));
     const lookChip = inPractice ? null : h('button', { class: 'iw-wchip iw-lchip iw-lchip--sm iw-in iw-in--down' }, lookAv,
-      h('span', { class: 'iw-wchip__text' }, h('small', null, 'SQUIDKID'), h('b', null, prof.name)),
-      h('span', { class: 'iw-wchip__edit' }, h('i', { html: GLYPHS.hanger }), 'LOCKER'));
+      h('span', { class: 'iw-wchip__text' }, h('small', null, 'GOOBLIN'), h('b', null, prof.name)),
+      h('span', { class: 'iw-wchip__edit' }, h('i', { html: GLYPHS.hanger }), 'WARDROBE'));
     if (lookChip) {
       this._fx(lookChip);
       this._bind(lookChip, { id: 'look', accept: () => { this._sfx('ui_click'); this._go('locker'); } });
@@ -1917,20 +1469,18 @@ export class Menus {
     const grid = h('div', { class: 'iw-wgrid' + (compact ? ' is-compact' : ''), style: { '--cols': cols } }, cards);
     const el = h('div', { class: 'iw-screen iw-loadout' },
       h('div', { class: 'iw-scrim-left' }),
-      this._header('LOADOUT', { sub: inPractice ? 'Swap weapons and subs mid-practice — changes apply straight away' : 'Pick your weapon, sub and special — your squidkid shows it off on the right' }),
-      practiceBtn,
+      this._header('LOADOUT', { sub: inPractice ? 'Swap weapons and subs mid-practice — changes apply straight away' : 'Pick your weapon, sub and special — your gooblin shows it off on the right' }),
       h('div', { class: 'iw-loadout__body' },
         h('div', { class: 'iw-seclabel iw-in' }, h('i', { html: WEAPON_ICONS.shooter }), 'WEAPON', h('span', { class: 'iw-seclabel__count' }, `${order.indexOf(equipped) + 1} / ${n}`)),
         grid,
         detail),
       lookChip ? h('div', { class: 'iw-loadout__look' }, lookChip) : null,
-      this._prompts(opts.quick ? [['Enter', 'A', 'Equip'], ['Esc', 'B', 'Resume']] : [['Enter', 'A', 'Equip'], ['P', 'Y', inPractice ? 'Resume' : 'Practice'], ['Esc', 'B', 'Back']]));
+      this._prompts(opts.quick ? [['Enter', 'A', 'Equip'], ['Esc', 'B', 'Resume']] : [['Enter', 'A', 'Equip'], ['Esc', 'B', 'Back']]));
     const countEl = el.querySelector('.iw-seclabel__count');
     let enterT = 0;
     return {
       el,
       initial: cards[order.indexOf(equipped)] || cards[0],
-      onNav: (dir) => { if (dir === 'alt') { this._sfx('ui_confirm'); this._press(practiceBtn); goPractice(); return true; } return false; },
       // opened straight from practice play (L / View): back goes back into the game
       onBack: opts.quick ? () => { if (performance.now() - this._shownAt > 200) this._resume(); } : undefined,
       onFocus: (f) => {
@@ -2338,7 +1888,7 @@ export class Menus {
       ['Move', null, K('W', 'A', 'S', 'D'), padGlyph('LS')],
       ['Aim', null, K('MOUSE'), padGlyph('RS')],
       ['Fire', null, K('LMB'), padGlyph('RT')],
-      ['Swim · squid form', 'hold', K('SHIFT'), padGlyph('LT')],
+      ['Swim · goo form', 'hold', K('SHIFT'), padGlyph('LT')],
       ['Jump', null, K('SPACE'), padGlyph('A')],
       ['Aim bomb · release to throw', 'hold', K('RMB', 'or', 'E'), padGlyph('RB')],
       ['Special', null, K('F', 'or', 'Q'), padGlyph('Y')],
@@ -2346,19 +1896,19 @@ export class Menus {
       ['Map', 'hold', K('TAB'), padGlyph('View')],
       ['Pause', null, K('ESC'), padGlyph('Start')],
     ];
-    const list = compact ? rows.filter((r) => ['Move', 'Fire', 'Swim · squid form', 'Jump', 'Aim bomb · release to throw', 'Special'].includes(r[0])) : rows;
+    const list = compact ? rows.filter((r) => ['Move', 'Fire', 'Swim · goo form', 'Jump', 'Aim bomb · release to throw', 'Special'].includes(r[0])) : rows;
     return h('div', { class: 'iw-ctl' + (compact ? ' iw-ctl--compact' : '') }, list.map(([act, hold, kb, pad]) =>
       h('div', { class: 'iw-ctl__row' },
-        h('span', { class: 'iw-ctl__act' }, compact ? act.replace(' · release to throw', '').replace(' · squid form', '') : act, hold ? h('em', null, hold) : null),
+        h('span', { class: 'iw-ctl__act' }, compact ? act.replace(' · release to throw', '').replace(' · goo form', '') : act, hold ? h('em', null, hold) : null),
         h('span', { class: 'iw-ctl__keys', html: mode === 'pad' ? pad : kb }))));
   }
 
   _scr_howto() {
     const rules = [
       ['turf', 'Ink the turf', 'Paint the ground in your team’s color. When time runs out, the team with the most turf wins.'],
-      ['swim', 'Swim to refill', 'Dive into your own ink as a squid to move fast, hide and refill your ink tank.'],
+      ['swim', 'Swim to refill', 'Dive into your own ink in goo form to move fast, hide and refill your ink tank.'],
       ['enemy', 'Avoid enemy ink', 'Enemy ink slows you down and hurts. Paint over it to take the ground back.'],
-      ['climb', 'Climb inked walls', 'Ink a wall, then swim straight up it as a squid to reach high ground.'],
+      ['climb', 'Climb inked walls', 'Ink a wall, then swim straight up it in goo form to reach high ground.'],
     ];
     const zoneRules = [
       ['take', 'Take the zone', 'Ink 80% of the live zone to take it. Ink 40% of a zone they hold to knock it back to neutral.'],
@@ -2426,13 +1976,13 @@ export class Menus {
     const roll = h('div', { class: 'iw-cred__roll' },
       h('div', { class: 'iw-cred__logo', html: logoMarkup(GAME_TITLE, GAME_SUBTITLE, 'md') }),
       h('p', { class: 'iw-cred__lead' }, 'An original 4 v 4 turf-war shooter.'),
-      sec('Original game', 'INKWAVE by Jayden Davis', h('p', { class: 'dim' }, 'MIT License · github.com/jaydendavisnc/inkwave')),
-      sec('Made with', 'Procedural everything — squidkids, weapons, stage, ink, music and sound are all generated in code.'),
+      sec('Original game', 'Based on INKWAVE by jaydendavisnc (MIT)', h('p', { class: 'dim' }, 'MIT License · github.com/jaydendavisnc/inkwave')),
+      sec('Made with', 'Procedural everything — gooblins, weapons, stage, ink, music and sound are all generated in code.'),
       sec('Rendering', 'three.js', h('p', { class: 'dim' }, 'by the three.js authors & contributors')),
       sec('Typography', 'Titan One — Font Diner', 'Rubik — Hubert & Fischer', h('p', { class: 'dim' }, 'SIL Open Font License')),
-      sec('Starring the squidkids', cast),
-      sec('Special thanks', 'Everyone who ever painted a wall', 'Every bot that got splatted in testing', 'And you, for playing'),
-      h('div', { class: 'iw-cred__end' }, h('div', { class: 'iw-cred__endsplat', html: splatSVG({ seed: 77, cls: 'iw-fa' }) }), h('span', { class: 'iw-display' }, 'STAY FRESH!')));
+      sec('Starring the gooblins', cast),
+      sec('Special thanks', 'Everyone who ever painted a wall', 'Every bot that got splurted in testing', 'And you, for playing'),
+      h('div', { class: 'iw-cred__end' }, h('div', { class: 'iw-cred__endsplat', html: splatSVG({ seed: 77, cls: 'iw-fa' }) }), h('span', { class: 'iw-display' }, 'STAY GOOEY!')));
     const viewport = h('div', { class: 'iw-cred__view' }, roll);
     const el = h('div', { class: 'iw-screen iw-credits' },
       h('div', { class: 'iw-scrim-full' }),
@@ -2538,6 +2088,21 @@ export class Menus {
     const st = { mode: 'idle', code: ['', '', '', '', ''], pick: [0, 0, 0, 0, 0], caret: 0, busy: false, token: 0, input: 'kbm', alive: true, errT: 0 };
     this._net(); // bind early (and install the mock) so state events reach us
 
+    // ---- QUICK PLAY: straight into the next public room (the relay's matchmaker picks it)
+    const quickStatus = h('span', { class: 'iw-hubcard__status' });
+    const quick = h('button', { class: 'iw-hubcard iw-hubcard--create iw-hubcard--quick iw-in iw-in--left', style: { '--tilt': '1.2deg' } },
+      h('span', { class: 'iw-hubcard__bg' }, h('span', { class: 'iw-hubcard__ink' })),
+      h('span', { class: 'iw-hubcard__blob', html: splatSVG({ seed: 53, cls: 'iw-fa', r: 58, arms: 9, drops: 2 }) }),
+      h('span', { class: 'iw-hubcard__icon' }, h('i', { html: GLYPHS.bolt }), h('b', { class: 'iw-hubcard__spin', html: SQUID })),
+      h('span', { class: 'iw-hubcard__text' },
+        h('span', { class: 'iw-hubcard__kicker iw-tape' }, h('i', { html: GLYPHS.users }), 'PUBLIC MATCH'),
+        h('span', { class: 'iw-hubcard__title' }, 'QUICK PLAY'),
+        h('span', { class: 'iw-hubcard__sub' }, 'Jump into the next open room, or a holders-only prize match. Starts on its own.'),
+        quickStatus),
+      h('span', { class: 'iw-hubcard__go' }, h('b', null, 'GO!'), this._hint('Enter', 'A')));
+    quick.dataset.cur = 'own';
+    this._fx(quick, { tilt: 5 });
+
     // ---- CREATE: a loud striped sticker in the ONLINE ink (the main menu's ONLINE button is --b too)
     const createStatus = h('span', { class: 'iw-hubcard__status' });
     const create = h('button', { class: 'iw-hubcard iw-hubcard--create iw-in iw-in--left', style: { '--tilt': '-1.6deg' } },
@@ -2545,9 +2110,9 @@ export class Menus {
       h('span', { class: 'iw-hubcard__blob', html: splatSVG({ seed: 71, cls: 'iw-fa', r: 58, arms: 9, drops: 2 }) }),
       h('span', { class: 'iw-hubcard__icon' }, h('i', { html: GLYPHS.flag }), h('b', { class: 'iw-hubcard__spin', html: SQUID })),
       h('span', { class: 'iw-hubcard__text' },
-        h('span', { class: 'iw-hubcard__kicker iw-tape' }, h('i', { html: GLYPHS.crown }), 'YOU HOST'),
+        h('span', { class: 'iw-hubcard__kicker iw-tape' }, h('i', { html: GLYPHS.crown }), 'PRIVATE · YOU HOST'),
         h('span', { class: 'iw-hubcard__title' }, 'CREATE A ROOM'),
-        h('span', { class: 'iw-hubcard__sub' }, 'Pick the stage, share the code, start when everyone’s ready.'),
+        h('span', { class: 'iw-hubcard__sub' }, 'Play with friends — pick the stage, share the code. No prizes.'),
         createStatus),
       h('span', { class: 'iw-hubcard__go' }, h('b', null, 'GO!'), this._hint('Enter', 'A')),
       h('span', { class: 'iw-hubcard__drips', html: dripsSVG([[46, 1.1], [120, 1.7], [168, 0.8], [300, 1.3], [352, 0.9]], 'iw-fhv') }));
@@ -2585,14 +2150,33 @@ export class Menus {
       h('div', { class: 'iw-join__foot' }, hintEl, jstat));
     join.dataset.cur = 'own';
     this._fx(join, { tilt: 0, press: false });
-    join.addEventListener('click', () => { if (st.mode === 'idle') enterEntry(firstEmpty()); });
+    join.addEventListener('click', () => { if (st.mode === 'idle') enterEntry(firstEmpty()); if (kb) kb.focus(); });
+    // phones: an invisible text field brings up the on-screen keyboard; its letters feed the 5 code boxes.
+    // A zero-width "sentinel" character stays in the field so Backspace is detectable on every mobile keyboard.
+    const kb = IS_TOUCH ? h('input', { class: 'iw-code__kb', type: 'text', autocapitalize: 'characters', autocomplete: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'go', 'aria-label': 'Room code' }) : null;
+    if (kb) {
+      const SENT = '\u200b';
+      kb.value = SENT;
+      kb.style.cssText = 'position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0;pointer-events:none;';
+      join.appendChild(kb);
+      kb.addEventListener('input', () => {
+        const v = kb.value;
+        if (!v.includes(SENT)) backspace();
+        for (const c of v.replace(SENT, '').toUpperCase()) if (/[A-Z0-9]/.test(c)) type(c);
+        kb.value = SENT;
+        try { kb.setSelectionRange(1, 1); } catch { /* ignore */ }
+      });
+      kb.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); kb.blur(); if (full()) doJoin(); } });
+      for (const b of boxes) b.addEventListener('click', () => kb.focus());
+    }
 
     // ---- how it works: three little stickers, comic-strip style
     const steps = h('div', { class: 'iw-hub__steps iw-in iw-in--up' },
       [['1', 'Create or join', GLYPHS.flag], ['2', 'Share the code', GLYPHS.copy], ['3', 'Ready up & ink!', GLYPHS.check]].map(([n, t, ic], i) =>
         h('div', { class: 'iw-hubstep', style: { '--tilt': `${[-2, 1.5, -1][i]}deg` } }, h('b', { html: splatSVG({ seed: 30 + i * 7, cls: 'iw-fa', r: 56, arms: 8, drops: 2 }) }, h('span', null, n)), h('i', { html: ic }), h('span', null, t))));
 
-    const body = h('div', { class: 'iw-hub__body' }, create, join, steps);
+    void steps;   // (the how-it-works strip made way for Quick Play)
+    const body = h('div', { class: 'iw-hub__body' }, quick, create, join);
 
     // ---- you: your splashtag (the name on it is editable) + weapon + look (the kid stands on the pedestal to the right)
     const nameRow = this._nameRow();
@@ -2615,13 +2199,13 @@ export class Menus {
     this._bind(wChip, { id: 'weapon', accept: () => { this._sfx('ui_click'); this._go('loadout'); } });
     const lookAv = h('span', { class: 'iw-lchip__av' }, h('span', { class: 'iw-lchip__blob', html: splatSVG({ seed: 17, cls: 'iw-fa', r: 62, arms: 8, drops: 0 }) }), h('span', { class: 'iw-lchip__squid', html: SQUID }));
     const lChip = h('button', { class: 'iw-wchip iw-lchip iw-hub__chip iw-in iw-in--right' }, lookAv,
-      h('span', { class: 'iw-wchip__text' }, h('small', null, 'LOOK'), h('b', null, 'Locker')),
+      h('span', { class: 'iw-wchip__text' }, h('small', null, 'LOOK'), h('b', null, 'Wardrobe')),
       h('span', { class: 'iw-wchip__edit' }, h('i', { html: GLYPHS.hanger })));
     this._fx(lChip);
     this._bind(lChip, { id: 'look', accept: () => { this._sfx('ui_click'); this._go('locker'); } });
     this._portraitInto(lookAv, { kind: 'head', size: 128 });
     const me = h('div', { class: 'iw-hub__me' },
-      h('div', { class: 'iw-hub__metag iw-in iw-in--down' }, h('span', { class: 'iw-hub__metaglbl iw-tape' }, 'YOUR SPLASHTAG'), stag),
+      h('div', { class: 'iw-hub__metag iw-in iw-in--down' }, h('span', { class: 'iw-hub__metaglbl iw-tape' }, 'YOUR GOO TAG'), stag),
       h('div', { class: 'iw-hub__chips' }, wChip, lChip));
 
     const promptsIdle = this._prompts([['Enter', 'A', 'Select'], ['Esc', 'B', 'Back']]);
@@ -2635,8 +2219,8 @@ export class Menus {
     promptsBusy.classList.add('is-busy');
     const el = h('div', { class: 'iw-screen iw-online' },
       h('div', { class: 'iw-scrim-left' }),
-      this._header('ONLINE', { sub: 'Private rooms · 4 v 4 · up to 8 squidkids' }),
-      body, me, promptsIdle, promptsEntry, promptsBusy);
+      this._header('ONLINE', { sub: 'Quick Play or private rooms · 4 v 4 · up to 8 gooblins' }),
+      body, me, promptsIdle, promptsEntry, promptsBusy, this._caChip('iw-ca--online'));
 
     // ---- code entry
     const firstEmpty = () => { const i = st.code.findIndex((c) => !c); return i < 0 ? 4 : i; };
@@ -2817,6 +2401,49 @@ export class Menus {
       }
     };
     this._bind(create, { id: 'create', accept: () => { if (st.mode !== 'idle' && !st.busy) setMode('idle'); doCreate(); } });
+    const doQuick = async (holders = false) => {
+      if (st.busy) return;
+      const net = this._net();
+      quick.classList.remove('is-err');
+      if (!net || !net.quickPlay) { quickStatus.textContent = t('Can’t reach the servers right now'); quick.classList.add('is-err'); this._sfx('ui_error'); return; }
+      st.busy = true;
+      const tok = ++st.token;
+      quick.classList.add('is-busy');
+      quickStatus.textContent = t(holders ? 'Check your wallet' : 'Finding a match');
+      el.classList.add('is-connecting');
+      try {
+        await net.quickPlay(this._profile().name, holders ? { holders: holderWallet } : {});
+        if (tok !== st.token || !st.alive) return;
+        st.busy = false;
+        this._sfx('splat_big');
+        this.show('lobby', { wipe: true });
+      } catch (e) {
+        if (tok !== st.token || !st.alive) return;
+        st.busy = false;
+        quick.classList.remove('is-busy');
+        el.classList.remove('is-connecting');
+        quick.classList.add('is-err');
+        const E = joinErrOf(e && (e.code || e.message));
+        quickStatus.textContent = t(E ? E.short : 'Couldn’t find a match');
+        restartAnim(quick, 'is-shake');
+        this._sfx('ui_error');
+      }
+    };
+    // Quick Play: open to everyone, or holders-only (every player proved they hold $SPLATR)
+    const pickQuick = () => {
+      if (st.busy) return;
+      if (st.mode !== 'idle') setMode('idle');
+      this._openModal({
+        title: 'QUICK PLAY',
+        text: t('Everyone: open lobbies — a prize is on when there’s a wallet holder on each team. Holders only: every player holds $SPLATR (sign with your wallet to get in), so every match is a prize match.'),
+        buttons: [
+          { label: 'EVERYONE', cls: 'iw-btn--primary', sound: 'ui_confirm', accept: () => { this._closeModal(true); doQuick(false); } },
+          { label: 'HOLDERS ONLY', sound: 'ui_confirm', accept: () => { this._closeModal(true); doQuick(true); } },
+          { label: 'BACK', accept: () => this._closeModal() },
+        ],
+      });
+    };
+    this._bind(quick, { id: 'quick', accept: pickQuick });
     this._bind(join, {
       id: 'join', accept: (src) => {
         if (st.mode === 'connecting') return;
@@ -2840,15 +2467,16 @@ export class Menus {
 
     // explicit focus graph: cards on the left, you on the right
     const graph = new Map();
-    graph.set(create, { down: join, up: null, right: () => nameRow });
+    graph.set(quick, { down: create, up: null, right: () => nameRow });
+    graph.set(create, { down: join, up: quick, right: () => nameRow });
     graph.set(join, { up: create, down: null, right: () => wChip });
     graph.set(wChip, { left: join, right: lChip, up: () => nameRow, down: null });
     graph.set(lChip, { left: wChip, right: null, up: () => nameRow, down: null });
-    graph.set(nameRow, { down: wChip, left: create, up: null, right: null });
+    graph.set(nameRow, { down: wChip, left: quick, up: null, right: null });
 
     return {
       el,
-      initial: create,
+      initial: quick,
       afterMount: () => {
         if (sc && sc.showHub) safeCall(() => sc.showHub(this._style(), (G.teamColors && G.teamColors[0]) || this._accent()[0], this._loadout().weapon));
       },
@@ -2946,7 +2574,7 @@ export class Menus {
     const pipsA = h('span', { class: 'iw-lob__pips is-a' }), pipsB = h('span', { class: 'iw-lob__pips is-b' });
     const statusTxt = h('span', { class: 'iw-lob__statustxt' });
     const status = h('div', { class: 'iw-lob__status iw-in iw-in--down' },
-      h('div', { class: 'iw-lob__count' }, h('small', { class: 'iw-lob__countlbl' }, 'SQUIDKIDS'), countEl, h('small', null, '/8')),
+      h('div', { class: 'iw-lob__count' }, h('small', { class: 'iw-lob__countlbl' }, 'GOOBLINS'), countEl, h('small', null, '/8')),
       h('div', { class: 'iw-lob__teams' },
         h('div', { class: 'iw-lob__tline is-a' }, h('span', { class: 'iw-lob__tl is-a' }, TEAM_LABEL[0]), pipsA),
         h('em', { class: 'iw-lob__vs', html: splatSVG({ seed: 5, fill: '#15121c', r: 52, arms: 8, drops: 2 }) }, h('b', null, 'VS')),
@@ -3005,8 +2633,8 @@ export class Menus {
     const diffLbl = rDiff.querySelector('.iw-lset__label');
     diffLbl.lastChild.textContent = '';   // label text lives in its own span so boss mode can rename it
     diffLbl.appendChild(h('span', { class: 'iw-lset__lbltxt' }, 'BOT SKILL'));
-    // MODE (Turf War | Zone Control | Boss Battle): the panel's headline is the switch — ◀ ▶ for the host, read-only for guests
-    const modeName = h('span', { class: 'iw-display iw-lob__modename' }, 'TURF WAR');
+    // MODE (Turf Riot | Zone Control | Boss Battle): the panel's headline is the switch — ◀ ▶ for the host, read-only for guests
+    const modeName = h('span', { class: 'iw-display iw-lob__modename' }, 'TURF RIOT');
     const modeIco = h('b', { html: GLYPHS.flag });
     const modeArrows = h('span', { class: 'iw-lob__modearrows' }, h('i', { class: 'is-l', html: GLYPHS.back }), h('i', { class: 'is-r', html: GLYPHS.next }));
     const rMode = h('div', { class: 'iw-lset iw-lset--mode' },
@@ -3016,11 +2644,12 @@ export class Menus {
     rMode._id = 'mode';
     modeArrows.children[0].addEventListener('click', (e) => { e.stopPropagation(); this._setFocus(rMode); setMode(-1); });
     modeArrows.children[1].addEventListener('click', (e) => { e.stopPropagation(); this._setFocus(rMode); setMode(1); });
-    const setRows = [rMode, rStage, rTime, rLen, rPal, rBots, rDiff];
+    // online-only build: no bot-skill picker (rooms play at 'normal'); rDiff is built but never shown
+    const setRows = [rMode, rStage, rTime, rLen, rPal, rBots];
     for (const r of setRows) r.dataset.curPad = '2';   // the rail is dense: a tight ring that never covers the next label
     const side = h('div', { class: 'iw-lob__side iw-in iw-in--left' },
       h('div', { class: 'iw-lob__sidehead' }, rMode, lock, hostChip),
-      h('div', { class: 'iw-lset__panel' }, rStage, rPair, rPal, rBots, rDiff,
+      h('div', { class: 'iw-lset__panel' }, rStage, rPair, rPal, rBots,
         h('span', { class: 'iw-lset__drips', html: dripsSVG([[40, 1.2], [92, 0.7], [250, 1.6], [330, 0.9]], 'iw-fa') })));
 
     // ---- your controls (bottom bar)
@@ -3029,7 +2658,7 @@ export class Menus {
     const wChip = h('button', { class: 'iw-wchip iw-lob__wchip' }, wIcon, h('span', { class: 'iw-wchip__text' }, h('small', null, 'WEAPON'), wName), h('span', { class: 'iw-wchip__edit' }, h('i', { html: GLYPHS.pencil })));
     this._fx(wChip);
     const lookAv = h('span', { class: 'iw-lchip__av' }, h('span', { class: 'iw-lchip__blob', html: splatSVG({ seed: 17, cls: 'iw-fa', r: 62, arms: 8, drops: 0 }) }), h('span', { class: 'iw-lchip__squid', html: SQUID }));
-    const lChip = h('button', { class: 'iw-wchip iw-lchip iw-lob__lchip', title: 'Locker' }, lookAv, h('span', { class: 'iw-lob__lbadge', html: GLYPHS.hanger }), h('small', { class: 'iw-lob__llbl' }, 'LOOK'));
+    const lChip = h('button', { class: 'iw-wchip iw-lchip iw-lob__lchip', title: 'Wardrobe' }, lookAv, h('span', { class: 'iw-lob__lbadge', html: GLYPHS.hanger }), h('small', { class: 'iw-lob__llbl' }, 'LOOK'));
     this._fx(lChip);
     this._portraitInto(lookAv, { kind: 'head', size: 128 });
     const teamSeg = this._seg([[0, h('span', { class: 'iw-teamopt is-a' }, h('i'), TEAM_LABEL[0])], ['auto', h('span', { class: 'iw-teamopt' }, h('i', { html: GLYPHS.rotate }), 'AUTO')], [1, h('span', { class: 'iw-teamopt is-b' }, h('i'), TEAM_LABEL[1])]], 'auto', (v) => requestTeam(v));
@@ -3180,6 +2809,7 @@ export class Menus {
     };
 
     const toggleReady = () => {
+      if (net && net.quick) return;   // Quick Play: no ready-ups, the countdown starts the match
       if (isHost()) { tryStart(); return; }
       const me = meP();
       if (!me || S.launching) return;
@@ -3192,6 +2822,7 @@ export class Menus {
       renderBar();
     };
     const tryStart = () => {
+      if (net && net.quick) { this.toast('Quick Play starts on its own when the countdown ends', { kind: 'info', icon: GLYPHS.clock }); return; }
       if (!isHost() || S.launching) return;
       if (!net.canStart()) {
         this._sfx('ui_error'); restartAnim(startBtn, 'is-shake');
@@ -3484,6 +3115,7 @@ export class Menus {
       if (wChip._wid !== wid) { wChip._wid = wid; wIcon.innerHTML = weaponIcon((W && W.kind) || wid); wName.textContent = W ? t(W.name) : wid; if (wChip._init) restartAnim(wChip, 'is-pick'); wChip._init = true; }
       const host = isHost();
       el.classList.toggle('is-host', host);
+      el.classList.toggle('is-quick', !!(net && net.quick));   // public room: no host settings, no START / READY
       const ready = !!(me && me.ready);
       readyBtn.classList.toggle('is-on', ready);
       readyBtn.querySelector('.iw-btn__label').textContent = t(ready ? 'READY!' : 'READY?');
@@ -3825,8 +3457,8 @@ export class Menus {
       { id: 'howto', label: 'HOW TO PLAY', icon: GLYPHS.question, cls: 'iw-btn--menu', accept: () => this._go('howto') },
       { id: 'quit', label: online ? 'LEAVE ROOM' : 'QUIT MATCH', icon: online ? GLYPHS.exit : GLYPHS.close, cls: 'iw-btn--menu iw-btn--danger', accept: () => this._openModal({
         title: online ? 'LEAVE ROOM?' : 'QUIT MATCH?', danger: true,
-        text: online ? 'You’ll leave the match and the room — a bot takes over your squidkid for the team.'
-          : zoneMode ? 'You will leave this Zone Control match and head back to the lobby. It will not count.' : 'You will leave this Turf War and head back to the lobby. Your turf will not count.',
+        text: online ? 'You’ll leave the match and the room — a bot takes over your gooblin for the team.'
+          : zoneMode ? 'You will leave this Zone Control match and head back to the lobby. It will not count.' : 'You will leave this Turf Riot and head back to the lobby. Your turf will not count.',
         buttons: [
           { label: 'KEEP PLAYING', accept: () => this._closeModal(), sound: null },
           { label: 'QUIT', cls: 'iw-btn--danger', sound: 'ui_confirm', accept: () => {
@@ -3881,7 +3513,7 @@ export class Menus {
       const n = h('span', { class: `iw-pstat ${cls}` }, h('i', { html: icon }), b, h('small', null, label));
       return { el: n, b };
     };
-    const sTurf = stat('iw-pstat--turf', GLYPHS.drop, 'TURF'), sSplat = stat('', SPLAT_ICON, 'SPLATS'), sDeath = stat('', DEATH_ICON, 'SPLATTED'), sSp = stat('iw-pstat--sp', specialIcon((G.local && G.local.specialId) || (this._weapons()[selfP.weapon] || {}).special), 'SPECIAL');
+    const sTurf = stat('iw-pstat--turf', GLYPHS.drop, 'TURF'), sSplat = stat('', SPLAT_ICON, 'SPLURTS'), sDeath = stat('', DEATH_ICON, 'SPLURTED'), sSp = stat('iw-pstat--sp', specialIcon((G.local && G.local.specialId) || (this._weapons()[selfP.weapon] || {}).special), 'SPECIAL');
     const you = h('div', { class: 'iw-pyou' },
       h('span', { class: 'iw-pyou__av', html: SQUID }),
       h('div', { class: 'iw-pyou__id' }, h('small', null, 'YOUR MATCH'), h('b', null, selfP.name || 'You')),
@@ -3906,8 +3538,8 @@ export class Menus {
     const matchPanel = this._panel('iw-pmatch iw-panel--flat iw-in iw-in--right',
       h('div', { class: 'iw-pmatch__top' },
         h('div', { class: 'iw-pmatch__info' },
-          h('div', { class: 'iw-pmatch__mode' }, h('span', { class: 'iw-pmatch__tag' }, zoneMode ? 'ZONE CONTROL' : 'TURF WAR'), diff ? h('span', { class: 'iw-pmatch__diff' }, h('i', { html: GLYPHS.bot }), t('{n} bots', { n: t(diff.name) })) : null),
-          h('div', { class: 'iw-pmatch__map' }, h('i', { html: GLYPHS.map }), snap.map || (zoneMode ? 'Zone Control' : 'Turf War'))),
+          h('div', { class: 'iw-pmatch__mode' }, h('span', { class: 'iw-pmatch__tag' }, zoneMode ? 'ZONE CONTROL' : 'TURF RIOT'), diff ? h('span', { class: 'iw-pmatch__diff' }, h('i', { html: GLYPHS.bot }), t('{n} bots', { n: t(diff.name) })) : null),
+          h('div', { class: 'iw-pmatch__map' }, h('i', { html: GLYPHS.map }), snap.map || (zoneMode ? 'Zone Control' : 'Turf Riot'))),
         clock),
       zoneStrip, you, teams, ctlWrap);
     colorVars(matchPanel, 'ta', snap.colors[0]);
@@ -4039,7 +3671,7 @@ export class Menus {
     const selfTeam = self ? self.team : 0;
     const winTeam = win ? selfTeam : 1 - selfTeam;
     const reduced = prefersReducedMotion();
-    // Zone Control: final countdowns + how it was decided (the coverage-margin tags are a Turf War thing)
+    // Zone Control: final countdowns + how it was decided (the coverage-margin tags are a Turf Riot thing)
     const zd = d.mode === 'zones' && d.zones ? d.zones : null;
     const resMode = boss ? 'boss' : zd ? 'zones' : 'turf';
     if (zd) {
@@ -4141,8 +3773,8 @@ export class Menus {
         h('div', { class: 'iw-ttable__head iw-in' },
           h('span', { class: 'iw-ttable__team' }, h('i', { class: 'iw-ttable__dot' }), names[team] || TEAM_NAMES[team], isWin ? h('em', { class: 'iw-ttable__win' }, h('i', { html: GLYPHS.crown }), 'WIN') : null),
           h('span', { class: 'iw-ttable__col', title: 'Turf inked' }, h('i', { html: GLYPHS.drop }), 'TURF'),
-          h('span', { class: 'iw-ttable__col', title: 'Splats' }, h('i', { html: SPLAT_ICON })),
-          h('span', { class: 'iw-ttable__col', title: 'Times splatted' }, h('i', { html: DEATH_ICON }))),
+          h('span', { class: 'iw-ttable__col', title: 'Splurts' }, h('i', { html: SPLAT_ICON })),
+          h('span', { class: 'iw-ttable__col', title: 'Times splurted' }, h('i', { html: DEATH_ICON }))),
         rows.map((p, ri) => {
           const turfNum = h('b', null, '0');
           const turfBar = h('i', { class: 'iw-prow__turfbar' });
@@ -4168,7 +3800,7 @@ export class Menus {
         h('div', { class: 'iw-ttable__head iw-in' },
           h('span', { class: 'iw-ttable__team' }, h('i', { class: 'iw-ttable__dot' }), start ? 'SQUAD · 5–8' : 'SQUAD · TOP 4', !start && win ? h('em', { class: 'iw-ttable__win' }, h('i', { html: GLYPHS.crown }), 'SUNK IT') : null),
           h('span', { class: 'iw-ttable__col', title: 'Damage to the boss' }, h('i', { html: awardIcon('pow') }), 'DAMAGE'),
-          colIco(awardIcon('crit'), 'Weak-point hits'), colIco(SPLAT_ICON, 'Splats (crablets)'), colIco(DEATH_ICON, 'Times splatted'),
+          colIco(awardIcon('crit'), 'Weak-point hits'), colIco(SPLAT_ICON, 'Splurts (crablets)'), colIco(DEATH_ICON, 'Times splurted'),
           h('span', { class: 'iw-ttable__col', title: 'Turf inked' }, h('i', { html: GLYPHS.drop }), 'TURF')),
         rows.map((p, ri) => {
           const dmgNum = h('b', null, '0');
@@ -4211,7 +3843,7 @@ export class Menus {
         bd.push([win ? 'WIN BONUS' : 'MATCH', base]);
         if (dx) bd.push(['DAMAGE', dx]);
         bd.push([`TURF`, tx]);
-        if (sx) bd.push(['SPLATS', sx]);
+        if (sx) bd.push(['SPLURTS', sx]);
       }
     }
     let acc = 0;

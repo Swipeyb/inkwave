@@ -299,7 +299,7 @@ export class BotBrain {
     this.strikes = 0; this.strikeT = 0; this.wiggleT = 0; this.wiggleYaw = 0; this.airStill = 0;
     this.dispT = 0; this.moveAcc = 0; this.snap = new THREE.Vector3(); this.paintYawOff = 0; this.paintScanT = 0; this.goalCheckT = 0;
     this.climbT = 0; this.noClimbUntil = 0; this._climbAim = null;
-    // Zone Control (unused in Turf War): role + zone from the team plan, the hold timer at a guard / watch spot, and
+    // Zone Control (unused in Turf Riot): role + zone from the team plan, the hold timer at a guard / watch spot, and
     // the needy patch of the zone being aimed at
     this.zRole = null; this.zZone = -1; this.zHoldUntil = 0; this.zHoldDur = 0; this._zAct = null; this.zAimT = 0; this._zAim = null; this.zFail = 0; this.zFace = 0; this.zJumpAt = 0; this.zBomb = null; this.zBombScan = 0;
     // threats (enemy Waddles / Torpedoes hunting us, enemy canopies): the device being dealt with, when each one was
@@ -352,7 +352,7 @@ export class BotBrain {
     const tgt = this.target;
     if (tgt && !tgt.alive) { this.target = null; }
 
-    // ---------------- Zone Control: the team plan (null in Turf War); re-target at once on a rotation or a new role
+    // ---------------- Zone Control: the team plan (null in Turf Riot); re-target at once on a rotation or a new role
     const zp = zonePlan();
     if (zp) this._zoneSync(zp);
 
@@ -372,7 +372,7 @@ export class BotBrain {
     }
     if (this.mode === 'refill' && inkFrac >= this.refillUntil) this.mode = 'paint';
     if (zp) {
-      // the objective first: only take fights that are in range or on / by the zone (pushers fight like Turf War)
+      // the objective first: only take fights that are in range or on / by the zone (pushers fight like Turf Riot)
       if (this.mode !== 'refill' && this.mode !== 'retreat') {
         const m = this.target && this._zoneEngage(zp) ? 'fight' : 'paint';
         if (m === 'paint' && this.mode === 'fight') { this.goalTimer = 0; this.zHoldUntil = 0; }   // back to the zone
@@ -427,7 +427,9 @@ export class BotBrain {
       // lead the target by the projectile's time to arrive (slosher: the heave windup + a slower, longer arc)
       const lead = w.kind === 'charger' ? 0 : w.kind === 'slosher' ? (w.windup || 0.13) + dist / ((w.projSpeed || 15) * 0.88)
         : dist / (w.projSpeed || w.speedMax || w.throwSpeed || 30);
-      _v.set(t.pos.x + t.vel.x * lead, t.pos.y + (t.smoothY || 0) + (t.form === 'squid' ? 0.3 : 0.85), t.pos.z + t.vel.z * lead);
+      // humans under-lead a moving target: each engagement gets its own lead skill (DIFFICULTY.leadMin..1.05)
+      const lk = lead * (this.leadK ?? 0.85);
+      _v.set(t.pos.x + t.vel.x * lk, t.pos.y + (t.smoothY || 0) + (t.form === 'squid' ? 0.3 : 0.85), t.pos.z + t.vel.z * lk);
       _v2.copy(_v); _v2.x -= a.pos.x; _v2.y -= a.pos.y + 1.1; _v2.z -= a.pos.z;
       idealYaw = Math.atan2(_v2.x, _v2.z);
       idealPitch = Math.atan2(_v2.y, Math.hypot(_v2.x, _v2.z));
@@ -436,8 +438,10 @@ export class BotBrain {
       const e = this.diff.aimError;
       const acq = Math.exp(-this.acqT / Math.max(0.12, this.diff.reaction * 0.9));
       const wander = (x) => Math.sin(x) * 0.6 + Math.sin(x * 2.27 + 1.3) * 0.4;
-      wantYaw = idealYaw + e * (0.75 * wander(this.t * 1.7 + this.ph1) + 2.4 * acq * this.acqSignY);
-      wantPitch = idealPitch + e * 0.6 * (0.75 * wander(this.t * 2.1 + this.ph2) + 1.6 * acq * this.acqSignP);
+      // a target that strafes fast is harder to track: up to +120 % aim wobble at full run speed
+      const tSpd = Math.hypot(t.vel.x, t.vel.z), wob = 1 + Math.min(1.2, tSpd / 6) * (this.diff.moveMiss ?? 1);
+      wantYaw = idealYaw + e * (0.75 * wob * wander(this.t * 1.7 + this.ph1) + 2.4 * acq * this.acqSignY);
+      wantPitch = idealPitch + e * 0.6 * (0.75 * wob * wander(this.t * 2.1 + this.ph2) + 1.6 * acq * this.acqSignP);
       if (this.mode === 'fight') {
         // movement in combat: keep preferred distance + eased strafing (+ swim in to close distance)
         const pref = w.kind === 'charger' ? range * 0.8 : MELEE[w.kind] ? 0.5 : range * 0.7;
@@ -1641,7 +1645,7 @@ export class BotBrain {
       if (best !== this.target) {
         this.target = best; this.react = this.diff.reaction * (0.7 + Math.random() * 0.6); this.repath = 0;
         // first look lands a little off (over- or under-shoot) and settles — like a human flick
-        this.acqT = 0; this.acqSignY = (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.5); this.acqSignP = (Math.random() - 0.5) * 1.2;
+        this.acqT = 0; this.acqSignY = (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.5); this.acqSignP = (Math.random() - 0.5) * 1.2; this.leadK = (this.diff.leadMin ?? 0.6) + Math.random() * (1.05 - (this.diff.leadMin ?? 0.6));
       }
       this.seeTimer = 1.2;
       this.lostTimer = 0;
@@ -2016,7 +2020,7 @@ export class BotBrain {
     const prev = this.bTgt;
     if (T && (!prev || (prev.shape || prev.crab) !== (T.shape || T.crab))) {
       this.react = this.diff.reaction * (0.6 + Math.random() * 0.5);
-      this.acqT = 0; this.acqSignY = (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.5); this.acqSignP = (Math.random() - 0.5) * 1.2;
+      this.acqT = 0; this.acqSignY = (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.5); this.acqSignP = (Math.random() - 0.5) * 1.2; this.leadK = (this.diff.leadMin ?? 0.6) + Math.random() * (1.05 - (this.diff.leadMin ?? 0.6));
     }
     this.bTgt = T;
   }
