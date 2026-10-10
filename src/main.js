@@ -1100,6 +1100,8 @@ class Game {
     // online: the host brings the room back to the lobby once everyone has seen the results
     if (G.netm) {
       if (G.net.isHost) this._netEndT = setTimeout(() => { G.netm?.sendEnd(); this.netMatchEnd(); }, 12000);
+      // everyone else waits for the host's "back to the room" — but never forever (host asleep or gone)
+      else this._netEndT = setTimeout(() => { if (this.match?.state === 'results') this.netMatchEnd(); }, 20000);
     }
   }
 

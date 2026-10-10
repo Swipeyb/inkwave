@@ -216,6 +216,17 @@ export class Match {
         if (this.stateT > (this.bossMode ? (this.bossMode.boss.dead ? BOSS_MODE.finishWin : BOSS_MODE.finishLose) : 2.6) && !this.follower && !this.result) this._judge();
         break;
     }
+    // online safety net: the host calls time and sends the result, but if the host's tab is asleep (phone locked,
+    // tabbed out) or its message got lost, nobody would ever see the results. After a few seconds at 0:00 with no
+    // word from the host, judge locally from the (shared) paint.
+    if (this.follower && !this.result && !this.attract && this.time <= 0 && (this.state === 'playing' || this.state === 'finish') && !this.bossMode) {
+      this._stallT = (this._stallT || 0) + dt;
+      if (this._stallT > (this.zones?.overtime ? 45 : 7)) {
+        if (this.state === 'playing') this.setState('finish');
+        this._judge();
+        G.net?.reportPrizeResult?.(this.result.winner);
+      }
+    } else this._stallT = 0;
     // actors (the local controller runs once per rendered frame via updateController)
     const live = this.state === 'playing';
     for (const a of this.actors) {

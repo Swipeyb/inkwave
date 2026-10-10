@@ -657,6 +657,7 @@ export class NetMatch {
   _result(d) {
     const m = this.match;
     if (!m || this.isHost) return;
+    if (m.result && (m.state === 'judge' || m.state === 'results')) return;   // already judged locally (host was late)
     for (const [nid, turf, splats, deaths, bossDmg, weakHits] of d.st || []) { const a = this.byNid.get(nid); if (a) { a.stats.turf = turf; a.stats.splats = splats; a.stats.deaths = deaths; if (bossDmg !== undefined) { a.stats.bossDmg = bossDmg; a.stats.weakHits = weakHits; } } }
     if (d.mode !== 'boss') m.time = 0;   // (a boss win stops the clock where it was)
     m.result = d.mode === 'boss' ? { mode: 'boss', coverage: d.cov, winner: d.win, boss: d.bo }
