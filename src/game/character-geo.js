@@ -1138,6 +1138,12 @@ export const HAT_KINDS = [
     lift: (az, el) => 0.006 + 0.013 * Math.max(0, -Math.cos(az)) * sstep(0.3, 1.1, el) * (1 - 0.5 * sstep(1.2, 1.57, el)),
     shape: () => 0,
   },
+  { // goo hood: a glossy team-colour hood whose crown rises into a tall tip that curls back (the gooblin look)
+    name: 'goo', cls: 5, team: true, col: [-1, 1.0], thick: 0.011, exitMax: 0.052, flare: 0.01, rows: [0, 0.03, 0.09, 0.17, 0.25, 0.32], crown: 7,
+    rim: rimTable([[0, 0.6], [0.6, 0.55], [1.2, 0.38], [1.6, 0.24], [2.3, 0.02], [Math.PI, -0.08]]),
+    lift: (az, el) => 0.009 + 0.016 * Math.max(0, -Math.cos(az)) * sstep(0.3, 1.1, el) * (1 - 0.5 * sstep(1.2, 1.57, el)),
+    shape: (az, e) => 0.004 * sstep(-0.01, 0.02, e) * (1 - sstep(0.03, 0.06, e)),   // a soft rolled rim
+  },
 ];
 
 /** Classify every strand against a dome hat and build the clearance field the hat's inner surface follows. */
@@ -1238,7 +1244,8 @@ function buildHat(B, hat, ctx, D = null) {
   const pole = at(0, Math.PI / 2, offIn(0, Math.PI / 2) + T);
   const dome = gridGeo(rows, { wrapU: true, poles: { end: pole }, outward: HEAD_C, uv: (i, j) => [i / nA, rowV[j]], poleUv: { end: [0.5, 1.4] } });
   const tint = -2 - hat.cls;
-  if (hat.rgb) B.add(dome, { ex: GEAR.fabric, uv: true, color: new THREE.Color(...hat.rgb), bone: 'head' });
+  if (hat.team) B.add(dome, { ex: GEAR.plastic, uv: true, color: gcol(-1, 1.0), bone: 'head' });
+  else if (hat.rgb) B.add(dome, { ex: GEAR.fabric, uv: true, color: new THREE.Color(...hat.rgb), bone: 'head' });
   else B.add(dome, { ex: tint, uv: true, color: gcol(hat.col[0], hat.col[1]), bone: 'head' });
   const n = new V3(), p = new V3();
   if (hat.name === 'cap') {
@@ -1285,6 +1292,12 @@ function buildHat(B, hat, ctx, D = null) {
     const pom = superEllipsoid(0.03, 0.027, 0.03, 1, 1, 14, 10, (q) => { const k = 1 + 0.09 * Math.sin(q.x * 420) * Math.sin(q.y * 390 + 1.3) * Math.sin(q.z * 410 + 2.1); q.multiplyScalar(k); });
     at(0, 1.5, offIn(0, 1.5) + T + 0.018, p); pom.translate(p.x, p.y, p.z - 0.004);
     B.add(pom, { ex: GEAR.fabric, color: gcol(-1, 1.08), bone: 'head' });
+  } else if (hat.name === 'goo') {
+    // the tip: a fat cone rising from the crown, leaning back and curling over at the end
+    const top = at(0, Math.PI / 2, offIn(0, Math.PI / 2) + T * 0.4, new V3());
+    const pts = [[0, -0.01, 0.02], [0, 0.05, -0.02], [0, 0.1, -0.07], [0, 0.125, -0.13], [0, 0.11, -0.18], [0, 0.075, -0.2]].map(([x, y, z]) => top.clone().add(new V3(x, y, z)));
+    const tip = sweep(pts, { seg: far ? 8 : 24, radial: far ? 6 : 16, capSteps: 3, radius: (t) => lerp(0.085, 0.008, Math.pow(t, 0.75)), flat: 1, transport: true, outward: (P, o) => o.set(0, 1, 0) });
+    B.add(tip.geo, { bone: 'head', ex: GEAR.plastic, color: gcol(-1, 1.0) });
   } else if (hat.name === 'frog') {
     // two big eyes sitting on the crown, looking forward: white ball, dark pupil, a glint
     for (const sgn of [-1, 1]) {
@@ -1591,7 +1604,40 @@ export const BROW_KINDS = [
   { name: 'straight', el: (t) => BROW.el + 0.022 + 0.004 * Math.sin(Math.PI * t), r: (t) => 0.0104 * (0.82 + 0.18 * Math.sin(Math.PI * (0.1 + 0.8 * t))), az1: BROW.az1 - 0.05 },
 ];
 
-function buildHair(styleIdx, hatIdx = 0, browIdx = 0, lod = 'hero') {
+/** Goblin goggles: chunky round frames (dark rubber inside, team-colour bezel) round each eye, a nose bridge and a
+ *  strap from each frame back toward the ears. Open frames (no glass), so the eyes and their animation show through. */
+function buildGoggles(B, D) {
+  const far = D.lod === 'far', n = new V3(), up = new V3(0, 1, 0);
+  const R = 0.06, TUBE = 0.0125, OFF = 0.026;
+  const ctr = [];
+  for (const sx of [1, -1]) {
+    const az = sx * EYE.az, el = EYE.el + 0.01;
+    const c = headSurf(az, el, OFF, new V3(), n);
+    ctr.push(c.clone());
+    const X = new V3().crossVectors(up, n).normalize(), Y = new V3().crossVectors(n, X).normalize();
+    const outer = torus(R, TUBE, far ? 5 : 10, far ? 16 : 40);
+    outer.scale(1, 0.9, 1.25);
+    placeBasis(outer, X, Y, c);
+    B.add(outer, { bone: 'head', ex: GEAR.metal, color: new THREE.Color(0.2, 0.21, 0.24) });
+    const inner = torus(R - TUBE * 0.9, TUBE * 0.55, far ? 4 : 8, far ? 14 : 36);
+    inner.scale(1, 0.9, 1);
+    placeBasis(inner, X, Y, c.clone().addScaledVector(n, -0.004));
+    B.add(inner, { bone: 'head', ex: GEAR.plastic, color: gcol(-1, 0.9) });
+    // strap: from the frame's outer edge round the side of the head
+    const pts = [];
+    for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push(headSurf(sx * lerp(EYE.az + 0.3, 1.32, t), lerp(el + 0.01, 0.13, t), lerp(OFF * 0.75, 0.007, t), new V3()).clone()); }
+    const st = sweep(pts, { seg: far ? 6 : 16, radial: far ? 4 : 8, capSteps: 2, radius: () => 0.012, flat: 0.32, outward: (P, o) => o.copy(P).sub(HEAD_C).normalize() });
+    B.add(st.geo, { bone: 'head', ex: GEAR.rubber, color: new THREE.Color(0.1, 0.1, 0.12) });
+  }
+  // bridge over the nose
+  const mid = headSurf(0, EYE.el + 0.035, OFF + 0.004, new V3(), n);
+  const bridge = superEllipsoid(0.034, 0.009, 0.01, 0.6, 0.8, far ? 8 : 14, far ? 4 : 8);
+  const X = new V3().crossVectors(up, n).normalize();
+  placeBasis(bridge, X, new V3().crossVectors(n, X), mid);
+  B.add(bridge, { bone: 'head', ex: GEAR.plastic, color: new THREE.Color(0.08, 0.08, 0.09) });
+}
+
+function buildHair(styleIdx, hatIdx = 0, browIdx = 0, lod = 'hero', faceIdx = 0) {
   const style = STYLES[styleIdx % STYLES.length];
   const hat = HAT_KINDS[hatIdx] || HAT_KINDS[0];
   const D = hairDetail(lod);
@@ -1623,6 +1669,8 @@ function buildHair(styleIdx, hatIdx = 0, browIdx = 0, lod = 'hero') {
     const st = sweep(pts, { seg: D.brow[0], radial: D.brow[1], capSteps: 3, radius: bk.r, flat: 0.5, outward: (P, o) => o.copy(P).sub(HEAD_C).normalize() });
     B.add(st.geo, { bone: 'brow' + s, ex: -0.62, color: _c.setRGB(0, 0, 0), v3: [0.004, 0, 1] });
   }
+  // ---- goblin goggles (style.face 1): two chunky round frames round the eyes, a bridge, straps back to the ears
+  if (faceIdx === 1) buildGoggles(B, D);
   const strandInfo = []; let bi = 0; // strandInfo is indexed by the style's strand index (null = dropped under the hat)
   for (const sp of specs) {
     const cut = hatCtx ? hatCtx.cut[sp.si] : { keep: true, tExit: 0 };
@@ -1779,14 +1827,14 @@ export function getKidShared(lod = 'hero') {
  */
 const wrapN = (v, n) => ((Math.round(+v || 0) % n) + n) % n;
 function hairKey(st) {
-  if (st && typeof st === 'object') return { hair: wrapN(st.hair, STYLES.length), hat: wrapN(st.hat, HAT_KINDS.length), brows: wrapN(st.brows, BROW_KINDS.length) };
-  return { hair: wrapN(st, STYLES.length), hat: 0, brows: 0 };
+  if (st && typeof st === 'object') return { hair: wrapN(st.hair, STYLES.length), hat: wrapN(st.hat, HAT_KINDS.length), brows: wrapN(st.brows, BROW_KINDS.length), face: wrapN(st.face, 2) };
+  return { hair: wrapN(st, STYLES.length), hat: 0, brows: 0, face: 0 };
 }
-const keyStr = (k) => `${k.hair}.${k.hat}.${k.brows}`;
+const keyStr = (k) => `${k.hair}.${k.hat}.${k.brows}.${k.face}`;
 /** Hair mesh of a style at a LOD tier ('hero' | 'game' | 'far'; resolution also follows the settings quality). */
 export function getHairStyle(st, lod = 'hero') {
   const k = hairKey(st), ks = `${keyStr(k)}.${lod}.${hairQuality()}`;
-  if (!_hair.has(ks)) _hair.set(ks, buildHair(k.hair, k.hat, k.brows, lod));
+  if (!_hair.has(ks)) _hair.set(ks, buildHair(k.hair, k.hat, k.brows, lod, k.face));
   return _hair.get(ks);
 }
 export function getRestPositions(st) {

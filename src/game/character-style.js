@@ -20,8 +20,18 @@ export const SKIN_TONES = [
   '#c29a72', // 6 olive, green-gold undertone
   '#8f5a3a', // 7 chestnut, warm red undertone
   '#4a2c20', // 8 ebony, deep cool undertone
+  // gooblin greens (goblin look)
+  '#86c25a', // 9 lime gooblin
+  '#5f9d48', // 10 moss gooblin
+  '#a7d47a', // 11 pea gooblin
+  '#4f8f6e', // 12 teal gooblin
 ];
-export const SKIN_NAMES = ['Rosy', 'Peach', 'Tan', 'Cocoa', 'Porcelain', 'Honey', 'Olive', 'Chestnut', 'Ebony'];
+export const SKIN_NAMES = ['Rosy', 'Peach', 'Tan', 'Cocoa', 'Porcelain', 'Honey', 'Olive', 'Chestnut', 'Ebony', 'Lime Gooblin', 'Moss Gooblin', 'Pea Gooblin', 'Teal Gooblin'];
+export const GOBLIN_SKINS = [9, 10, 11, 12];
+
+// ---- face gear (optional, `face`): 0 = classic eye mask, 1 = goblin goggles (built into the hair mesh, mask hidden)
+export const FACES = ['mask', 'goggles'];
+export const FACE_NAMES = ['Eye Mask', 'Goggles'];
 
 // ---- outfits: tee cut, graphic language (pattern → cloth shader), coordinated colourway. Base colours stay in the
 // neutral / earth family so every team ink (orange, cobalt, pink, mint, lemon, grape, aqua, cherry, lime, magenta)
@@ -60,8 +70,8 @@ export const HAIR_STYLES = HAIR_STYLE_NAMES.length;
 // ---- headgear (optional, `hat`): built into the hair mesh by character-geo.js (HAT_KINDS, same order). Every style's
 // tentacles are re-rooted under the rim so nothing clips; styles whose shape sits on top switch to a hat variant
 // (low ponytail, low bun, lower twin ties, back flicks). 0 = none.
-export const HATS = ['none', 'cap', 'beanie', 'bucket', 'frog', 'cat', 'shiba'];
-export const HAT_NAMES = ['None', 'Snapback', 'Beanie', 'Bucket Hat', 'Frog Hood', 'Cat Ears', 'Shiba Hood'];
+export const HATS = ['none', 'cap', 'beanie', 'bucket', 'frog', 'cat', 'shiba', 'goo'];
+export const HAT_NAMES = ['None', 'Snapback', 'Beanie', 'Bucket Hat', 'Frog Hood', 'Cat Ears', 'Shiba Hood', 'Goo Hood'];
 
 // ---- brows (optional, `brows`): shape of the painted-ink brow strokes. 0 = classic.
 export const BROWS = ['classic', 'bold', 'arched', 'straight'];
@@ -82,6 +92,7 @@ export const PRESETS = [
   { id: 'croak', name: 'Croak', blurb: 'Frog hood, zero thoughts, maximum splat.', style: { hair: 0, skin: 2, outfit: 6, eyes: 4, hat: 4, brows: 3 } },
   { id: 'whiskers', name: 'Whiskers', blurb: 'Cat ears up. Knocks your stuff off the ledge.', style: { hair: 3, skin: 4, outfit: 4, eyes: 6, hat: 5, brows: 2 } },
   { id: 'shibo', name: 'Shibo', blurb: 'Such hood. Very splat.', style: { hair: 7, skin: 1, outfit: 1, eyes: 1, hat: 6, brows: 1 } },
+  { id: 'gooblin', name: 'Gooblin', blurb: 'Green, goggled and grinning. Lives in the goo.', style: { hair: 0, skin: 9, outfit: 5, eyes: 3, hat: 7, brows: 3, face: 1 } },
 ];
 
 const wrap = (v, n) => ((Math.round(v) % n) + n) % n;
@@ -93,15 +104,20 @@ export function resolveStyle(st = {}, seed = 0) {
   const eyes = wrap(st.eyes ?? (seed >> 9) % IRIS.length, IRIS.length);
   const hat = wrap(st.hat ?? 0, HATS.length);
   const brows = wrap(st.brows ?? 0, BROWS.length);
-  return { ...st, hair, skin, outfit, eyes, hat, brows };
+  const face = wrap(st.face ?? 0, FACES.length);
+  return { ...st, hair, skin, outfit, eyes, hat, brows, face };
 }
 
 /** A complete random look (bots, "shuffle" in the locker). rng() → [0, 1). About a third of rolls wear headgear. */
 export function randomStyle(rng = Math.random) {
   const pick = (n) => Math.min(n - 1, (rng() * n) | 0);
+  // one in five rolls is a gooblin (green skin, goggles, goo hood)
+  if (rng() < 0.2) return { hair: pick(HAIR_STYLES), skin: GOBLIN_SKINS[pick(GOBLIN_SKINS.length)], outfit: pick(OUTFITS.length), eyes: pick(IRIS.length), hat: 7, brows: pick(BROWS.length), face: 1 };
   return {
-    hair: pick(HAIR_STYLES), skin: pick(SKIN_TONES.length), outfit: pick(OUTFITS.length), eyes: pick(IRIS.length),
-    hat: rng() < 0.5 ? 1 + pick(HATS.length - 1) : 0,   // half the bots wear headgear (animal hoods included) brows: pick(BROWS.length),
+    hair: pick(HAIR_STYLES), skin: pick(9), outfit: pick(OUTFITS.length), eyes: pick(IRIS.length),
+    hat: rng() < 0.5 ? 1 + pick(HATS.length - 1) : 0,   // half the bots wear headgear (animal hoods included)
+    brows: pick(BROWS.length),
+    face: 0,
   };
 }
 

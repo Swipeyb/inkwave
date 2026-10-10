@@ -540,6 +540,7 @@ export class Character {
       u.uIris.value.set(IRIS[this.style.eyes][0]); u.uIris2.value.set(IRIS[this.style.eyes][1]);
     }
     u.uHurtSeed.value = (seed % 997) * 0.37;
+    if (u.uMaskK) u.uMaskK.value = this.style.face === 1 ? 0 : 1;   // goggles replace the painted eye mask
     this.mats = {
       skin: makeSkinMaterial(u, SKIN_TONES[this.style.skin]),
       cloth: makeClothMaterial(u),
